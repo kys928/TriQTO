@@ -1,0 +1,3 @@
+task: joint_multitask
+required_input_groups: ['all_available']
+target_groups: [task_specific_targets]

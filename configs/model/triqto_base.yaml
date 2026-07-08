@@ -1,0 +1,5 @@
+model_name: triqto_base
+input_streams: [circuit_graph, parameter, phasor, hilbert_optional, born, backend, topology]
+fusion: [dual_mode_tri_manifold, mask_aware, topology]
+core_interaction: phase_coupled_lattice_message_passing
+heads: [distortion, action_ranking, born_prediction, hilbert_deformation, uncertainty, topology]

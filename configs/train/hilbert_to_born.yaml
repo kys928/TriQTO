@@ -1,0 +1,3 @@
+task: hilbert_to_born
+required_input_groups: ['hilbert', 'born']
+target_groups: [task_specific_targets]

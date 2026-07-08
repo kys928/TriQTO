@@ -1,0 +1,15 @@
+qubit_counts: [4]
+circuit_families: [ghz]
+distortions: [phase_rz_drift]
+simulation_modes: [ideal_statevector, ideal_shot]
+shots: [1024]
+candidate_actions: [rz_phase_shift]
+topology:
+  enabled: false
+hardware:
+  enabled_initially: false
+storage:
+  root: data/
+  manifest_format: parquet
+  tensor_format: zarr
+  save_full_statevectors: selected_only

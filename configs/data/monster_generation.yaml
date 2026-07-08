@@ -1,0 +1,19 @@
+qubit_counts: [4, 6, 8, 10, 12, 14, 16]
+circuit_families: [bell, ghz, phase_interference, qft_like, hardware_efficient_ansatz, random_shallow, lattice_entangled, qaoa_like]
+distortions: [phase_rz_drift, rx_overrotation, ry_overrotation, entangling_overrotation, readout_noise, depolarizing_noise, amplitude_damping, phase_damping, thermal_relaxation, mixed_noise, transpilation_layout_distortion]
+simulation_modes: [ideal_statevector, ideal_shot, noisy_shot, fake_backend]
+shots: [1024, 4096, 8192]
+candidate_actions: [rz_phase_shift, rx_amplitude_shift, ry_amplitude_shift, entangler_adjustment, gate_removal, layout_change, transpiler_change, measurement_basis_probe, depth_reduction]
+topology:
+  enabled: true
+  homology_dimensions: [0, 1]
+  optional_h2: true
+  initial_topology_loss_weight: 0.0
+hardware:
+  enabled_initially: false
+  provider: ibm_runtime_later
+storage:
+  root: data/
+  manifest_format: parquet
+  tensor_format: zarr
+  save_full_statevectors: selected_only

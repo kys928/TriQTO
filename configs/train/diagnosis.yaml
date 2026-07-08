@@ -1,0 +1,3 @@
+task: diagnosis
+required_input_groups: ['circuit_graph', 'born', 'backend']
+target_groups: [task_specific_targets]
