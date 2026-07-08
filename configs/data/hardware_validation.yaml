@@ -1,0 +1,2 @@
+# hardware_validation placeholder config for future TriQTO runs.
+extends: monster_generation.yaml

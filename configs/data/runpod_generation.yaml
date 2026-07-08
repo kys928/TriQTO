@@ -1,0 +1,2 @@
+# runpod_generation placeholder config for future TriQTO runs.
+extends: monster_generation.yaml

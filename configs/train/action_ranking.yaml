@@ -1,0 +1,3 @@
+task: action_ranking
+required_input_groups: ['circuit_graph', 'action_candidates', 'metrics']
+target_groups: [task_specific_targets]

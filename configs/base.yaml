@@ -1,0 +1,12 @@
+project:
+  name: triqto
+  pronunciation: Trikto
+  python: "3.11"
+paths:
+  data_root: data/
+  experiment_root: experiments/
+hardware:
+  enabled_initially: false
+  require_api_keys: false
+logging:
+  level: INFO

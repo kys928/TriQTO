@@ -1,0 +1,3 @@
+task: topology_audit
+required_input_groups: ['topology', 'metrics']
+target_groups: [task_specific_targets]

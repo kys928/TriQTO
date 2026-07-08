@@ -1,0 +1,3 @@
+task: born_prediction
+required_input_groups: ['circuit_graph', 'parameter', 'phasor']
+target_groups: [task_specific_targets]

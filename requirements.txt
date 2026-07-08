@@ -1,0 +1,17 @@
+qiskit
+qiskit-aer
+qiskit-ibm-runtime
+numpy
+scipy
+pandas
+pyarrow
+h5py
+zarr
+networkx
+torch
+pyyaml
+tqdm
+matplotlib
+pytest
+ripser
+gudhi
