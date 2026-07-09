@@ -1,29 +1,26 @@
 #!/usr/bin/env python3
-"""Placeholder TriQTO smoke-test pipeline.
-
-Future target:
-1. Generate 4-qubit GHZ circuit
-2. Simulate clean ideal statevector
-3. Compute ideal Born probabilities
-4. Inject phase drift
-5. Run shot simulation
-6. Compute Born divergence
-7. Save manifest rows
-8. Print summary
-"""
+"""Tiny in-memory TriQTO Phase 4 smoke test."""
 from __future__ import annotations
 
+from triqto.circuits.ghz import make_ghz_circuit
+from triqto.simulation import simulate_ideal_shots, simulate_ideal_statevector
+
+
+def _top_items(mapping: dict[str, float] | dict[str, int], limit: int = 4) -> dict[str, float] | dict[str, int]:
+    return dict(sorted(mapping.items(), key=lambda item: (-item[1], item[0]))[:limit])
+
+
 if __name__ == "__main__":
-    steps = [
-        "Generate 4-qubit GHZ circuit",
-        "Simulate clean ideal statevector",
-        "Compute ideal Born probabilities",
-        "Inject phase drift",
-        "Run shot simulation",
-        "Compute Born divergence",
-        "Save manifest rows",
-        "Print summary",
-    ]
-    print("TriQTO smoke test placeholder; planned steps:")
-    for i, step in enumerate(steps, 1):
-        print(f"{i}. {step}")
+    generated = make_ghz_circuit(4, measure=True)
+    state_result = simulate_ideal_statevector(generated)
+    shot_result = simulate_ideal_shots(generated, shots=1024, seed=1234)
+
+    print("TriQTO Phase 4 smoke test complete.")
+    print(f"Circuit family: {generated.family}")
+    print(f"Qubits: {generated.n_qubits}")
+    print(f"Statevector mode: {state_result.simulation_mode}")
+    print(f"Shot mode: {shot_result.simulation_mode}")
+    print(f"Top ideal probabilities: {_top_items(state_result.probabilities)}")
+    print(f"Sampled counts: {_top_items(shot_result.counts)}")
+    print(f"Ideal probability support: {len(state_result.probabilities)}")
+    print(f"Shot count total: {sum(shot_result.counts.values())}")
