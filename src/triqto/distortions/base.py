@@ -1,12 +1,12 @@
 """Core records and helpers for deterministic TriQTO circuit distortions."""
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from math import isfinite
 from typing import Any
 
-from qiskit import QuantumCircuit
+from qiskit import ClassicalRegister, QuantumCircuit
 
 
 @dataclass(frozen=True)
@@ -70,6 +70,84 @@ def validate_probability(probability: float) -> float:
 def has_measurements(circuit: QuantumCircuit) -> bool:
     """Return whether a circuit contains measurement instructions."""
     return any(inst.operation.name == "measure" for inst in circuit.data)
+
+
+def has_classical_conditions(circuit: QuantumCircuit) -> bool:
+    """Return whether any instruction has a classical condition."""
+    return any(getattr(inst.operation, "condition", None) is not None for inst in circuit.data)
+
+
+def has_nonmeasurement_after_measurement(circuit: QuantumCircuit) -> bool:
+    """Return whether any non-measurement operation follows a measurement."""
+    seen_measurement = False
+    for inst in circuit.data:
+        if inst.operation.name == "measure":
+            seen_measurement = True
+        elif seen_measurement:
+            return True
+    return False
+
+
+def _final_measurement_pairs(circuit: QuantumCircuit) -> list[tuple[int, int]]:
+    """Return final measurement qubit/classical-bit index pairs from a circuit."""
+    return [
+        (circuit.find_bit(inst.qubits[0]).index, circuit.find_bit(inst.clbits[0]).index)
+        for inst in circuit.data
+        if inst.operation.name == "measure"
+    ]
+
+
+def _restore_classical_bits(source: QuantumCircuit, target: QuantumCircuit) -> None:
+    """Restore enough classical bits on ``target`` to preserve measurement mapping."""
+    if target.num_clbits >= source.num_clbits:
+        return
+    for creg in source.cregs:
+        if target.num_clbits >= source.num_clbits:
+            break
+        target.add_register(ClassicalRegister(creg.size, creg.name))
+    remaining = source.num_clbits - target.num_clbits
+    if remaining > 0:
+        target.add_register(ClassicalRegister(remaining, "distortion_c"))
+
+
+def copy_for_unitary_distortion(circuit: QuantumCircuit) -> tuple[QuantumCircuit, Callable[[QuantumCircuit], QuantumCircuit], dict[str, Any]]:
+    """Copy a circuit for unitary distortion before safely restoring final measurements.
+
+    Unitary distortions are inserted before final measurements so that the final
+    measurements remain removable by ideal statevector simulation. Circuits with
+    mid-circuit measurements or classical conditions are rejected because inserting
+    unitary drift around measurement/control flow would be ambiguous.
+    """
+    copied = copy_circuit(circuit)
+    if has_classical_conditions(copied):
+        raise ValueError("Unitary distortions do not support classical conditions.")
+    if has_nonmeasurement_after_measurement(copied):
+        raise ValueError("Unitary distortions require measurements to be final; mid-circuit measurements are unsupported.")
+    measurement_pairs = _final_measurement_pairs(copied)
+    if not measurement_pairs:
+        return copied, lambda distorted: distorted, {"final_measurements_removed": False, "final_measurement_count": 0}
+
+    try:
+        stripped = copied.remove_final_measurements(inplace=False)
+    except TypeError:  # pragma: no cover - compatibility with older Qiskit
+        stripped = copied.copy()
+        stripped.remove_final_measurements(inplace=True)
+
+    if has_measurements(stripped):
+        raise ValueError("Unitary distortions require measurements to be final; mid-circuit measurements are unsupported.")
+
+    def restore_measurements(distorted: QuantumCircuit) -> QuantumCircuit:
+        restored = distorted.copy()
+        _restore_classical_bits(copied, restored)
+        for qubit_index, clbit_index in measurement_pairs:
+            restored.measure(qubit_index, clbit_index)
+        return restored
+
+    return stripped, restore_measurements, {
+        "final_measurements_removed": True,
+        "final_measurement_count": len(measurement_pairs),
+        "final_measurement_map": [[q, c] for q, c in measurement_pairs],
+    }
 
 
 def append_metadata_summary(

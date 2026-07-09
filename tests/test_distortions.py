@@ -8,6 +8,7 @@ import pytest
 from qiskit import QuantumCircuit
 
 from triqto.circuits.bell import make_bell_circuit
+from triqto.circuits.ghz import make_ghz_circuit
 from triqto.distortions import (
     DistortedCircuit,
     apply_distortion,
@@ -20,6 +21,7 @@ from triqto.distortions import (
     apply_ry_overrotation,
     list_distortions,
 )
+from triqto.simulation.ideal_statevector import simulate_ideal_statevector
 
 
 EXPECTED_DISTORTIONS = {
@@ -43,6 +45,26 @@ def circuit_signature(circuit: QuantumCircuit) -> tuple[tuple[str, tuple[int, ..
         )
         for inst in circuit.data
     )
+
+
+def final_measurement_count(circuit: QuantumCircuit) -> int:
+    """Count trailing final measurements."""
+    count = 0
+    for inst in reversed(circuit.data):
+        if inst.operation.name != "measure":
+            break
+        count += 1
+    return count
+
+
+def assert_no_unitary_after_final_measurements(circuit: QuantumCircuit) -> None:
+    """Assert all operations after the first final measurement are measurements."""
+    seen_measurement = False
+    for inst in circuit.data:
+        if inst.operation.name == "measure":
+            seen_measurement = True
+        elif seen_measurement:
+            pytest.fail(f"Found non-measurement operation {inst.operation.name!r} after final measurements.")
 
 
 def test_list_distortions_includes_expected_names() -> None:
@@ -172,3 +194,37 @@ def test_no_qiskit_aer_import_is_required() -> None:
     ]:
         module = importlib.import_module(module_name)
         assert "qiskit_aer" not in repr(getattr(module, "__dict__", {}))
+
+
+def test_phase_rz_drift_preserves_final_measurements_for_measured_ghz() -> None:
+    generated = make_ghz_circuit(4, measure=True)
+    original_signature = circuit_signature(generated.circuit)
+    result = apply_phase_rz_drift(generated, strength=0.2)
+
+    assert circuit_signature(generated.circuit) == original_signature
+    assert final_measurement_count(result.distorted_circuit) == 4
+    assert_no_unitary_after_final_measurements(result.distorted_circuit)
+    assert result.metadata["final_measurements_removed"] is True
+    assert result.metadata["final_measurement_count"] == 4
+    simulate_ideal_statevector(result.distorted_circuit)
+
+
+def test_mixed_unitary_drift_preserves_final_measurements_for_measured_ghz() -> None:
+    generated = make_ghz_circuit(4, measure=True)
+    original_signature = circuit_signature(generated.circuit)
+    result = apply_mixed_unitary_drift(generated, strength=0.2)
+
+    assert circuit_signature(generated.circuit) == original_signature
+    assert final_measurement_count(result.distorted_circuit) == 4
+    assert_no_unitary_after_final_measurements(result.distorted_circuit)
+    assert result.metadata["final_measurement_map"] == [[0, 0], [1, 1], [2, 2], [3, 3]]
+    simulate_ideal_statevector(result.distorted_circuit)
+
+
+def test_unitary_distortions_reject_mid_circuit_measurements() -> None:
+    circuit = QuantumCircuit(2, 1)
+    circuit.h(0)
+    circuit.measure(0, 0)
+    circuit.x(1)
+    with pytest.raises(ValueError, match="mid-circuit measurements"):
+        apply_phase_rz_drift(circuit, strength=0.1)

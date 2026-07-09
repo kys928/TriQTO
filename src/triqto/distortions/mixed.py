@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-from .base import DistortedCircuit, copy_circuit, extract_circuit, make_distorted_circuit, validate_finite_strength, validate_qubits
+from .base import DistortedCircuit, copy_for_unitary_distortion, extract_circuit, make_distorted_circuit, validate_finite_strength, validate_qubits
 from .entangling import append_rzz_or_decomposition
 
 
@@ -18,7 +18,7 @@ def apply_mixed_unitary_drift(
     value = validate_finite_strength(strength)
     clean = extract_circuit(circuit_or_generated)
     selected = validate_qubits(clean.num_qubits, qubits)
-    distorted = copy_circuit(clean)
+    distorted, restore_measurements, measurement_metadata = copy_for_unitary_distortion(clean)
     affected_gates: list[str] = []
     for qubit in selected:
         distorted.rz(value, qubit)
@@ -39,6 +39,7 @@ def apply_mixed_unitary_drift(
     ]
     if edges:
         components.append({"type": "entangling_rzz_drift", "gate": "rzz", "strength": half, "edges": [[a, b] for a, b in edges]})
+    distorted = restore_measurements(distorted)
     return make_distorted_circuit(
         circuit_or_generated,
         distorted_circuit=distorted,
@@ -48,6 +49,7 @@ def apply_mixed_unitary_drift(
         affected_qubits=selected,
         affected_gates=affected_gates,
         metadata={
+            **measurement_metadata,
             "selected_qubits": selected,
             "include_entangling": include_entangling,
             "edges": [[a, b] for a, b in edges],

@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-from .base import DistortedCircuit, copy_circuit, extract_circuit, make_distorted_circuit, validate_finite_strength
+from .base import DistortedCircuit, copy_for_unitary_distortion, extract_circuit, make_distorted_circuit, validate_finite_strength
 
 
 def validate_edges(n_qubits: int, edges: Sequence[tuple[int, int]] | None) -> list[tuple[int, int]]:
@@ -36,11 +36,12 @@ def apply_entangling_rzz_drift(circuit_or_generated: Any, strength: float, edges
     value = validate_finite_strength(strength)
     clean = extract_circuit(circuit_or_generated)
     selected_edges = validate_edges(clean.num_qubits, edges)
-    distorted = copy_circuit(clean)
+    distorted, restore_measurements, measurement_metadata = copy_for_unitary_distortion(clean)
     decompositions = [append_rzz_or_decomposition(distorted, value, a, b) for a, b in selected_edges]
+    distorted = restore_measurements(distorted)
     edge_lists = [[a, b] for a, b in selected_edges]
     affected_qubits = sorted({q for edge in selected_edges for q in edge})
-    metadata = {"edges": edge_lists, "selected_edges": edge_lists, "rzz_decomposition": decompositions[0] if decompositions else "none"}
+    metadata = {**measurement_metadata, "edges": edge_lists, "selected_edges": edge_lists, "rzz_decomposition": decompositions[0] if decompositions else "none"}
     if len(set(decompositions)) > 1:
         metadata["rzz_decompositions"] = decompositions
     return make_distorted_circuit(
