@@ -83,7 +83,7 @@ class GraphRecord(ManifestRecordMixin):
     metadata: JsonMap = field(default_factory=dict)
 
     def validate(self) -> None:
-        super().validate()
+        ManifestRecordMixin.validate(self)
         for name in self.required_fields:
             _nonblank(getattr(self, name), name)
         if self.role not in {"clean", "distorted"}:
@@ -131,7 +131,7 @@ class GraphPairRecord(ManifestRecordMixin):
     metadata: JsonMap = field(default_factory=dict)
 
     def validate(self) -> None:
-        super().validate()
+        ManifestRecordMixin.validate(self)
         for name in self.required_fields:
             _nonblank(getattr(self, name), name)
         _safe_ref(self.pair_ref, "pair_ref")
