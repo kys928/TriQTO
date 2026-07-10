@@ -111,7 +111,20 @@ def test_end_to_end_action_engine_and_source_immutability(tmp_path):
         if "oracle_inverse"
         in candidates_by_id[rollout.action_id].generation_sources
     ]
-    assert selected_oracle_rollouts
+    selected_diagnostics = [
+        {
+            "sample_id": rollout.sample_id,
+            "reward": rollout.reward,
+            "metrics": rollout.candidate_metric_values.tolist(),
+            "sources": candidates_by_id[rollout.action_id].generation_sources,
+            "edits": [
+                (edit.edit_type, edit.qubits, edit.magnitude)
+                for edit in candidates_by_id[rollout.action_id].edits
+            ],
+        }
+        for rollout in selected_rollouts
+    ]
+    assert selected_oracle_rollouts, selected_diagnostics
     assert min(
         rollout.candidate_metric_values[0]
         for rollout in selected_oracle_rollouts
