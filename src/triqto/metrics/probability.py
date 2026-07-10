@@ -31,9 +31,9 @@ def normalize_probability_distribution(probabilities: Mapping[str, float], *, at
     """Return a stable, normalized copy of a bitstring probability distribution."""
     coerced = _coerce_probability_items(probabilities, atol=atol)
     total = sum(coerced.values())
-    if total <= atol:
+    if total <= 0.0:
         raise ValueError("probability distribution must have positive total mass.")
-    normalized = {key: value / total for key, value in coerced.items() if value > atol}
+    normalized = {key: value / total for key, value in coerced.items() if value > 0.0}
     if not normalized:
         raise ValueError("probability distribution must have positive total mass after clipping numerical noise.")
     return {key: normalized[key] for key in sorted(normalized)}

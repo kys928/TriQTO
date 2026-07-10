@@ -29,6 +29,13 @@ def test_normalize_probability_distribution_normalizes_valid_non_normalized_inpu
     assert normalize_probability_distribution({"1": 3.0, "0": 1.0}) == {"0": 0.25, "1": 0.75}
 
 
+def test_normalize_probability_distribution_preserves_tiny_positive_probability() -> None:
+    normalized = normalize_probability_distribution({"0": 1.0, "1": 1e-13})
+    assert set(normalized) == {"0", "1"}
+    assert normalized["1"] > 0.0
+    assert sum(normalized.values()) == pytest.approx(1.0)
+
+
 def test_normalize_probability_distribution_clips_tiny_negative_noise() -> None:
     assert normalize_probability_distribution({"0": 1.0, "1": -1e-13}) == {"0": 1.0}
 
@@ -62,12 +69,13 @@ def test_hellinger_distance_known_values() -> None:
 def test_kl_divergence_identical_zero_infinite_support_and_directional() -> None:
     assert kl_divergence({"0": 0.25, "1": 0.75}, {"0": 0.25, "1": 0.75}) == pytest.approx(0.0)
     assert math.isinf(kl_divergence({"0": 1.0}, {"1": 1.0}))
+    assert math.isfinite(kl_divergence({"1": 1.0}, {"0": 1.0, "1": 1e-13}))
     forward = kl_divergence({"0": 0.9, "1": 0.1}, {"0": 0.5, "1": 0.5})
     reverse = kl_divergence({"0": 0.5, "1": 0.5}, {"0": 0.9, "1": 0.1})
     assert forward != pytest.approx(reverse)
 
 
-@pytest.mark.parametrize("base", [0.0, -2.0, 1.0, math.inf])
+@pytest.mark.parametrize("base", [0.0, -2.0, 0.5, 1.0, math.nan, math.inf])
 def test_invalid_log_base_raises_value_error(base: float) -> None:
     with pytest.raises(ValueError, match="log base"):
         kl_divergence({"0": 1.0}, {"0": 1.0}, base=base)
@@ -135,6 +143,21 @@ def test_marker_only_context_metadata_adds_applicability_warning() -> None:
     assert "marker-only distortion context" in bundle.metadata["applicability_warning"]
 
 
+def test_distortion_family_readout_without_marker_context_does_not_warn() -> None:
+    bundle = compare_born_distributions({"0": 1.0}, {"0": 1.0}, context_metadata={"distortion_family": "readout"})
+    assert "applicability_warning" not in bundle.metadata
+
+
+def test_not_a_noisy_simulator_context_adds_applicability_warning() -> None:
+    bundle = compare_born_distributions({"0": 1.0}, {"0": 1.0}, context_metadata={"not_a_noisy_simulator": True})
+    assert "marker-only distortion context" in bundle.metadata["applicability_warning"]
+
+
+def test_not_transpiled_context_adds_applicability_warning() -> None:
+    bundle = compare_born_distributions({"0": 1.0}, {"0": 1.0}, context_metadata={"not_transpiled": True})
+    assert "marker-only distortion context" in bundle.metadata["applicability_warning"]
+
+
 def test_no_qiskit_aer_import_is_required() -> None:
     assert "qiskit_aer" not in sys.modules
 
@@ -149,14 +172,18 @@ def test_born_visible_rx_distortion_produces_nonzero_metric_shift() -> None:
     assert bundle.metrics["hellinger"].value > 0.0
 
 
-def test_phase_only_rz_drift_can_be_born_blind_in_computational_basis() -> None:
+def test_phase_only_rz_drift_can_be_born_blind_for_relative_phase_in_computational_basis() -> None:
     circuit = QuantumCircuit(1, 1)
+    circuit.h(0)
     circuit.measure(0, 0)
     clean = simulate_ideal_statevector(circuit)
     distorted_circuit = apply_phase_rz_drift(circuit, strength=0.75).distorted_circuit
     distorted = simulate_ideal_statevector(distorted_circuit)
     bundle = compare_born_distributions(clean, distorted)
-    # Expected: computational-basis Born metrics cannot see all phase/Hilbert changes.
-    # Later Hilbert/phase metrics are needed for phase-sensitive damage that leaves |amplitudes|^2 unchanged.
+    # RZ changes the relative phase of |+>, so the Hilbert state changes.
+    # Computational-basis Born probabilities still remain 50/50, demonstrating
+    # why later Hilbert/phase metrics are needed for phase-sensitive damage.
+    assert clean.probabilities == {"0": pytest.approx(0.5), "1": pytest.approx(0.5)}
+    assert distorted.probabilities == {"0": pytest.approx(0.5), "1": pytest.approx(0.5)}
     assert bundle.metrics["total_variation"].value == pytest.approx(0.0)
     assert bundle.metrics["hellinger"].value == pytest.approx(0.0)

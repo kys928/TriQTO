@@ -11,8 +11,8 @@ from .results import BornMetricBundle, BornMetricResult
 
 def _validate_log_base(base: float) -> float:
     value = float(base)
-    if value <= 0.0 or value == 1.0 or not math.isfinite(value):
-        raise ValueError("log base must be finite, positive, and not equal to 1.")
+    if not math.isfinite(value) or value <= 1.0:
+        raise ValueError("log base must be finite and strictly greater than 1.")
     return value
 
 
@@ -182,7 +182,12 @@ def compare_born_distributions(
     }
     if context:
         metadata["context_metadata"] = context
-        if context.get("marker_only") is True or context.get("distortion_family") in {"readout", "layout"}:
+        marker_only_context = (
+            context.get("marker_only") is True
+            or context.get("not_a_noisy_simulator") is True
+            or context.get("not_transpiled") is True
+        )
+        if marker_only_context:
             metadata["applicability_warning"] = (
                 "marker-only distortion context; Born metrics only compare supplied distributions and do not simulate readout/layout effects"
             )
