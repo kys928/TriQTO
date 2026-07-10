@@ -117,6 +117,30 @@ Typed `MetricRecord` readback treats null `born_metrics` or null/malformed `meta
 
 ## Phase 8 graph conversion artifacts
 
-Phase 8 consumes a completed Phase 7 root and writes a separate immutable graph root containing `graph_config.json`, `graph_summary.json`, `graph_complete.json`, `manifests/graph_manifest.parquet`, `manifests/graph_pair_manifest.parquet`, `artifacts/graphs/<graph_id>.npz`, and `artifacts/pairs/<graph_pair_id>.npz`. Graph references are relative POSIX paths. NPZ payloads use non-object arrays loadable with `allow_pickle=False`.
+Phase 8 consumes one completed Phase 7 root and writes a separate immutable graph root:
 
-Graph records describe variable-size qubit-node circuit graphs and graph-pair records describe clean/distorted sample links. They are representation records only: no train/validation/test allocation, action label, topology feature, learned embedding, Hilbert feature vector, physical coupling graph, or model output is stored.
+```text
+graph_config.json
+graph_summary.json
+graph_complete.json
+manifests/graph_manifest.parquet
+manifests/graph_pair_manifest.parquet
+artifacts/graphs/<graph_id>.npz
+artifacts/pairs/<graph_pair_id>.npz
+```
+
+`GraphRecord` is circuit/run-level and contains no authoritative sample owner. Its identity includes the source circuit, exact statevector run, clean/distorted role, and versioned graph schema. `GraphPairRecord` is sample-level and joins one Phase 7 sample to clean/distorted graph IDs, distortion ID, and metric ID. Reused clean graphs carry only sorted sample provenance metadata; sample provenance is excluded from graph identity and structural hashing.
+
+Graph NPZ artifacts contain variable-size qubit nodes, directed two-qubit event multiedges, ordered gate events, CSR operand/parameter incidence arrays, deterministic logical dependency layers, exact Born outcome tables, and optional separate supplemental count tables. Arrays use fixed dtypes, contain no Python objects, and load with `allow_pickle=False`. Operations on more than two qubits remain incidence events and do not produce fabricated pairwise cliques. Physical backend coupling edges are not invented from ideal simulation data.
+
+Exact Born evidence is strict and authoritative. Bitstrings are sorted unique binary strings with circuit width; probabilities reject booleans, strings, NaN, and infinity. Tiny positive mass is preserved without thresholding or truncation. Ideal-shot counts are linked through the shot `SimulationRecord.metadata["source_run_id"]`, checked against their exact run and shot total, and remain supplemental. Excluding supplemental counts does not alter graph IDs, pair IDs, exact Born arrays, or structural graph hashes.
+
+Structural graph hashes include the versioned representation, fixed feature ordering, circuit structure, parameters, and exact Born evidence. They exclude graph IDs, sample provenance, source/output paths, statevector references, supplemental counts, timestamps, and operational guardrails. Pair artifacts have separate deterministic content hashes covering pair identities, labels, applicability warnings, and Born metric arrays. Applicability warnings come from `MetricRecord.metadata`.
+
+The Phase 7 source completion marker, scientific generation ID, operational config ID, sample count, manifest count, managed inventory, typed joins, and artifact references are cross-checked. Every managed source file is byte-hashed before and after conversion. Statevector arrays are never loaded for graph features; their references remain provenance only and `hilbert_available_mask` remains false.
+
+Both Phase 8 manifests are typed-read before publication. Graph and pair IDs are unique, graph-pair joins are explicit, artifact dimensions agree with manifests, and all logical hashes are recomputed. The actual `GraphConversionConfig` used for conversion is persisted in `graph_config.json`.
+
+Phase 8 output roots are immutable: the final root must not exist. The complete dataset is created and validated in a unique sibling staging directory, `graph_complete.json` records the source generation ID, graph conversion/config/schema IDs, source snapshot hash, counts, and sorted managed-file inventory, and the staging directory is atomically renamed. Failure removes only that staging directory and cannot leave a partial final root.
+
+Phase 8 remains representation only. It adds no graph neural network, correction action, policy, baseline, topology, persistent homology, training split, model training, noisy backend, hardware call, Hilbert metric, or quantum-advantage claim.
