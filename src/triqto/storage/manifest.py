@@ -68,6 +68,11 @@ def _is_missing(value: Any) -> bool:
 
 def _decode_parquet_value(value: Any, path: str) -> Any:
     """Restore recursively encoded empty mappings after Parquet readback."""
+    if (
+        not isinstance(value, (str, bytes, Mapping, list, tuple))
+        and hasattr(value, "tolist")
+    ):
+        return _decode_parquet_value(value.tolist(), path)
     if isinstance(value, Mapping):
         sentinel = value.get(_EMPTY_MAP_SENTINEL)
         other_items = {
@@ -85,7 +90,7 @@ def _decode_parquet_value(value: Any, path: str) -> Any:
             key: _decode_parquet_value(item, f"{path}.{key}")
             for key, item in other_items.items()
         }
-    if isinstance(value, list):
+    if isinstance(value, (list, tuple)):
         return [
             _decode_parquet_value(item, f"{path}[{index}]")
             for index, item in enumerate(value)
