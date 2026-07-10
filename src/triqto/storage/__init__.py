@@ -12,6 +12,8 @@ from triqto.storage.schema import (
     SimulationRecord,
     TopologyRecord,
     TrainingViewRecord,
+    GraphRecord,
+    GraphPairRecord,
 )
 
 __all__ = [
@@ -26,4 +28,6 @@ __all__ = [
     "SimulationRecord",
     "TopologyRecord",
     "TrainingViewRecord",
+    "GraphRecord",
+    "GraphPairRecord",
 ]

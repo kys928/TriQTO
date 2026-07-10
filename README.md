@@ -53,3 +53,7 @@ Baselines are required because physics priors should act as scaffolding, validat
 14. Training engine.
 15. Evaluation and reports.
 16. Hardware validation.
+
+## Phase 8 graph conversion
+
+Phase 8 converts completed Phase 7 datasets into deterministic, framework-neutral NumPy graph artifacts. Qubits are variable-size graph nodes; two-qubit gate events become directed multiedges; ordered gate, operand, classical-bit, parameter, logical-layer, and exact Born-outcome evidence is preserved without fixed-size circuit or probability padding. Global phase is retained only as provenance metadata, Hilbert-derived features are masked absent, statevectors are not loaded, and no model, topology, action policy, training split, noisy backend, or hardware call is introduced. See `docs/GRAPH_SCHEMA.md`.
