@@ -1,11 +1,13 @@
-"""TriQTO actions.action_space module.
-
-Placeholder contracts for the Phase 1 repository skeleton. TODO: implement in the scheduled future phase without fake heavy logic.
-"""
-
+"""Public bounded action-space contracts for Phase 9."""
 from __future__ import annotations
 
+from .constants import SUPPORTED_EDIT_TYPES
+from .models import ActionCandidate, ActionEdit
 
-def describe_contract() -> str:
-    """Return a short description of this placeholder module contract."""
-    return "TriQTO placeholder for actions.action_space; implementation deferred."
+
+def supported_edit_types() -> tuple[str, ...]:
+    """Return the fixed ordered Phase 9 v1 primitive edit vocabulary."""
+    return SUPPORTED_EDIT_TYPES
+
+
+__all__ = ["ActionCandidate", "ActionEdit", "supported_edit_types"]
