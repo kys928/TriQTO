@@ -36,7 +36,19 @@ jobs:
         run: python -m compileall -q src scripts
 
       - name: Run test suite
-        run: PYTHONPATH=src pytest -q --tb=short
+        shell: bash
+        run: |
+          set -o pipefail
+          PYTHONPATH=src pytest -q --tb=short 2>&1 | tee pytest.log
+
+      - name: Upload pytest log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-log
+          path: pytest.log
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Check patch whitespace
         shell: bash
