@@ -15,6 +15,7 @@ from typing import Any, Iterable
 from triqto.storage.schema import ManifestRecordMixin
 
 EMPTY_PARAMETER_BINDINGS_ENCODING = "parquet_null_normalized_to_empty_dict"
+EMPTY_PARAMETER_SIN_COS_ENCODING = "parquet_null_normalized_to_empty_dict"
 
 
 def _record_to_dict(record: Any) -> dict[str, Any]:
@@ -31,10 +32,10 @@ def _record_to_dict(record: Any) -> dict[str, Any]:
     raise TypeError(f"Unsupported manifest record type: {type(record)!r}")
 
 
-def _encode_empty_parameter_bindings(rows: list[dict[str, Any]]) -> None:
-    """Encode empty sample parameter maps so all-empty Parquet structs remain writable."""
+def _encode_empty_sample_maps(rows: list[dict[str, Any]]) -> None:
+    """Encode empty sample maps so all-empty nested Parquet structs stay writable."""
     for row in rows:
-        if "parameter_bindings" not in row or row["parameter_bindings"] != {}:
+        if "parameter_bindings" not in row:
             continue
         metadata = row.get("metadata")
         if not isinstance(metadata, Mapping):
@@ -43,18 +44,28 @@ def _encode_empty_parameter_bindings(rows: list[dict[str, Any]]) -> None:
                 "empty-map Parquet encoding"
             )
         encoded_metadata = dict(metadata)
-        encoded_metadata["empty_parameter_bindings_storage_encoding"] = (
-            EMPTY_PARAMETER_BINDINGS_ENCODING
-        )
-        row["metadata"] = encoded_metadata
-        row["parameter_bindings"] = None
+        changed = False
+        if row["parameter_bindings"] == {}:
+            encoded_metadata["empty_parameter_bindings_storage_encoding"] = (
+                EMPTY_PARAMETER_BINDINGS_ENCODING
+            )
+            row["parameter_bindings"] = None
+            changed = True
+        if encoded_metadata.get("parameter_sin_cos") == {}:
+            encoded_metadata["empty_parameter_sin_cos_storage_encoding"] = (
+                EMPTY_PARAMETER_SIN_COS_ENCODING
+            )
+            encoded_metadata["parameter_sin_cos"] = None
+            changed = True
+        if changed:
+            row["metadata"] = encoded_metadata
 
 
 def _missing_manifest_value(value: Any) -> bool:
     return value is None or (isinstance(value, float) and math.isnan(value))
 
 
-def _decode_empty_parameter_bindings(
+def _decode_empty_sample_maps(
     rows: list[dict[str, Any]],
     record_type: type[ManifestRecordMixin],
 ) -> list[dict[str, Any]]:
@@ -63,14 +74,15 @@ def _decode_empty_parameter_bindings(
     decoded: list[dict[str, Any]] = []
     for original in rows:
         row = dict(original)
+        metadata = row.get("metadata")
+        if not isinstance(metadata, Mapping):
+            raise TypeError(
+                "DatasetSampleRecord.metadata must be a mapping during typed readback"
+            )
+        decoded_metadata = dict(metadata)
         if _missing_manifest_value(row.get("parameter_bindings")):
-            metadata = row.get("metadata")
-            if not isinstance(metadata, Mapping):
-                raise TypeError(
-                    "DatasetSampleRecord.metadata must be a mapping during typed readback"
-                )
             if (
-                metadata.get("empty_parameter_bindings_storage_encoding")
+                decoded_metadata.get("empty_parameter_bindings_storage_encoding")
                 != EMPTY_PARAMETER_BINDINGS_ENCODING
             ):
                 raise ValueError(
@@ -78,6 +90,17 @@ def _decode_empty_parameter_bindings(
                     "documented empty-map storage encoding"
                 )
             row["parameter_bindings"] = {}
+        if _missing_manifest_value(decoded_metadata.get("parameter_sin_cos")):
+            if (
+                decoded_metadata.get("empty_parameter_sin_cos_storage_encoding")
+                != EMPTY_PARAMETER_SIN_COS_ENCODING
+            ):
+                raise ValueError(
+                    "DatasetSampleRecord.metadata.parameter_sin_cos is null without "
+                    "the documented empty-map storage encoding"
+                )
+            decoded_metadata["parameter_sin_cos"] = {}
+            row["metadata"] = decoded_metadata
         decoded.append(row)
     return decoded
 
@@ -106,7 +129,7 @@ class ManifestWriter:
     ) -> Path:
         """Write records to a Parquet manifest and return the output path."""
         rows = [_record_to_dict(record) for record in records]
-        _encode_empty_parameter_bindings(rows)
+        _encode_empty_sample_maps(rows)
         path = self.manifest_path(manifest_name)
         path.parent.mkdir(parents=True, exist_ok=True)
         if path.exists() and not overwrite:
@@ -155,7 +178,7 @@ class ManifestReader:
         record_type: type[ManifestRecordMixin],
     ) -> list[ManifestRecordMixin]:
         """Read a manifest and instantiate validated schema records."""
-        rows = _decode_empty_parameter_bindings(
+        rows = _decode_empty_sample_maps(
             self.read_records(manifest_name),
             record_type,
         )
