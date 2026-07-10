@@ -80,6 +80,7 @@ def action_config() -> ActionEngineConfig:
         candidate_magnitudes=(0.2,),
         max_candidates_per_sample=64,
         max_edits_per_action=16,
+        improvement_atol=1e-7,
     )
 
 
