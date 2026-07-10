@@ -14,8 +14,7 @@ from typing import Any, Iterable
 
 from triqto.storage.schema import ManifestRecordMixin
 
-EMPTY_PARAMETER_BINDINGS_ENCODING = "parquet_null_normalized_to_empty_dict"
-EMPTY_PARAMETER_SIN_COS_ENCODING = "parquet_null_normalized_to_empty_dict"
+_EMPTY_MAP_SENTINEL = "__triqto_parquet_empty_map_v1__"
 
 
 def _record_to_dict(record: Any) -> dict[str, Any]:
@@ -32,77 +31,66 @@ def _record_to_dict(record: Any) -> dict[str, Any]:
     raise TypeError(f"Unsupported manifest record type: {type(record)!r}")
 
 
-def _encode_empty_sample_maps(rows: list[dict[str, Any]]) -> None:
-    """Encode empty sample maps so all-empty nested Parquet structs stay writable."""
-    for row in rows:
-        if "parameter_bindings" not in row:
-            continue
-        metadata = row.get("metadata")
-        if not isinstance(metadata, Mapping):
-            raise TypeError(
-                "Rows with parameter_bindings require mapping metadata for "
-                "empty-map Parquet encoding"
+def _encode_parquet_value(value: Any, path: str) -> Any:
+    """Replace empty mappings with a reserved one-field struct for Parquet.
+
+    PyArrow cannot persist a struct with no child field. The sentinel is decoded on every
+    read, so application-level records still receive exact empty dictionaries at any
+    nesting depth. Legitimate data may not use the reserved sentinel key.
+    """
+    if isinstance(value, Mapping):
+        if _EMPTY_MAP_SENTINEL in value:
+            raise ValueError(
+                f"{path} uses reserved manifest key {_EMPTY_MAP_SENTINEL!r}"
             )
-        encoded_metadata = dict(metadata)
-        changed = False
-        if row["parameter_bindings"] == {}:
-            encoded_metadata["empty_parameter_bindings_storage_encoding"] = (
-                EMPTY_PARAMETER_BINDINGS_ENCODING
-            )
-            row["parameter_bindings"] = None
-            changed = True
-        if encoded_metadata.get("parameter_sin_cos") == {}:
-            encoded_metadata["empty_parameter_sin_cos_storage_encoding"] = (
-                EMPTY_PARAMETER_SIN_COS_ENCODING
-            )
-            encoded_metadata["parameter_sin_cos"] = None
-            changed = True
-        if changed:
-            row["metadata"] = encoded_metadata
+        if not value:
+            return {_EMPTY_MAP_SENTINEL: True}
+        return {
+            key: _encode_parquet_value(item, f"{path}.{key}")
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [
+            _encode_parquet_value(item, f"{path}[{index}]")
+            for index, item in enumerate(value)
+        ]
+    if isinstance(value, tuple):
+        return [
+            _encode_parquet_value(item, f"{path}[{index}]")
+            for index, item in enumerate(value)
+        ]
+    return value
 
 
-def _missing_manifest_value(value: Any) -> bool:
+def _is_missing(value: Any) -> bool:
     return value is None or (isinstance(value, float) and math.isnan(value))
 
 
-def _decode_empty_sample_maps(
-    rows: list[dict[str, Any]],
-    record_type: type[ManifestRecordMixin],
-) -> list[dict[str, Any]]:
-    if record_type.__name__ != "DatasetSampleRecord":
-        return rows
-    decoded: list[dict[str, Any]] = []
-    for original in rows:
-        row = dict(original)
-        metadata = row.get("metadata")
-        if not isinstance(metadata, Mapping):
-            raise TypeError(
-                "DatasetSampleRecord.metadata must be a mapping during typed readback"
-            )
-        decoded_metadata = dict(metadata)
-        if _missing_manifest_value(row.get("parameter_bindings")):
-            if (
-                decoded_metadata.get("empty_parameter_bindings_storage_encoding")
-                != EMPTY_PARAMETER_BINDINGS_ENCODING
-            ):
+def _decode_parquet_value(value: Any, path: str) -> Any:
+    """Restore recursively encoded empty mappings after Parquet readback."""
+    if isinstance(value, Mapping):
+        sentinel = value.get(_EMPTY_MAP_SENTINEL)
+        other_items = {
+            key: item for key, item in value.items() if key != _EMPTY_MAP_SENTINEL
+        }
+        if sentinel is True:
+            if any(not _is_missing(item) for item in other_items.values()):
                 raise ValueError(
-                    "DatasetSampleRecord.parameter_bindings is null without the "
-                    "documented empty-map storage encoding"
+                    f"{path} has an empty-map sentinel alongside real values"
                 )
-            row["parameter_bindings"] = {}
-        if _missing_manifest_value(decoded_metadata.get("parameter_sin_cos")):
-            if (
-                decoded_metadata.get("empty_parameter_sin_cos_storage_encoding")
-                != EMPTY_PARAMETER_SIN_COS_ENCODING
-            ):
-                raise ValueError(
-                    "DatasetSampleRecord.metadata.parameter_sin_cos is null without "
-                    "the documented empty-map storage encoding"
-                )
-            decoded_metadata["parameter_sin_cos"] = {}
-            row["metadata"] = decoded_metadata
-        decoded.append(row)
-    return decoded
+            return {}
+        if sentinel is not None and not _is_missing(sentinel):
+            raise ValueError(f"{path} has malformed empty-map sentinel value")
+        return {
+            key: _decode_parquet_value(item, f"{path}.{key}")
+            for key, item in other_items.items()
+        }
+    if isinstance(value, list):
+        return [
+            _decode_parquet_value(item, f"{path}[{index}]")
+            for index, item in enumerate(value)
+        ]
+    return value
 
 
 class ManifestWriter:
@@ -128,8 +116,13 @@ class ManifestWriter:
         overwrite: bool = False,
     ) -> Path:
         """Write records to a Parquet manifest and return the output path."""
-        rows = [_record_to_dict(record) for record in records]
-        _encode_empty_sample_maps(rows)
+        rows = [
+            _encode_parquet_value(
+                _record_to_dict(record),
+                f"{manifest_name}[{index}]",
+            )
+            for index, record in enumerate(records)
+        ]
         path = self.manifest_path(manifest_name)
         path.parent.mkdir(parents=True, exist_ok=True)
         if path.exists() and not overwrite:
@@ -160,7 +153,7 @@ class ManifestReader:
         return self.root / name
 
     def read_records(self, manifest_name: str) -> list[dict[str, Any]]:
-        """Read a Parquet manifest into a list of dictionaries."""
+        """Read a Parquet manifest and restore encoded empty mappings."""
         path = self.manifest_path(manifest_name)
         if not path.exists():
             raise FileNotFoundError(f"Manifest does not exist: {path}")
@@ -170,7 +163,14 @@ class ManifestReader:
             raise RuntimeError(
                 "pandas and pyarrow are required for Parquet manifest reading"
             ) from exc
-        return pd.read_parquet(path).to_dict(orient="records")
+        raw_rows = pd.read_parquet(path).to_dict(orient="records")
+        decoded: list[dict[str, Any]] = []
+        for index, raw in enumerate(raw_rows):
+            value = _decode_parquet_value(raw, f"{manifest_name}[{index}]")
+            if not isinstance(value, dict):
+                raise TypeError("Decoded manifest row must be a dictionary")
+            decoded.append(value)
+        return decoded
 
     def read_typed_records(
         self,
@@ -178,11 +178,10 @@ class ManifestReader:
         record_type: type[ManifestRecordMixin],
     ) -> list[ManifestRecordMixin]:
         """Read a manifest and instantiate validated schema records."""
-        rows = _decode_empty_sample_maps(
-            self.read_records(manifest_name),
-            record_type,
-        )
-        records = [record_type.from_dict(row) for row in rows]
+        records = [
+            record_type.from_dict(row)
+            for row in self.read_records(manifest_name)
+        ]
         for record in records:
             record.validate()
         return records
