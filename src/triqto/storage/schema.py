@@ -7,6 +7,8 @@ embed statevectors, density matrices, or trained model outputs.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field, is_dataclass
+from collections.abc import Mapping
+import math
 from typing import Any, ClassVar, TypeVar
 
 JsonMap = dict[str, Any]
@@ -23,6 +25,30 @@ def _normalize_manifest_value(value: Any) -> Any:
     if isinstance(value, list):
         return [_normalize_manifest_value(item) for item in value]
     return value
+
+
+def _validate_encoded_metric_values(payload: Mapping[str, Any], field_name: str) -> None:
+    markers = {key[:-11]: value for key, value in payload.items() if isinstance(key, str) and key.endswith("__nonfinite")}
+    for marker_base in markers:
+        if marker_base not in payload:
+            raise ValueError(f"{field_name} has orphan nonfinite marker for metric {marker_base}")
+    for name, value in payload.items():
+        if isinstance(name, str) and name.endswith("__nonfinite"):
+            continue
+        marker = markers.get(str(name))
+        if value is None:
+            if marker is None:
+                raise ValueError(f"{field_name}.{name} is null without a nonfinite marker")
+            if marker != "positive_infinity":
+                raise ValueError(f"{field_name}.{name} has unknown nonfinite marker {marker!r}")
+            continue
+        if marker is not None:
+            raise ValueError(f"{field_name}.{name} has finite value and nonfinite marker")
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            raise TypeError(f"{field_name}.{name} must be numeric")
+        numeric = float(value)
+        if not math.isfinite(numeric):
+            raise ValueError(f"{field_name}.{name} contains unencoded nonfinite value")
 
 
 class ManifestRecordMixin:
@@ -144,10 +170,36 @@ class MetricRecord(ManifestRecordMixin):
     @classmethod
     def from_dict(cls, row: JsonMap) -> "MetricRecord":
         normalized = _normalize_manifest_value(dict(row))
-        for name in ("born_metrics", "hilbert_metrics", "parameter_metrics", "topology_metrics", "metadata"):
-            if normalized.get(name) is None:
+        if "born_metrics" not in normalized or normalized["born_metrics"] is None:
+            raise ValueError("MetricRecord.born_metrics is required and cannot be null")
+        if not isinstance(normalized["born_metrics"], Mapping):
+            raise TypeError("MetricRecord.born_metrics must be a mapping")
+        if "metadata" not in normalized or normalized["metadata"] is None:
+            raise ValueError("MetricRecord.metadata is required and cannot be null")
+        if not isinstance(normalized["metadata"], Mapping):
+            raise TypeError("MetricRecord.metadata must be a mapping")
+        _validate_encoded_metric_values(normalized["born_metrics"], "born_metrics")
+        encoding = normalized["metadata"].get("empty_metric_map_storage_encoding")
+        for name in ("hilbert_metrics", "parameter_metrics", "topology_metrics"):
+            value = normalized.get(name)
+            if value is None:
+                if encoding != "parquet_null_normalized_to_empty_dict":
+                    raise ValueError(f"MetricRecord.{name} is null without explicit empty-map storage encoding")
                 normalized[name] = {}
+            elif not isinstance(value, Mapping):
+                raise TypeError(f"MetricRecord.{name} must be a mapping")
+        if not isinstance(normalized.get("hilbert_available_mask"), bool):
+            raise TypeError("MetricRecord.hilbert_available_mask must be bool")
         return cls(**normalized)
+
+    def validate(self) -> None:
+        super().validate()
+        for name in ("born_metrics", "hilbert_metrics", "parameter_metrics", "topology_metrics", "metadata"):
+            value = getattr(self, name)
+            if not isinstance(value, Mapping):
+                raise TypeError(f"{type(self).__name__}.{name} must be a mapping")
+        if not isinstance(self.hilbert_available_mask, bool):
+            raise TypeError("MetricRecord.hilbert_available_mask must be bool")
 
 
 @dataclass(slots=True)

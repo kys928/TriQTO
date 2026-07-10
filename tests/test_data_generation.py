@@ -694,3 +694,229 @@ def test_write_dataset_manifest_failure_cleanup(monkeypatch: pytest.MonkeyPatch,
         write_dataset(result, tmp_path / "dataset")
     assert not (tmp_path / "dataset" / "dataset_complete.json").exists()
     assert not any(tmp_path.glob(".dataset.triqto-staging-*"))
+
+
+def file_bytes_by_relative(root: Path, paths: list[Path]) -> dict[str, bytes]:
+    return {path.relative_to(root).as_posix(): path.read_bytes() for path in paths if path.is_file()}
+
+
+def test_publication_ownership_overwrite_and_unrelated_preservation(tmp_path: Path) -> None:
+    pytest.importorskip("pyarrow")
+    root = tmp_path / "dataset"
+    result_a = generate_dataset(base_config(ideal_shots=4))
+    write_a = write_dataset(result_a, root)
+    old_managed = set(json.loads((root / "dataset_complete.json").read_text())["managed_files"])
+    unrelated_paths = {
+        root / "unrelated.txt": b"top",
+        root / "artifacts" / "unrelated.bin": b"artifact",
+        root / "manifests" / "unrelated.parquet": b"manifest",
+        root / "artifacts" / "private" / "nested.txt": b"nested",
+    }
+    for path, content in unrelated_paths.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+    result_b = generate_dataset(base_config(base_seed=13, ideal_shots=4))
+    write_b = write_dataset(result_b, root, overwrite=True)
+    marker = json.loads((root / "dataset_complete.json").read_text())
+    new_managed = set(marker["managed_files"])
+    assert marker["scientific_generation_id"] == result_b.scientific_generation_id
+    assert marker["sample_count"] == len(result_b.samples)
+    assert marker["managed_files"] == sorted(marker["managed_files"])
+    assert root / "dataset_complete.json" in write_b.written_paths
+    assert all(path.exists() for path in write_b.written_paths)
+    assert all(path.is_relative_to(root) for path in write_b.written_paths)
+    assert not any("triqto-staging" in str(path) or "triqto-backup" in str(path) for path in write_b.written_paths)
+    for path, content in unrelated_paths.items():
+        assert path.read_bytes() == content
+        assert path not in write_b.written_paths
+        assert path.relative_to(root).as_posix() not in new_managed
+    for obsolete in old_managed - new_managed:
+        assert not (root / obsolete).exists()
+
+
+def test_overwrite_false_unrelated_ok_and_known_collision_no_mutation(tmp_path: Path) -> None:
+    pytest.importorskip("pyarrow")
+    root = tmp_path / "dataset"
+    unrelated = root / "artifacts" / "private" / "note.txt"
+    unrelated.parent.mkdir(parents=True)
+    unrelated.write_text("keep")
+    result = generate_dataset(base_config())
+    write_dataset(result, root, overwrite=False)
+    assert unrelated.read_text() == "keep"
+    before = file_bytes_by_relative(root, [path for path in root.rglob("*") if path.is_file()])
+    with pytest.raises(FileExistsError):
+        write_dataset(result, root, overwrite=False)
+    after = file_bytes_by_relative(root, [path for path in root.rglob("*") if path.is_file()])
+    assert after == before
+
+
+def test_publication_failure_new_root_rolls_back(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    pytest.importorskip("pyarrow")
+    import triqto.data_generation.artifacts as artifacts
+
+    result = generate_dataset(base_config())
+    root = tmp_path / "dataset"
+    original_replace = artifacts._atomic_replace
+    count = {"n": 0}
+
+    def failing_replace(source: Path, destination: Path) -> None:
+        count["n"] += 1
+        if count["n"] == 3:
+            raise RuntimeError("mid publication failure")
+        original_replace(source, destination)
+
+    monkeypatch.setattr(artifacts, "_atomic_replace", failing_replace)
+    with pytest.raises(RuntimeError, match="mid publication failure"):
+        write_dataset(result, root)
+    assert not (root / "dataset_complete.json").exists()
+    assert not any(tmp_path.glob(".dataset.triqto-staging-*"))
+    assert not any(tmp_path.glob(".dataset.triqto-backup-*"))
+    assert not any(path.is_file() for path in root.rglob("*") if root.exists())
+
+
+def test_failed_overwrite_restores_previous_dataset_and_unrelated(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    pytest.importorskip("pyarrow")
+    import triqto.data_generation.artifacts as artifacts
+
+    root = tmp_path / "dataset"
+    result_a = generate_dataset(base_config(base_seed=21, ideal_shots=4))
+    write_a = write_dataset(result_a, root)
+    before = file_bytes_by_relative(root, write_a.written_paths)
+    unrelated = root / "artifacts" / "private" / "nested.txt"
+    unrelated.parent.mkdir(parents=True, exist_ok=True)
+    unrelated.write_text("keep")
+    result_b = generate_dataset(base_config(base_seed=22, ideal_shots=4))
+    original_replace = artifacts._atomic_replace
+    count = {"n": 0}
+
+    def failing_replace(source: Path, destination: Path) -> None:
+        count["n"] += 1
+        if count["n"] == 4:
+            raise RuntimeError("overwrite publication failure")
+        original_replace(source, destination)
+
+    monkeypatch.setattr(artifacts, "_atomic_replace", failing_replace)
+    with pytest.raises(RuntimeError, match="overwrite publication failure"):
+        write_dataset(result_b, root, overwrite=True)
+    after = file_bytes_by_relative(root, [root / relative for relative in before])
+    assert after == before
+    assert unrelated.read_text() == "keep"
+    assert json.loads((root / "dataset_complete.json").read_text())["scientific_generation_id"] == result_a.scientific_generation_id
+    assert not any(tmp_path.glob(".dataset.triqto-staging-*"))
+    assert not any(tmp_path.glob(".dataset.triqto-backup-*"))
+
+
+def test_completion_marker_failures_roll_back(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    pytest.importorskip("pyarrow")
+    import triqto.data_generation.artifacts as artifacts
+
+    root = tmp_path / "dataset"
+    result_a = generate_dataset(base_config(base_seed=31))
+    write_a = write_dataset(result_a, root)
+    before = file_bytes_by_relative(root, write_a.written_paths)
+    result_b = generate_dataset(base_config(base_seed=32))
+    monkeypatch.setattr(
+        artifacts,
+        "_write_completion_marker",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("before marker failure")),
+    )
+    with pytest.raises(RuntimeError, match="before marker failure"):
+        write_dataset(result_b, root, overwrite=True)
+    assert file_bytes_by_relative(root, [root / relative for relative in before]) == before
+    assert json.loads((root / "dataset_complete.json").read_text())["scientific_generation_id"] == result_a.scientific_generation_id
+
+    monkeypatch.undo()
+    import triqto.data_generation.artifacts as artifacts2
+    original_replace = artifacts2._atomic_replace
+
+    def fail_marker_replace(source: Path, destination: Path) -> None:
+        if destination.name == "dataset_complete.json":
+            raise RuntimeError("marker atomic failure")
+        original_replace(source, destination)
+
+    monkeypatch.setattr(artifacts2, "_atomic_replace", fail_marker_replace)
+    with pytest.raises(RuntimeError, match="marker atomic failure"):
+        write_dataset(result_b, root, overwrite=True)
+    assert file_bytes_by_relative(root, [root / relative for relative in before]) == before
+    assert json.loads((root / "dataset_complete.json").read_text())["scientific_generation_id"] == result_a.scientific_generation_id
+
+
+def test_malformed_previous_managed_file_path_is_rejected(tmp_path: Path) -> None:
+    pytest.importorskip("pyarrow")
+    root = tmp_path / "dataset"
+    write_dataset(generate_dataset(base_config()), root)
+    marker = json.loads((root / "dataset_complete.json").read_text())
+    marker["managed_files"] = ["../escape"]
+    (root / "dataset_complete.json").write_text(json.dumps(marker, sort_keys=True))
+    with pytest.raises(ValueError, match="managed_files"):
+        write_dataset(generate_dataset(base_config(base_seed=99)), root, overwrite=True)
+
+
+def test_metric_record_from_dict_rejects_corruption_and_preserves_valid_values() -> None:
+    from triqto.storage import MetricRecord
+
+    valid = {
+        "metric_id": "m",
+        "run_id": "r",
+        "circuit_id": "c",
+        "distortion_id": "d",
+        "born_metrics": {"kl": None, "kl__nonfinite": "positive_infinity", "tv": 0.25},
+        "hilbert_metrics": None,
+        "parameter_metrics": None,
+        "topology_metrics": None,
+        "hilbert_available_mask": False,
+        "metadata": {"empty_metric_map_storage_encoding": "parquet_null_normalized_to_empty_dict"},
+    }
+    record = MetricRecord.from_dict(valid)
+    assert record.hilbert_metrics == {}
+    assert record.parameter_metrics == {}
+    assert record.topology_metrics == {}
+    assert record.born_metrics["kl__nonfinite"] == "positive_infinity"
+    for bad in [dict(valid, born_metrics=None), {k: v for k, v in valid.items() if k != "born_metrics"}, dict(valid, born_metrics=[]), dict(valid, metadata=None)]:
+        with pytest.raises((TypeError, ValueError)):
+            MetricRecord.from_dict(bad)
+    no_marker = dict(valid)
+    no_marker["metadata"] = {}
+    with pytest.raises(ValueError, match="explicit empty-map"):
+        MetricRecord.from_dict(no_marker)
+    bad_deferred = dict(valid, hilbert_metrics=[])
+    with pytest.raises(TypeError, match="hilbert_metrics"):
+        MetricRecord.from_dict(bad_deferred)
+    malformed_born = dict(valid, born_metrics={"kl": None})
+    with pytest.raises(ValueError, match="born_metrics"):
+        MetricRecord.from_dict(malformed_born)
+
+
+def test_validate_dataset_joins_rejects_duplicates_and_missing_records() -> None:
+    result = generate_dataset(base_config())
+    circuits = list(result.circuit_records)
+    simulations = list(result.simulation_records)
+    distortions = list(result.distortion_records)
+    metrics = list(result.metric_records)
+    samples = list(result.sample_records)
+    # Use in-memory records without artifact refs only after adding expected refs to satisfy parameter/role joins.
+    from triqto.data_generation.artifacts import validate_dataset_joins
+
+    duplicate_cases = [
+        (samples + [samples[0]], circuits, simulations, distortions, metrics, "DatasetSampleRecord", "sample_id"),
+        (samples, circuits + [circuits[0]], simulations, distortions, metrics, "CircuitRecord", "circuit_id"),
+        (samples, circuits, simulations + [simulations[0]], distortions, metrics, "SimulationRecord", "run_id"),
+        (samples, circuits, simulations, distortions + [distortions[0]], metrics, "DistortionRecord", "distortion_id"),
+        (samples, circuits, simulations, distortions, metrics + [metrics[0]], "MetricRecord", "metric_id"),
+    ]
+    for sample_records, circuit_records, simulation_records, distortion_records, metric_records, record_type, field in duplicate_cases:
+        with pytest.raises(ValueError, match=f"Duplicate {record_type}.*{field}"):
+            validate_dataset_joins(sample_records, circuit_records, simulation_records, distortion_records, metric_records)
+
+    first_sample = samples[0]
+    missing_cases = [
+        ([record for record in circuits if record.circuit_id != first_sample.clean_circuit_id], simulations, distortions, metrics, "clean_circuit_id", "CircuitRecord"),
+        ([record for record in circuits if record.circuit_id != first_sample.distorted_circuit_id], simulations, distortions, metrics, "distorted_circuit_id", "CircuitRecord"),
+        (circuits, [record for record in simulations if record.run_id != first_sample.clean_run_id], distortions, metrics, "clean_run_id", "SimulationRecord"),
+        (circuits, [record for record in simulations if record.run_id != first_sample.distorted_run_id], distortions, metrics, "distorted_run_id", "SimulationRecord"),
+        (circuits, simulations, [record for record in distortions if record.distortion_id != first_sample.distortion_id], metrics, "distortion_id", "DistortionRecord"),
+        (circuits, simulations, distortions, [record for record in metrics if record.metric_id != first_sample.metric_id], "metric_id", "MetricRecord"),
+    ]
+    for circuit_records, simulation_records, distortion_records, metric_records, field, record_type in missing_cases:
+        with pytest.raises(ValueError, match=f"Sample .*{field} references missing {record_type}"):
+            validate_dataset_joins(samples, circuit_records, simulation_records, distortion_records, metric_records)

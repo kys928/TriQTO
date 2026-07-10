@@ -1,16 +1,25 @@
-"""Artifact writer for Phase 7 generated datasets."""
+"""Artifact writer and integrity validators for Phase 7 generated datasets."""
 from __future__ import annotations
 
 from dataclasses import replace
-import shutil
-import uuid
 import json
+import os
 from pathlib import Path
+import shutil
 from typing import Any
+import uuid
 
 import numpy as np
 
-from triqto.storage import ManifestWriter
+from triqto.storage import (
+    CircuitRecord,
+    DistortionRecord,
+    ManifestReader,
+    ManifestWriter,
+    MetricRecord,
+    SimulationRecord,
+)
+from triqto.storage.schema import DatasetSampleRecord
 
 from .records import DatasetGenerationResult, DatasetWriteResult
 from .specs import config_to_dict
@@ -23,7 +32,7 @@ MANIFEST_NAMES = {
     "metric_manifest": "metric_manifest",
 }
 DATASET_COMPLETE_NAME = "dataset_complete.json"
-KNOWN_PHASE7_TOP_LEVEL = {"generation_config.json", "dataset_summary.json", DATASET_COMPLETE_NAME, "manifests", "artifacts"}
+EMPTY_MAP_ENCODING = "parquet_null_normalized_to_empty_dict"
 
 
 def _load_qpy_module() -> Any:
@@ -51,7 +60,7 @@ def _relative_ref(relative_path: str) -> str:
     return candidate.as_posix()
 
 
-def _records_with_artifact_refs(result: DatasetGenerationResult) -> tuple[list[Any], list[Any]]:
+def _records_with_artifact_refs(result: DatasetGenerationResult) -> tuple[list[CircuitRecord], list[SimulationRecord]]:
     circuit_records = []
     for record in result.circuit_records:
         metadata = dict(record.metadata)
@@ -62,19 +71,16 @@ def _records_with_artifact_refs(result: DatasetGenerationResult) -> tuple[list[A
     for record in result.simulation_records:
         metadata = dict(record.metadata)
         if record.simulation_mode == "ideal_statevector":
-            statevector_ref = metadata.pop("statevector_ref", None)
-            probabilities_ref = metadata.pop("probabilities_ref", None)
             simulation_records.append(
                 replace(
                     record,
-                    statevector_ref=statevector_ref,
-                    probabilities_ref=probabilities_ref,
+                    statevector_ref=metadata.pop("statevector_ref", None),
+                    probabilities_ref=metadata.pop("probabilities_ref", None),
                     metadata=metadata,
                 )
             )
         elif record.simulation_mode == "ideal_shot":
-            counts_ref = metadata.pop("counts_ref", None)
-            simulation_records.append(replace(record, counts_ref=counts_ref, metadata=metadata))
+            simulation_records.append(replace(record, counts_ref=metadata.pop("counts_ref", None), metadata=metadata))
         else:
             simulation_records.append(record)
     return circuit_records, simulation_records
@@ -94,11 +100,7 @@ def _planned_paths(result: DatasetGenerationResult, root: Path) -> dict[str, lis
         if result.config.store_statevectors:
             statevectors.append(root / "artifacts" / "statevectors" / f"{sample.clean_run_id}.npy")
             statevectors.append(root / "artifacts" / "statevectors" / f"{sample.distorted_run_id}.npy")
-    counts = [
-        root / "artifacts" / "counts" / f"{record.run_id}.json"
-        for record in result.simulation_records
-        if record.simulation_mode == "ideal_shot"
-    ]
+    counts = [root / "artifacts" / "counts" / f"{record.run_id}.json" for record in result.simulation_records if record.simulation_mode == "ideal_shot"]
     return {
         "circuits": _unique_sorted(circuits),
         "probabilities": _unique_sorted(probabilities),
@@ -126,6 +128,11 @@ def _safe_reference_path(root: Path, record_id: str, field_name: str, reference:
     return resolved_target
 
 
+def _safe_managed_relative_path(root: Path, reference: str) -> Path:
+    path = _safe_reference_path(root, "dataset_complete", "managed_files", reference)
+    return path.relative_to(root.resolve())
+
+
 def _require_file(root: Path, record_id: str, field_name: str, reference: Any) -> Path:
     path = _safe_reference_path(root, record_id, field_name, reference)
     if not path.exists():
@@ -140,13 +147,7 @@ def _require_absent(record_id: str, field_name: str, reference: Any) -> None:
         raise ValueError(f"Record {record_id} field {field_name} must be absent for this simulation mode: {reference}")
 
 
-def verify_dataset_references(
-    root: str | Path,
-    circuit_records: list[Any],
-    simulation_records: list[Any],
-    *,
-    require_statevectors: bool,
-) -> None:
+def verify_dataset_references(root: str | Path, circuit_records: list[Any], simulation_records: list[Any], *, require_statevectors: bool) -> None:
     """Verify Phase 7 manifest references by record type and simulation mode."""
     root_path = Path(root)
     for record in circuit_records:
@@ -171,45 +172,99 @@ def verify_dataset_references(
             raise ValueError(f"Record {record.run_id} has unsupported simulation_mode: {record.simulation_mode}")
 
 
-def validate_dataset_joins(
-    sample_records: list[Any],
-    circuit_records: list[Any],
-    simulation_records: list[Any],
-    distortion_records: list[Any],
-    metric_records: list[Any],
-) -> None:
-    """Validate semantic joins among Phase 7 sample, circuit, simulation, distortion, and metric records."""
-    circuits = {record.circuit_id: record for record in circuit_records}
-    simulations = {record.run_id: record for record in simulation_records}
-    distortions = {record.distortion_id: record for record in distortion_records}
-    metrics = {record.metric_id: record for record in metric_records}
-    for sample in sample_records:
-        clean_circuit = circuits[sample.clean_circuit_id]
-        distorted_circuit = circuits[sample.distorted_circuit_id]
+def _record_id(record: Any, id_field: str) -> str:
+    value = getattr(record, id_field, None)
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{type(record).__name__}.{id_field} is required for manifest integrity validation")
+    return value
+
+
+def _index_unique(records: list[Any], id_field: str, record_type: type) -> dict[str, Any]:
+    indexed: dict[str, Any] = {}
+    for record in records:
+        if not isinstance(record, record_type):
+            raise TypeError(f"Expected {record_type.__name__} in {record_type.__name__} manifest, got {type(record).__name__}")
+        try:
+            record.validate()
+        except Exception as exc:
+            record_id = getattr(record, id_field, "<missing>")
+            raise ValueError(f"Invalid {record_type.__name__} {id_field}={record_id}: {exc}") from exc
+        record_id = _record_id(record, id_field)
+        if record_id in indexed:
+            raise ValueError(f"Duplicate {record_type.__name__} {id_field} {record_id} in manifest")
+        indexed[record_id] = record
+    return indexed
+
+
+def _lookup(index: dict[str, Any], sample_id: str, field_name: str, record_type: str, record_id: str) -> Any:
+    try:
+        return index[record_id]
+    except KeyError as exc:
+        raise ValueError(f"Sample {sample_id} {field_name} references missing {record_type} {record_id}") from exc
+
+
+def _validate_phase7_metric_record(record: MetricRecord) -> None:
+    if not record.born_metrics:
+        raise ValueError(f"MetricRecord {record.metric_id} born_metrics must be nonempty for Phase 7")
+    if record.hilbert_metrics != {} or record.parameter_metrics != {} or record.topology_metrics != {}:
+        raise ValueError(f"MetricRecord {record.metric_id} deferred metric maps must be empty for Phase 7")
+    if record.hilbert_available_mask is not False:
+        raise ValueError(f"MetricRecord {record.metric_id} hilbert_available_mask must be False for Phase 7")
+    if record.metadata.get("metric_family") != "born":
+        raise ValueError(f"MetricRecord {record.metric_id} metadata.metric_family must be 'born'")
+    support_size = record.metadata.get("support_size")
+    if not isinstance(support_size, int) or isinstance(support_size, bool) or support_size < 0:
+        raise ValueError(f"MetricRecord {record.metric_id} metadata.support_size must be a nonnegative integer")
+
+
+def validate_dataset_joins(sample_records: list[Any], circuit_records: list[Any], simulation_records: list[Any], distortion_records: list[Any], metric_records: list[Any]) -> None:
+    """Validate uniqueness and semantic joins among Phase 7 manifest records."""
+    samples = _index_unique(sample_records, "sample_id", DatasetSampleRecord)
+    circuits = _index_unique(circuit_records, "circuit_id", CircuitRecord)
+    simulations = _index_unique(simulation_records, "run_id", SimulationRecord)
+    distortions = _index_unique(distortion_records, "distortion_id", DistortionRecord)
+    metrics = _index_unique(metric_records, "metric_id", MetricRecord)
+    for metric in metrics.values():
+        _validate_phase7_metric_record(metric)
+    for sample in samples.values():
+        if not sample.schema_version.strip():
+            raise ValueError(f"Sample {sample.sample_id} schema_version must be nonblank")
+        clean_circuit = _lookup(circuits, sample.sample_id, "clean_circuit_id", "CircuitRecord", sample.clean_circuit_id)
+        distorted_circuit = _lookup(circuits, sample.sample_id, "distorted_circuit_id", "CircuitRecord", sample.distorted_circuit_id)
         if clean_circuit.metadata.get("role") != "clean":
             raise ValueError(f"Sample {sample.sample_id} clean_circuit_id does not point to a clean CircuitRecord")
         if distorted_circuit.metadata.get("role") != "distorted":
             raise ValueError(f"Sample {sample.sample_id} distorted_circuit_id does not point to a distorted CircuitRecord")
+        if clean_circuit.family != sample.family or distorted_circuit.family != sample.family:
+            raise ValueError(f"Sample {sample.sample_id} family does not match joined CircuitRecords")
+        if clean_circuit.n_qubits != sample.n_qubits or distorted_circuit.n_qubits != sample.n_qubits:
+            raise ValueError(f"Sample {sample.sample_id} n_qubits does not match joined CircuitRecords")
+        if clean_circuit.metadata.get("parameter_bindings") != sample.parameter_bindings:
+            raise ValueError(f"Sample {sample.sample_id} clean circuit parameter_bindings mismatch")
+        if distorted_circuit.metadata.get("parameter_bindings") != sample.parameter_bindings:
+            raise ValueError(f"Sample {sample.sample_id} distorted circuit parameter_bindings mismatch")
         if distorted_circuit.metadata.get("source_clean_circuit_id") != sample.clean_circuit_id:
             raise ValueError(f"Sample {sample.sample_id} distorted circuit source_clean_circuit_id mismatch")
-        clean_run = simulations[sample.clean_run_id]
-        distorted_run = simulations[sample.distorted_run_id]
+        clean_run = _lookup(simulations, sample.sample_id, "clean_run_id", "SimulationRecord", sample.clean_run_id)
+        distorted_run = _lookup(simulations, sample.sample_id, "distorted_run_id", "SimulationRecord", sample.distorted_run_id)
         if clean_run.simulation_mode != "ideal_statevector" or clean_run.circuit_id != sample.clean_circuit_id:
             raise ValueError(f"Sample {sample.sample_id} clean_run_id does not point to clean ideal_statevector run")
         if distorted_run.simulation_mode != "ideal_statevector" or distorted_run.circuit_id != sample.distorted_circuit_id:
             raise ValueError(f"Sample {sample.sample_id} distorted_run_id does not point to distorted ideal_statevector run")
-        distortion = distortions[sample.distortion_id]
+        if clean_run.backend_name != "qiskit.quantum_info.Statevector" or clean_run.metadata.get("sampling_source") != "exact_statevector":
+            raise ValueError(f"Sample {sample.sample_id} clean_run_id has invalid backend/source metadata")
+        if distorted_run.backend_name != "qiskit.quantum_info.Statevector" or distorted_run.metadata.get("sampling_source") != "exact_statevector":
+            raise ValueError(f"Sample {sample.sample_id} distorted_run_id has invalid backend/source metadata")
+        distortion = _lookup(distortions, sample.sample_id, "distortion_id", "DistortionRecord", sample.distortion_id)
         if distortion.circuit_id != sample.clean_circuit_id:
             raise ValueError(f"Sample {sample.sample_id} distortion circuit_id mismatch")
         if distortion.metadata.get("distorted_circuit_id") != sample.distorted_circuit_id:
             raise ValueError(f"Sample {sample.sample_id} distortion distorted_circuit_id mismatch")
-        metric = metrics[sample.metric_id]
+        metric = _lookup(metrics, sample.sample_id, "metric_id", "MetricRecord", sample.metric_id)
         if metric.run_id != sample.distorted_run_id or metric.circuit_id != sample.distorted_circuit_id or metric.distortion_id != sample.distortion_id:
             raise ValueError(f"Sample {sample.sample_id} metric record IDs do not match sample joins")
-        if metric.metadata.get("clean_run_id") != sample.clean_run_id:
-            raise ValueError(f"Sample {sample.sample_id} metric clean_run_id mismatch")
-        if metric.metadata.get("distorted_run_id") != sample.distorted_run_id:
-            raise ValueError(f"Sample {sample.sample_id} metric distorted_run_id mismatch")
+        if metric.metadata.get("clean_run_id") != sample.clean_run_id or metric.metadata.get("distorted_run_id") != sample.distorted_run_id:
+            raise ValueError(f"Sample {sample.sample_id} metric run metadata mismatch")
         if metric.metadata.get("sample_id") != sample.sample_id:
             raise ValueError(f"Sample {sample.sample_id} metric sample_id mismatch")
 
@@ -224,11 +279,8 @@ def _write_circuits(result: DatasetGenerationResult, artifact_paths: dict[str, l
         if path.exists() and not overwrite:
             raise FileExistsError(f"Refusing to overwrite existing circuit artifact: {path}")
         path.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            with path.open("wb") as handle:
-                qpy.dump(circuits_by_id[circuit_id], handle)
-        except Exception as exc:  # pragma: no cover - defensive IO wrapper
-            raise RuntimeError(f"Failed to write QPY circuit artifact {path}") from exc
+        with path.open("wb") as handle:
+            qpy.dump(circuits_by_id[circuit_id], handle)
         written.append(path)
     return written
 
@@ -237,16 +289,11 @@ def _write_probabilities(result: DatasetGenerationResult, root: Path, overwrite:
     written = []
     seen = set()
     for sample in result.samples:
-        for run_id, probabilities in (
-            (sample.clean_run_id, sample.clean_result.probabilities),
-            (sample.distorted_run_id, sample.distorted_result.probabilities),
-        ):
+        for run_id, probabilities in ((sample.clean_run_id, sample.clean_result.probabilities), (sample.distorted_run_id, sample.distorted_result.probabilities)):
             if run_id in seen:
                 continue
             seen.add(run_id)
-            written.append(
-                _write_json(root / "artifacts" / "probabilities" / f"{run_id}.json", probabilities, overwrite=overwrite)
-            )
+            written.append(_write_json(root / "artifacts" / "probabilities" / f"{run_id}.json", probabilities, overwrite=overwrite))
     return written
 
 
@@ -256,10 +303,7 @@ def _write_statevectors(result: DatasetGenerationResult, root: Path, overwrite: 
     written = []
     seen = set()
     for sample in result.samples:
-        for run_id, statevector in (
-            (sample.clean_run_id, sample.clean_result.statevector),
-            (sample.distorted_run_id, sample.distorted_result.statevector),
-        ):
+        for run_id, statevector in ((sample.clean_run_id, sample.clean_result.statevector), (sample.distorted_run_id, sample.distorted_result.statevector)):
             if run_id in seen:
                 continue
             seen.add(run_id)
@@ -283,115 +327,248 @@ def _shot_counts_by_run(result: DatasetGenerationResult) -> dict[str, dict[str, 
 
 
 def _write_counts(result: DatasetGenerationResult, root: Path, overwrite: bool) -> list[Path]:
-    counts_by_run = _shot_counts_by_run(result)
     written = []
-    for run_id in sorted(counts_by_run):
-        written.append(_write_json(root / "artifacts" / "counts" / f"{run_id}.json", counts_by_run[run_id], overwrite=overwrite))
+    for run_id, counts in sorted(_shot_counts_by_run(result).items()):
+        written.append(_write_json(root / "artifacts" / "counts" / f"{run_id}.json", counts, overwrite=overwrite))
     return written
 
 
-def _metric_records_for_manifest(result: DatasetGenerationResult) -> list[Any]:
-    """Return metric records with uncomputed empty families encoded as null for Parquet."""
+def _metric_records_for_manifest(result: DatasetGenerationResult) -> list[dict[str, Any]]:
     encoded = []
     for record in result.metric_records:
-        metadata = dict(record.metadata)
-        metadata["empty_metric_map_storage_encoding"] = "parquet_null_normalized_to_empty_dict"
-        encoded.append(
-            replace(
-                record,
-                hilbert_metrics=None,
-                parameter_metrics=None,
-                topology_metrics=None,
-                metadata=metadata,
-            )
-        )
+        row = record.to_dict()
+        row["metadata"] = dict(row["metadata"])
+        row["metadata"]["empty_metric_map_storage_encoding"] = EMPTY_MAP_ENCODING
+        row["hilbert_metrics"] = None
+        row["parameter_metrics"] = None
+        row["topology_metrics"] = None
+        encoded.append(row)
     return encoded
 
 
-def _merge_staging_into_existing_root(staging_root: Path, root: Path) -> None:
-    root.mkdir(parents=True, exist_ok=True)
-    for child in staging_root.iterdir():
-        target = root / child.name
-        if target.exists():
-            if target.is_dir():
-                shutil.rmtree(target)
-            else:
+def _managed_files(result: DatasetGenerationResult) -> list[str]:
+    root = Path(".")
+    artifact_paths = _planned_paths(result, root)
+    managed = [
+        "generation_config.json",
+        "dataset_summary.json",
+        DATASET_COMPLETE_NAME,
+        *[f"manifests/{name}.parquet" for name in MANIFEST_NAMES.values()],
+        *[path.as_posix().removeprefix("./") for paths in artifact_paths.values() for path in paths],
+    ]
+    return sorted(set(managed))
+
+
+def _completion_marker_payload(result: DatasetGenerationResult, managed_files: list[str]) -> dict[str, Any]:
+    return {
+        "complete": True,
+        "dataset_name": result.dataset_name,
+        "schema_version": result.schema_version,
+        "scientific_generation_id": result.scientific_generation_id,
+        "config_id": result.config_id,
+        "sample_count": len(result.samples),
+        "manifest_count": len(MANIFEST_NAMES),
+        "managed_files": sorted(managed_files),
+    }
+
+
+def _validate_completion_marker(root: Path, result: DatasetGenerationResult, managed_files: list[str]) -> None:
+    marker = root / DATASET_COMPLETE_NAME
+    if not marker.is_file():
+        raise FileNotFoundError(f"Completion marker missing: {marker}")
+    payload = json.loads(marker.read_text())
+    expected = _completion_marker_payload(result, managed_files)
+    if payload != expected:
+        raise ValueError("dataset_complete.json content does not match committed dataset")
+    for entry in payload["managed_files"]:
+        _safe_managed_relative_path(root, entry)
+
+
+def _read_typed_records(root: Path) -> tuple[list[DatasetSampleRecord], list[CircuitRecord], list[SimulationRecord], list[DistortionRecord], list[MetricRecord]]:
+    reader = ManifestReader(root / "manifests")
+    return (
+        reader.read_typed_records("sample_manifest", DatasetSampleRecord),
+        reader.read_typed_records("circuit_manifest", CircuitRecord),
+        reader.read_typed_records("simulation_manifest", SimulationRecord),
+        reader.read_typed_records("distortion_manifest", DistortionRecord),
+        reader.read_typed_records("metric_manifest", MetricRecord),
+    )
+
+
+def _validate_persisted_dataset(root: Path, result: DatasetGenerationResult, managed_files: list[str], *, require_marker: bool) -> None:
+    for entry in managed_files:
+        if entry == DATASET_COMPLETE_NAME and not require_marker:
+            continue
+        path = root / _safe_managed_relative_path(root, entry)
+        if not path.is_file():
+            raise FileNotFoundError(f"Managed Phase 7 file is missing or not a file: {entry}")
+    if not require_marker and (root / DATASET_COMPLETE_NAME).exists():
+        raise ValueError("Completion marker must not exist before publication commit")
+    sample_records, circuit_records, simulation_records, distortion_records, metric_records = _read_typed_records(root)
+    validate_dataset_joins(sample_records, circuit_records, simulation_records, distortion_records, metric_records)
+    verify_dataset_references(root, circuit_records, simulation_records, require_statevectors=result.config.store_statevectors)
+    if require_marker:
+        _validate_completion_marker(root, result, managed_files)
+
+
+def _existing_managed_files(root: Path) -> list[str]:
+    marker = root / DATASET_COMPLETE_NAME
+    if not marker.exists():
+        return []
+    try:
+        payload = json.loads(marker.read_text())
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Existing completion marker is malformed: {marker}") from exc
+    managed = payload.get("managed_files")
+    if not isinstance(managed, list):
+        # Pre-final-integrity legacy marker: only claim fixed top-level/manifests.
+        managed = [
+            "generation_config.json",
+            "dataset_summary.json",
+            DATASET_COMPLETE_NAME,
+            *[f"manifests/{name}.parquet" for name in MANIFEST_NAMES.values()],
+        ]
+    safe = []
+    for entry in managed:
+        if not isinstance(entry, str):
+            raise ValueError("Existing completion marker managed_files contains non-string entry")
+        _safe_managed_relative_path(root, entry)
+        safe.append(entry)
+    return sorted(set(safe))
+
+
+def _relative_paths_to_publish(managed_files: list[str]) -> list[str]:
+    return [entry for entry in managed_files if entry != DATASET_COMPLETE_NAME]
+
+
+def _backup_existing_file(root: Path, backup_root: Path, relative: str) -> None:
+    source = root / relative
+    if source.exists():
+        if not source.is_file():
+            raise ValueError(f"Known Phase 7 target is not a file and will not be replaced: {relative}")
+        destination = backup_root / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        os.replace(source, destination)
+
+
+def _restore_backup(root: Path, backup_root: Path) -> None:
+    if not backup_root.exists():
+        return
+    for source in sorted((path for path in backup_root.rglob("*") if path.is_file()), key=lambda path: path.as_posix()):
+        relative = source.relative_to(backup_root)
+        destination = root / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if destination.exists():
+            destination.unlink()
+        os.replace(source, destination)
+
+
+def _remove_published_paths(root: Path, relatives: list[str]) -> None:
+    for relative in sorted(set(relatives), reverse=True):
+        path = root / relative
+        if path.exists() and path.is_file():
+            path.unlink()
+    # Remove only empty directories below known Phase 7 parents; ignore nonempty unrelated dirs.
+    for parent in [root / "artifacts" / "counts", root / "artifacts" / "statevectors", root / "artifacts" / "probabilities", root / "artifacts" / "circuits", root / "artifacts", root / "manifests"]:
+        try:
+            parent.rmdir()
+        except OSError:
+            pass
+
+
+def _atomic_replace(source: Path, destination: Path) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    os.replace(source, destination)
+
+
+def _write_completion_marker(root: Path, result: DatasetGenerationResult, managed_files: list[str]) -> Path:
+    marker = root / DATASET_COMPLETE_NAME
+    temporary = root / f".{DATASET_COMPLETE_NAME}.{uuid.uuid4().hex}.tmp"
+    _write_json(temporary, _completion_marker_payload(result, managed_files), overwrite=True)
+    _atomic_replace(temporary, marker)
+    return marker
+
+
+def _publish_staged_dataset(staging_root: Path, root: Path, result: DatasetGenerationResult, managed_files: list[str], *, overwrite: bool) -> None:
+    old_managed = _existing_managed_files(root) if root.exists() else []
+    new_without_marker = _relative_paths_to_publish(managed_files)
+    old_without_marker = _relative_paths_to_publish(old_managed)
+    all_known_without_marker = sorted(set(new_without_marker) | set(old_without_marker))
+    backup_root = root.with_name(f".{root.name}.triqto-backup-{uuid.uuid4().hex}")
+    published: list[str] = []
+    try:
+        if backup_root.exists():
+            shutil.rmtree(backup_root)
+        for relative in all_known_without_marker + ([DATASET_COMPLETE_NAME] if (root / DATASET_COMPLETE_NAME).exists() else []):
+            _safe_managed_relative_path(root, relative)
+            _backup_existing_file(root, backup_root, relative)
+        for relative in sorted(new_without_marker):
+            source = staging_root / relative
+            if not source.is_file():
+                raise FileNotFoundError(f"Staged managed file missing before publication: {relative}")
+            _atomic_replace(source, root / relative)
+            published.append(relative)
+        for obsolete in sorted(set(old_without_marker) - set(new_without_marker)):
+            target = root / obsolete
+            if target.exists() and target.is_file():
                 target.unlink()
-        child.replace(target)
-    shutil.rmtree(staging_root)
+                published.append(obsolete)
+        _validate_persisted_dataset(root, result, managed_files, require_marker=False)
+        _write_completion_marker(root, result, managed_files)
+        _validate_persisted_dataset(root, result, managed_files, require_marker=True)
+        if backup_root.exists():
+            shutil.rmtree(backup_root)
+    except Exception:
+        if (root / DATASET_COMPLETE_NAME).exists():
+            (root / DATASET_COMPLETE_NAME).unlink()
+        _remove_published_paths(root, published + new_without_marker)
+        _restore_backup(root, backup_root)
+        if backup_root.exists():
+            shutil.rmtree(backup_root)
+        raise
 
 
 def write_dataset(result: DatasetGenerationResult, output_root: str | Path, *, overwrite: bool = False) -> DatasetWriteResult:
-    """Write a generated Phase 7 dataset to manifests and external artifacts."""
+    """Write a generated Phase 7 dataset transactionally to manifests and artifacts."""
     root = Path(output_root)
     staging_root = root.with_name(f".{root.name}.triqto-staging-{uuid.uuid4().hex}")
+    managed_files = _managed_files(result)
     artifact_paths = _planned_paths(result, staging_root)
-    final_artifact_paths_for_conflict = _planned_paths(result, root)
-    fixed_paths = [
-        root / "generation_config.json",
-        root / "dataset_summary.json",
-        root / DATASET_COMPLETE_NAME,
-        *[root / "manifests" / f"{name}.parquet" for name in MANIFEST_NAMES.values()],
-        *[path for paths in final_artifact_paths_for_conflict.values() for path in paths],
-    ]
-    for path in _unique_sorted(fixed_paths):
-        if path.exists() and not overwrite:
-            raise FileExistsError(f"Refusing to overwrite existing dataset file: {path}")
-
+    final_artifact_paths = _planned_paths(result, root)
+    final_known_paths = [root / entry for entry in managed_files]
+    if not overwrite:
+        for path in _unique_sorted(final_known_paths):
+            if path.exists():
+                raise FileExistsError(f"Refusing to overwrite existing dataset file: {path}")
     if staging_root.exists():
         shutil.rmtree(staging_root)
     try:
-        written_paths = [
-            _write_json(staging_root / "generation_config.json", config_to_dict(result.config), overwrite=overwrite),
-            _write_json(staging_root / "dataset_summary.json", result.summary, overwrite=overwrite),
-        ]
-        written_paths.extend(_write_circuits(result, artifact_paths, overwrite))
-        written_paths.extend(_write_probabilities(result, staging_root, overwrite))
-        written_paths.extend(_write_statevectors(result, staging_root, overwrite))
-        written_paths.extend(_write_counts(result, staging_root, overwrite))
-
+        _write_json(staging_root / "generation_config.json", config_to_dict(result.config), overwrite=False)
+        _write_json(staging_root / "dataset_summary.json", result.summary, overwrite=False)
+        _write_circuits(result, artifact_paths, overwrite=False)
+        _write_probabilities(result, staging_root, overwrite=False)
+        _write_statevectors(result, staging_root, overwrite=False)
+        _write_counts(result, staging_root, overwrite=False)
         circuit_records, simulation_records = _records_with_artifact_refs(result)
         manifest_writer = ManifestWriter(staging_root / "manifests")
-        manifest_paths = {
-            "sample_manifest": manifest_writer.write_records("sample_manifest", result.sample_records, overwrite=overwrite),
-            "circuit_manifest": manifest_writer.write_records("circuit_manifest", circuit_records, overwrite=overwrite),
-            "simulation_manifest": manifest_writer.write_records("simulation_manifest", simulation_records, overwrite=overwrite),
-            "distortion_manifest": manifest_writer.write_records("distortion_manifest", result.distortion_records, overwrite=overwrite),
-            "metric_manifest": manifest_writer.write_records("metric_manifest", _metric_records_for_manifest(result), overwrite=overwrite),
-        }
-        written_paths.extend(manifest_paths.values())
-        validate_dataset_joins(result.sample_records, circuit_records, simulation_records, result.distortion_records, result.metric_records)
-        verify_dataset_references(staging_root, circuit_records, simulation_records, require_statevectors=result.config.store_statevectors)
-        written_paths.append(
-            _write_json(
-                staging_root / DATASET_COMPLETE_NAME,
-                {"dataset_name": result.dataset_name, "scientific_generation_id": result.scientific_generation_id, "complete": True},
-                overwrite=overwrite,
-            )
-        )
-        if overwrite and root.exists():
-            for child_name in KNOWN_PHASE7_TOP_LEVEL:
-                child = root / child_name
-                if child.is_dir():
-                    shutil.rmtree(child)
-                elif child.exists():
-                    child.unlink()
-        staging_root.replace(root) if not root.exists() else _merge_staging_into_existing_root(staging_root, root)
-    except Exception:
+        manifest_writer.write_records("sample_manifest", result.sample_records, overwrite=False)
+        manifest_writer.write_records("circuit_manifest", circuit_records, overwrite=False)
+        manifest_writer.write_records("simulation_manifest", simulation_records, overwrite=False)
+        manifest_writer.write_records("distortion_manifest", result.distortion_records, overwrite=False)
+        manifest_writer.write_records("metric_manifest", _metric_records_for_manifest(result), overwrite=False)
+        _validate_persisted_dataset(staging_root, result, managed_files, require_marker=False)
+        _publish_staged_dataset(staging_root, root, result, managed_files, overwrite=overwrite)
+    finally:
         if staging_root.exists():
             shutil.rmtree(staging_root)
-        raise
-
-    final_artifact_paths = _planned_paths(result, root)
     final_manifest_paths = {name: root / "manifests" / f"{manifest}.parquet" for name, manifest in MANIFEST_NAMES.items()}
-    final_written = [root / path.relative_to(staging_root) for path in written_paths]
-    all_written = _unique_sorted(final_written)
-    for path in all_written:
-        if not path.exists():
+    written_paths = _unique_sorted([root / entry for entry in managed_files])
+    for path in written_paths:
+        if not path.is_file():
             raise FileNotFoundError(f"Reported written path does not exist: {path}")
     return DatasetWriteResult(
         output_root=root,
-        written_paths=all_written,
+        written_paths=written_paths,
         manifest_paths=dict(sorted(final_manifest_paths.items())),
         artifact_paths={key: _unique_sorted(paths) for key, paths in sorted(final_artifact_paths.items())},
         summary_path=root / "dataset_summary.json",
