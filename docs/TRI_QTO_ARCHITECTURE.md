@@ -60,3 +60,9 @@ See `docs/CODEX_IMPLEMENTATION_ORDER.md` for the exact phase order.
 ## Phase 9 deterministic action precursor
 
 The learned action policy remains a later model/training concern. Phase 9 implements the validated action substrate that such a policy will need: a versioned bounded edit vocabulary, deterministic physics-prior candidates, privileged synthetic inverse labels for known simulator distortions, safe circuit application, exact Born rollout evaluation, transparent rewards, and immutable action/rollout records. Physics priors provide candidate scaffolding and supervision; they do not override a model that does not yet exist.
+
+## Phase 10 baseline controls
+
+Phase 10 makes baseline comparison executable before any learned TriQTO model exists. Random correction, privileged rule-only inversion, clean-target loss-only action selection, SPSA, COBYLA, and backend-free transpilation are evaluated against the same exact Born target and metric order. Each result records what privileged information its method used.
+
+These controls are not substitutes for the future learned policy. They establish the floor and simulator-oracle ceilings that later model evaluation must beat or approach. Hardware-aware transpilation, noisy execution, and device-calibrated optimization remain deferred until the hardware-validation layer; Phase 10 does not fabricate backend structure.
