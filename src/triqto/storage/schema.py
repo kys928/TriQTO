@@ -131,6 +131,42 @@ class MetricRecord(ManifestRecordMixin):
 
 
 @dataclass(slots=True)
+class DatasetSampleRecord(ManifestRecordMixin):
+    """Raw Phase 7 sample join row linking circuit, simulation, distortion, and metric manifests.
+
+    This is not a training split or training view.
+    """
+
+    required_fields: ClassVar[tuple[str, ...]] = (
+        "sample_id", "dataset_name", "schema_version", "clean_circuit_id", "distorted_circuit_id",
+        "clean_run_id", "distorted_run_id", "distortion_id", "metric_id", "family",
+    )
+
+    sample_id: str
+    dataset_name: str
+    schema_version: str
+    clean_circuit_id: str
+    distorted_circuit_id: str
+    clean_run_id: str
+    distorted_run_id: str
+    distortion_id: str
+    metric_id: str
+    family: str
+    n_qubits: int
+    repetition_index: int
+    parameter_bindings: JsonMap = field(default_factory=dict)
+    base_seed: int = 0
+    metadata: JsonMap = field(default_factory=dict)
+
+    def validate(self) -> None:
+        super().validate()
+        if self.n_qubits <= 0:
+            raise ValueError("n_qubits must be positive")
+        if self.repetition_index < 0:
+            raise ValueError("repetition_index must be non-negative")
+
+
+@dataclass(slots=True)
 class ActionCandidateRecord(ManifestRecordMixin):
     """Manifest row for a proposed node-, edge-, or circuit-level action."""
 
