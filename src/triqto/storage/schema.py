@@ -95,7 +95,7 @@ class CircuitRecord(ManifestRecordMixin):
     metadata: JsonMap = field(default_factory=dict)
 
     def validate(self) -> None:
-        super().validate()
+        ManifestRecordMixin.validate(self)
         for name in ("n_qubits", "n_clbits", "depth", "two_qubit_gate_count", "parameter_count"):
             if getattr(self, name) < 0:
                 raise ValueError(f"{name} must be non-negative")
@@ -193,7 +193,7 @@ class MetricRecord(ManifestRecordMixin):
         return cls(**normalized)
 
     def validate(self) -> None:
-        super().validate()
+        ManifestRecordMixin.validate(self)
         for name in ("born_metrics", "hilbert_metrics", "parameter_metrics", "topology_metrics", "metadata"):
             value = getattr(self, name)
             if not isinstance(value, Mapping):
@@ -231,7 +231,7 @@ class DatasetSampleRecord(ManifestRecordMixin):
     metadata: JsonMap = field(default_factory=dict)
 
     def validate(self) -> None:
-        super().validate()
+        ManifestRecordMixin.validate(self)
         if self.n_qubits <= 0:
             raise ValueError("n_qubits must be positive")
         if self.repetition_index < 0:

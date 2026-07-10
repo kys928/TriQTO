@@ -1,13 +1,14 @@
 """TriQTO storage contracts and manifest IO."""
 from __future__ import annotations
 
+from triqto.storage.graph_schema import GraphPairRecord, GraphRecord
 from triqto.storage.manifest import ManifestReader, ManifestWriter
 from triqto.storage.schema import (
     ActionCandidateRecord,
     BackendRecord,
     CircuitRecord,
-    DistortionRecord,
     DatasetSampleRecord,
+    DistortionRecord,
     MetricRecord,
     SimulationRecord,
     TopologyRecord,
@@ -18,8 +19,10 @@ __all__ = [
     "ActionCandidateRecord",
     "BackendRecord",
     "CircuitRecord",
-    "DistortionRecord",
     "DatasetSampleRecord",
+    "DistortionRecord",
+    "GraphPairRecord",
+    "GraphRecord",
     "ManifestReader",
     "ManifestWriter",
     "MetricRecord",
