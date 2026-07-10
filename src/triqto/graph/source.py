@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 import hashlib
+import math
+import numbers
 from pathlib import Path
 from typing import Any
 
@@ -266,10 +268,22 @@ def load_completed_phase7_dataset(
             )
         if record.counts_ref is None:
             raise ValueError(f"SimulationRecord {record.run_id} counts_ref is required")
-        if isinstance(record.shots, bool) or not isinstance(record.shots, int) or record.shots <= 0:
+        raw_shots = record.shots
+        if isinstance(raw_shots, bool) or not isinstance(raw_shots, numbers.Real):
             raise TypeError(
                 f"SimulationRecord {record.run_id} shots must be a positive integer"
             )
+        numeric_shots = float(raw_shots)
+        if (
+            not math.isfinite(numeric_shots)
+            or not numeric_shots.is_integer()
+            or numeric_shots <= 0
+        ):
+            raise ValueError(
+                f"SimulationRecord {record.run_id} shots must be a positive integer"
+            )
+        shots = int(numeric_shots)
+        record.shots = shots
         required_artifact_refs.add(record.counts_ref)
         path = resolve_safe_file(
             root,
@@ -280,7 +294,7 @@ def load_completed_phase7_dataset(
         payload = require_mapping(payload_raw, f"count artifact for run {record.run_id}")
         exact_record = exact_runs[source_run_id]
         circuit_record = circuit_records_by_id[exact_record.circuit_id]
-        validate_count_mapping(payload, circuit_record.n_qubits, record.shots)
+        validate_count_mapping(payload, circuit_record.n_qubits, shots)
         shot_records_by_exact_run_id[source_run_id] = record
         counts_by_exact_run_id[source_run_id] = dict(payload)
 
