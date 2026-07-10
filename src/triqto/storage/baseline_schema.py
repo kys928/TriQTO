@@ -90,7 +90,7 @@ class BaselineResultRecord(ManifestRecordMixin):
     metadata: JsonMap = field(default_factory=dict)
 
     def validate(self) -> None:
-        super().validate()
+        ManifestRecordMixin.validate(self)
         for name in self.required_fields:
             _nonblank(getattr(self, name), name)
         if self.selected_action_id is not None:
