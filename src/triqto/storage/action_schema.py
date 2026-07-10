@@ -104,7 +104,7 @@ class ActionCandidateRecordV1(ManifestRecordMixin):
     metadata: JsonMap = field(default_factory=dict)
 
     def validate(self) -> None:
-        super().validate()
+        ManifestRecordMixin.validate(self)
         for name in self.required_fields:
             _nonblank(getattr(self, name), name)
         if not isinstance(self.generation_sources, list) or not self.generation_sources:
@@ -169,7 +169,7 @@ class ActionRolloutRecord(ManifestRecordMixin):
     metadata: JsonMap = field(default_factory=dict)
 
     def validate(self) -> None:
-        super().validate()
+        ManifestRecordMixin.validate(self)
         for name in self.required_fields:
             _nonblank(getattr(self, name), name)
         _safe_ref(self.rollout_ref, "rollout_ref")
