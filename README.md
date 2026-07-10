@@ -63,3 +63,9 @@ Graph identity is circuit/run-level, not sample-level. Sample ownership lives in
 Phase 8 validates the completed Phase 7 marker and manifests, hashes all managed source files before and after conversion, never loads statevector arrays, writes graph and pair NPZ files with `allow_pickle=False`, typed-reads both graph manifests, validates all joins and hashes, then atomically publishes a fresh immutable output root. Global phase is provenance only and Hilbert-derived feature masks remain unavailable.
 
 Phase 8 introduces no graph neural network, training split, topology feature, correction action, noisy backend, hardware call, or quantum-advantage claim. See [`docs/GRAPH_SCHEMA.md`](docs/GRAPH_SCHEMA.md).
+
+## Phase 9 action and correction engine
+
+Phase 9 converts completed Phase 7/8 sources into deterministic bounded action candidates and exact ideal-statevector validation rollouts. Candidate edits currently include no-op, RX/RY/RZ rotations, and observed-interaction RZZ edits. Every candidate is applied to an independent circuit copy, compared with the clean Phase 7 Born target, assigned a transparent reward, and deterministically ranked.
+
+The engine includes privileged synthetic oracle inverses only as supervised labels for known Phase 7 unitary distortions. It is not a learned policy and does not infer those inverses from hardware observations. Marker-only distortions receive no fabricated circuit oracle, and no-op can win. Phase 9 performs no noisy simulation, hardware calls, topology, baselines, training-view construction, or model training. See [`docs/ACTION_SCHEMA.md`](docs/ACTION_SCHEMA.md).

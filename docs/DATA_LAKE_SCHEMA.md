@@ -144,3 +144,28 @@ Both Phase 8 manifests are typed-read before publication. Graph and pair IDs are
 Phase 8 output roots are immutable: the final root must not exist. The complete dataset is created and validated in a unique sibling staging directory, `graph_complete.json` records the source generation ID, graph conversion/config/schema IDs, source snapshot hash, counts, and sorted managed-file inventory, and the staging directory is atomically renamed. Failure removes only that staging directory and cannot leave a partial final root.
 
 Phase 8 remains representation only. It adds no graph neural network, correction action, policy, baseline, topology, persistent homology, training split, model training, noisy backend, hardware call, Hilbert metric, or quantum-advantage claim.
+
+## Phase 9 action candidate and rollout artifacts
+
+Phase 9 consumes the completed Phase 7 raw dataset together with its exact completed Phase 8 graph dataset. Both managed inventories are byte-snapshotted before and after action generation. Their completion identities, source-snapshot relationship, typed manifests, graph artifacts, pair artifacts, and semantic joins are cross-validated.
+
+The immutable Phase 9 output contains:
+
+```text
+action_config.json
+action_summary.json
+action_complete.json
+manifests/action_candidate_manifest.parquet
+manifests/action_rollout_manifest.parquet
+artifacts/actions/<action_id>.json
+artifacts/circuits/<candidate_circuit_id>.qpy
+artifacts/rollouts/<rollout_id>.npz
+```
+
+`ActionCandidateRecordV1` links a sample and graph pair to one bounded edit definition and its validated candidate QPY circuit. `ActionRolloutRecord` links that candidate to exact ideal-statevector Born evidence, transparent reward, deterministic rank, and selected/non-worsening labels. Exactly one rank-one rollout is selected per source sample.
+
+Action identity is based on source sample/graph/circuit/run and ordered edit content, not file paths or generation-source provenance. The complete action artifact hash additionally protects its deterministic generation labels, risk, and metadata. Rollout identity includes the clean target run and scientific action/reward configuration. Operational candidate/edit guardrails are excluded from scientific identity and fail rather than truncate when exceeded.
+
+Synthetic oracle inverses use privileged Phase 7 distortion metadata and are stored only as supervised synthetic labels. They are not a learned policy, a hardware diagnosis rule, or evidence of real-device correction. Phase 9 v1 supports no-op and bounded RX/RY/RZ/RZZ circuit edits, exact ideal simulation, and Born-space scoring only. No baseline comparison, noisy backend, hardware execution, topology, training split, model, or quantum-advantage claim is introduced.
+
+Empty dictionaries at any manifest nesting depth are encoded with a reserved Parquet sentinel and decoded back to exact application-level `{}` values. The sentinel is an internal storage workaround for PyArrow's inability to write a struct with zero child fields; user data containing the reserved sentinel key is rejected.

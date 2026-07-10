@@ -56,3 +56,7 @@ This scaffold does not implement heavy algorithms, train models, call hardware, 
 
 ## 19. Implementation phases
 See `docs/CODEX_IMPLEMENTATION_ORDER.md` for the exact phase order.
+
+## Phase 9 deterministic action precursor
+
+The learned action policy remains a later model/training concern. Phase 9 implements the validated action substrate that such a policy will need: a versioned bounded edit vocabulary, deterministic physics-prior candidates, privileged synthetic inverse labels for known simulator distortions, safe circuit application, exact Born rollout evaluation, transparent rewards, and immutable action/rollout records. Physics priors provide candidate scaffolding and supervision; they do not override a model that does not yet exist.
