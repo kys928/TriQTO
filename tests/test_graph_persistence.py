@@ -28,9 +28,13 @@ def phase7_source(root: Path) -> Path:
         base_seed=19,
         circuit_specs=[
             CircuitGenerationSpec(
-                family="bell",
+                family="hardware_efficient_ansatz",
                 n_qubits=2,
-                generator_kwargs={"measure": True},
+                generator_kwargs={
+                    "layers": 1,
+                    "entanglement": "none",
+                    "measure": True,
+                },
                 repetitions=1,
             )
         ],
