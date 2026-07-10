@@ -77,3 +77,16 @@ This preserves the non-finite value explicitly and reversibly without capping it
 ### Scope boundary
 
 Phase 7 does not implement graph conversion, graph neural networks, correction actions, candidate repairs, baselines, topology, persistent homology, training-view splitting, model architecture, model training, noisy simulation, fake backend simulation, IBM Runtime, real hardware calls, Hilbert metrics, fidelity, Fubini-Study distance, trace distance, QFI, QGT, evaluation reports beyond a generation summary, or quantum-advantage claims. Those systems are future phases; the next recommended phase is Phase 8 graph conversion.
+
+### Phase 7 identity separation patch
+
+Phase 7 now distinguishes scientific identity from operational configuration identity:
+
+- `scientific_generation_id` describes the exact simulator-derived scientific sample universe: schema version, base seed, circuit specs, distortion specs, parameter range, and Born metric schema/version.
+- `config_id` describes the complete operational configuration, including human dataset label and artifact/shot/test-guard options.
+- Clean circuit-generation seeds, parameter-binding seeds, clean circuit IDs, exact statevector run IDs, distorted exact run IDs, metric IDs, and sample IDs are derived from scientific payloads only. They do not depend on output paths, dataset names, optional statevector storage, optional shot sampling, or `max_samples` when it is not exceeded.
+- Adding a new distortion does not change existing clean circuit payloads, clean seeds, parameter bindings, clean circuit IDs, or existing clean/distorted comparison sample IDs.
+
+`born_zero_shift` and `born_observable_shift_absent` are labels computed with the configured `born_zero_atol` tolerance (`1e-12` by default): total variation values less than or equal to this tolerance are labeled Born-zero-shift. The exact metric value is preserved and is not rounded or replaced. The tolerance is stored in sample metadata and the dataset summary.
+
+Dataset writing returns populated artifact path categories (`circuits`, `probabilities`, `statevectors`, and `counts`) and verifies all manifest references with explicit exceptions instead of Python assertions. Circuit persistence lazily requires Qiskit QPY support; if QPY is unavailable, in-memory generation remains usable but `write_dataset()` raises a clear runtime error. Ideal shot records use the `triqto.ideal_probability_sampler` backend label and identify their source exact statevector run.
