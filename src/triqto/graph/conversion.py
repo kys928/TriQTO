@@ -41,16 +41,17 @@ def _index_unique(records: list[Any], field_name: str, record_name: str) -> dict
     return result
 
 
-def _marker_only(
-    sample_metadata: Mapping[str, Any],
-    distortion_metadata: Mapping[str, Any],
-) -> bool:
+def _marker_only(sample_metadata: Mapping[str, Any], distortion_metadata: Mapping[str, Any]) -> bool:
     sample_value = sample_metadata.get("marker_only", False)
-    distortion_value = distortion_metadata.get("marker_only", False)
+    distortion_value = distortion_metadata.get("marker_only")
     if not isinstance(sample_value, bool):
         raise TypeError("DatasetSampleRecord metadata.marker_only must be bool")
+    # Parquet can materialize an absent key in heterogeneous metadata as null.
+    # The sample record remains authoritative when the distortion did not declare it.
+    if distortion_value is None:
+        return sample_value
     if not isinstance(distortion_value, bool):
-        raise TypeError("DistortionRecord metadata.marker_only must be bool")
+        raise TypeError("DistortionRecord metadata.marker_only must be bool or null")
     if sample_value != distortion_value:
         raise ValueError("Sample and distortion marker_only metadata disagree")
     return sample_value
@@ -82,14 +83,10 @@ def convert_completed_dataset_to_graphs(
 
     usage: dict[tuple[str, str, str], set[str]] = defaultdict(set)
     for sample in dataset.samples:
-        usage[(sample.clean_circuit_id, sample.clean_run_id, "clean")].add(
+        usage[(sample.clean_circuit_id, sample.clean_run_id, "clean")].add(sample.sample_id)
+        usage[(sample.distorted_circuit_id, sample.distorted_run_id, "distorted")].add(
             sample.sample_id
         )
-        usage[(
-            sample.distorted_circuit_id,
-            sample.distorted_run_id,
-            "distorted",
-        )].add(sample.sample_id)
 
     graph_cache: dict[tuple[str, str, str], Any] = {}
     graphs = []
@@ -123,10 +120,7 @@ def convert_completed_dataset_to_graphs(
                 shots = None
                 source_counts_ref = None
                 source_shot_run_id = None
-                if (
-                    conversion_config.include_supplemental_counts
-                    and shot_record is not None
-                ):
+                if conversion_config.include_supplemental_counts and shot_record is not None:
                     counts = dataset.counts_by_exact_run_id[run_id]
                     shots = shot_record.shots
                     source_counts_ref = shot_record.counts_ref
