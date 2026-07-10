@@ -1,0 +1,19 @@
+schema_version: triqto.topology.phase11.v1
+group_kinds:
+  - action_neighborhood
+  - family_qubit_cohort
+  - family_qubit_distortion_cohort
+min_points: 3
+homology_dimensions: [0, 1]
+include_hilbert: true
+born_distance: hellinger
+normalize_distance_matrices: true
+raw_parameter_weight: 0.1
+born_pullback_weight: 1.0
+hilbert_pullback_weight: 1.0
+betti_grid_size: 32
+top_k_lifetimes: 8
+max_filtration: 1.0
+max_points_per_group: 256
+max_groups: 4096
+max_statevector_amplitudes: 65536
