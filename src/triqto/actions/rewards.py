@@ -111,10 +111,7 @@ def score_action_rollout(
         nonworsening
         and np.any(candidate < baseline - config.improvement_atol)
     )
-    # Total variation is the direct L1-equivalence criterion for Born distributions.
-    # Derived square-root metrics can retain amplified floating noise near exact equality,
-    # so they remain ranking metrics but do not define this label.
-    exact_recovery = bool(candidate[0] <= config.improvement_atol)
+    exact_recovery = bool(np.all(candidate <= config.improvement_atol))
     return RewardBreakdown(
         metric_names=np.asarray(PRIMARY_REWARD_METRICS, dtype="<U32"),
         baseline_metric_values=baseline,
