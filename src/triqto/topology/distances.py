@@ -227,7 +227,9 @@ def compute_manifold_distance_matrices(
             for name, matrix in matrices.items()
         }
     return matrices, {
-        "raw_parameter_distance_matrix": raw_parameter,
+        "raw_parameter_distance_scale": (
+            float(np.max(raw_parameter)) if raw_parameter.size else 0.0
+        ),
         "normalization_scales": scales,
         "born_distance": config.born_distance,
         "hilbert_metric": "fubini_study_projective_distance",
