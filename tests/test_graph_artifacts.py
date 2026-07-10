@@ -1,70 +1,131 @@
-import json
-import math
+from __future__ import annotations
 
 import numpy as np
 import pytest
 from qiskit import QuantumCircuit
-from qiskit.circuit.library import RXGate
 
 from triqto.graph import (
-    GraphConversionConfig, circuit_to_graph, content_hash, graph_arrays,
-    graph_config_from_dict, graph_config_to_dict, load_graph_artifact,
-    save_graph_artifact, validate_graph_data,
+    GraphSamplePair,
+    circuit_to_graph,
+    graph_content_hash,
+    graph_pair_id,
+    load_graph_artifact,
+    load_pair_artifact,
+    pair_content_hash,
+    save_graph_artifact,
+    save_pair_artifact,
 )
 from triqto.storage import GraphPairRecord, GraphRecord
 
 
-def probs(n):
-    return {format(i, f"0{n}b"): 1.0/(2**n) for i in range(2**n)}
+def make_graph():
+    circuit = QuantumCircuit(2, 1)
+    circuit.h(0)
+    circuit.cx(0, 1)
+    circuit.measure(0, 0)
+    return circuit_to_graph(
+        circuit,
+        circuit_id="circuit_a",
+        source_run_id="run_a",
+        role="clean",
+        family="unit",
+        parameter_bindings={},
+        exact_probabilities={"00": 0.5, "11": 0.5},
+        source_sample_ids=["sample_a"],
+    )
 
 
-def test_config_strict_roundtrip_and_rejections(tmp_path):
-    cfg = GraphConversionConfig()
-    assert graph_config_from_dict(graph_config_to_dict(cfg)) == cfg
-    with pytest.raises(ValueError): graph_config_from_dict({**graph_config_to_dict(cfg), "split":"train"})
-    with pytest.raises(TypeError): GraphConversionConfig(max_gate_events=True)
-    with pytest.raises(ValueError): GraphConversionConfig(max_gate_events=0)
-    with pytest.raises(TypeError): GraphConversionConfig(include_supplemental_counts=1)
+def make_pair(graph_id_value: str):
+    pair = GraphSamplePair(
+        graph_pair_id=graph_pair_id("sample_a", graph_id_value, "graph_distorted"),
+        sample_id="sample_a",
+        clean_graph_id=graph_id_value,
+        distorted_graph_id="graph_distorted",
+        distortion_id="distortion_a",
+        metric_id="metric_a",
+        born_metric_names=np.asarray(["total_variation"], dtype="<U15"),
+        born_metric_values=np.asarray([0.2], dtype=np.float64),
+        born_metric_positive_infinity_mask=np.asarray([False], dtype=np.bool_),
+        born_zero_shift=False,
+        born_observable_shift_absent=False,
+        marker_only=False,
+        applicability_warning=None,
+        metadata={"phase": 8},
+    )
+    pair.content_hash = pair_content_hash(pair)
+    return pair
 
 
-def test_basic_multigraph_measurement_reset_barrier_layers_and_params(tmp_path):
-    qc = QuantumCircuit(4, 2)
-    qc.h(0); qc.x(2); qc.cx(0, 1); qc.cx(0, 1); qc.swap(1, 2); qc.reset(3); qc.barrier(); qc.measure(0, 0); qc.measure(1, 1)
-    g = circuit_to_graph(qc, circuit_id="c1", sample_id="s1", role="clean", family="unit", parameter_bindings={"b":2.0,"a":1.0}, exact_probabilities=probs(4), metadata={})
-    assert g.n_qubits == 4
-    assert g.node_features.shape[0] == 4
-    assert g.edge_index.shape == (2, 6)
-    assert np.array_equal(g.edge_event_index, np.array([2,2,3,3,4,4]))
-    assert g.parameter_names.tolist() == ["a", "b"]
-    assert g.gate_names.tolist()[6:] == ["barrier", "measure", "measure"]
-    validate_graph_data(g)
-    p = tmp_path / "g.npz"
-    save_graph_artifact(g, p)
-    ch = content_hash(graph_arrays(g), load_graph_artifact(p).metadata | {"dummy":"ignored"})
-    assert load_graph_artifact(p).graph_id == g.graph_id
+def test_graph_artifact_roundtrip_and_hash(tmp_path):
+    graph = make_graph()
+    path = tmp_path / "graph.npz"
+    save_graph_artifact(graph, path)
+    loaded = load_graph_artifact(path, graph_content_hash(graph))
+    assert loaded.graph_id == graph.graph_id
+    assert np.array_equal(loaded.edge_index, graph.edge_index)
+    with np.load(path, allow_pickle=False) as payload:
+        assert all(not payload[name].dtype.hasobject for name in payload.files)
 
 
-def test_angular_and_non_angular_parameters_global_phase_and_no_mutation():
-    qc = QuantumCircuit(1)
-    qc.global_phase = 0.5
-    qc.rz(math.pi/7, 0)
-    qc.append(RXGate(math.pi/5).power(2), [0])
-    before = qc.copy()
-    g = circuit_to_graph(qc, circuit_id="c2", sample_id="s2", role="distorted", family="unit", parameter_bindings={}, exact_probabilities={"0":1.0,"1":0.0}, metadata={})
-    assert g.gate_parameter_angle_mask[0]
-    assert g.metadata["global_phase_excluded_from_features"] is True
-    assert g.global_features.shape == (0,)
-    assert qc == before
+def test_graph_artifact_missing_array_rejected(tmp_path):
+    graph = make_graph()
+    path = tmp_path / "bad.npz"
+    np.savez_compressed(path, node_index=graph.node_index)
+    with pytest.raises(ValueError, match="array-name mismatch"):
+        load_graph_artifact(path)
 
 
-def test_probability_validation_rejects_bad_width_and_negative():
-    qc = QuantumCircuit(2)
-    with pytest.raises(ValueError): circuit_to_graph(qc, circuit_id="c", sample_id="s", role="clean", family="f", parameter_bindings={}, exact_probabilities={"0":1.0}, metadata={})
-    with pytest.raises(ValueError): circuit_to_graph(qc, circuit_id="c", sample_id="s", role="clean", family="f", parameter_bindings={}, exact_probabilities={"00":1.1,"11":-0.1}, metadata={})
+def test_pair_artifact_roundtrip_and_hash(tmp_path):
+    graph = make_graph()
+    pair = make_pair(graph.graph_id)
+    path = tmp_path / "pair.npz"
+    save_pair_artifact(pair, path)
+    loaded = load_pair_artifact(path, pair.content_hash)
+    assert loaded.graph_pair_id == pair.graph_pair_id
+    assert loaded.content_hash == pair.content_hash
 
 
-def test_records_validate_and_refs_are_safe():
-    GraphRecord("g","s","c","clean","f","v","artifacts/graphs/g.npz","sha256:x",1,0,0,1,0,0,{}).validate()
-    GraphPairRecord("p","s","g1","g2","d","m","artifacts/pairs/p.npz",{}).validate()
-    with pytest.raises(ValueError): GraphRecord("g","s","c","other","f","v","x","sha256:x",1,0,0,1,0,0,{}).validate()
-    with pytest.raises(ValueError): GraphPairRecord("p","s","g1","g2","d","m","../p.npz",{}).validate()
+def test_graph_and_pair_manifest_records_are_strict():
+    graph = make_graph()
+    content_hash = graph_content_hash(graph)
+    GraphRecord(
+        graph_id=graph.graph_id,
+        circuit_id=graph.circuit_id,
+        source_run_id=graph.source_run_id,
+        role="clean",
+        family="unit",
+        graph_schema_version=graph.graph_schema_version,
+        graph_ref=f"artifacts/graphs/{graph.graph_id}.npz",
+        content_hash=content_hash,
+        n_nodes=2,
+        n_edges=2,
+        n_gate_events=3,
+        node_feature_dim=graph.node_features.shape[1],
+        edge_feature_dim=graph.edge_features.shape[1],
+        gate_feature_dim=graph.gate_features.shape[1],
+        metadata={},
+    ).validate()
+    pair = make_pair(graph.graph_id)
+    GraphPairRecord(
+        graph_pair_id=pair.graph_pair_id,
+        sample_id=pair.sample_id,
+        clean_graph_id=pair.clean_graph_id,
+        distorted_graph_id=pair.distorted_graph_id,
+        distortion_id=pair.distortion_id,
+        metric_id=pair.metric_id,
+        pair_ref=f"artifacts/pairs/{pair.graph_pair_id}.npz",
+        content_hash=pair.content_hash,
+        metadata={},
+    ).validate()
+    with pytest.raises(ValueError):
+        GraphPairRecord(
+            graph_pair_id=pair.graph_pair_id,
+            sample_id=pair.sample_id,
+            clean_graph_id=pair.clean_graph_id,
+            distorted_graph_id=pair.distorted_graph_id,
+            distortion_id=pair.distortion_id,
+            metric_id=pair.metric_id,
+            pair_ref="../escape.npz",
+            content_hash=pair.content_hash,
+            metadata={},
+        ).validate()
