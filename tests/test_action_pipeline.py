@@ -100,17 +100,22 @@ def test_end_to_end_action_engine_and_source_immutability(tmp_path):
     assert result.summary["learned_policy_present"] is False
     assert result.summary["source_immutability_verified"] is True
     assert sum(rollout.selected for rollout in result.rollouts) == 2
-    assert any(
-        rollout.selected
-        and rollout.metadata["exact_born_recovery"]
-        and "oracle_inverse"
-        in next(
-            candidate.generation_sources
-            for candidate in result.candidates
-            if candidate.action_id == rollout.action_id
-        )
-        for rollout in result.rollouts
-    )
+
+    candidates_by_id = {
+        candidate.action_id: candidate for candidate in result.candidates
+    }
+    selected_rollouts = [rollout for rollout in result.rollouts if rollout.selected]
+    selected_oracle_rollouts = [
+        rollout
+        for rollout in selected_rollouts
+        if "oracle_inverse"
+        in candidates_by_id[rollout.action_id].generation_sources
+    ]
+    assert selected_oracle_rollouts
+    assert min(
+        rollout.candidate_metric_values[0]
+        for rollout in selected_oracle_rollouts
+    ) <= action_config().improvement_atol
     assert result.summary["selected_no_op_count"] >= 1
 
     assert managed_snapshot(phase7_root, "dataset_complete.json") == phase7_before
