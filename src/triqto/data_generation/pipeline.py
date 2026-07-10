@@ -123,16 +123,48 @@ def _make_simulation_record(
 def _metric_values(bundle: BornMetricBundle) -> dict[str, Any]:
     values: dict[str, Any] = {}
     for name, result in sorted(bundle.metrics.items()):
-        metric_value = float(result.value)
+        raw_value = result.value
+        if not isinstance(raw_value, (int, float)) or isinstance(raw_value, bool):
+            raise TypeError(f"Metric {name} must be numeric")
+        metric_value = float(raw_value)
         if math.isfinite(metric_value):
             values[name] = metric_value
-        elif metric_value > 0:
+        elif math.isnan(metric_value):
+            raise ValueError(f"Metric {name} is NaN and cannot be serialized")
+        elif metric_value == math.inf:
             values[name] = None
             values[f"{name}__nonfinite"] = "positive_infinity"
         else:
-            values[name] = None
-            values[f"{name}__nonfinite"] = "negative_infinity"
+            raise ValueError(f"Metric {name} is negative infinity and cannot be serialized")
     return values
+
+
+def _decode_metric_values(payload: dict[str, Any]) -> dict[str, float]:
+    decoded: dict[str, float] = {}
+    markers = {key[:-11]: value for key, value in payload.items() if key.endswith("__nonfinite")}
+    for marker_base in markers:
+        if marker_base not in payload:
+            raise ValueError(f"Orphan nonfinite marker for metric {marker_base}")
+    for name, value in payload.items():
+        if name.endswith("__nonfinite"):
+            continue
+        marker = markers.get(name)
+        if value is None:
+            if marker is None:
+                raise ValueError(f"Metric {name} is null without a nonfinite marker")
+            if marker != "positive_infinity":
+                raise ValueError(f"Metric {name} has unknown nonfinite marker {marker!r}")
+            decoded[name] = math.inf
+            continue
+        if marker is not None:
+            raise ValueError(f"Metric {name} has finite value and nonfinite marker")
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            raise TypeError(f"Metric {name} must be numeric")
+        metric_value = float(value)
+        if not math.isfinite(metric_value):
+            raise ValueError(f"Metric {name} contains unencoded nonfinite value")
+        decoded[name] = metric_value
+    return decoded
 
 
 def _add_unique_record(records_by_id: dict[str, Any], record: Any, record_id: str) -> None:

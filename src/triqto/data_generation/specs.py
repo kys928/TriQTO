@@ -19,9 +19,10 @@ DEFAULT_BORN_ZERO_ATOL = 1e-12
 def _require_nonblank(value: Any, name: str) -> str:
     if not isinstance(value, str):
         raise TypeError(f"{name} must be a string")
-    if not value.strip():
+    stripped = value.strip()
+    if not stripped:
         raise ValueError(f"{name} must contain non-whitespace text")
-    return value
+    return stripped
 
 
 def _require_int(value: Any, name: str) -> int:
@@ -31,6 +32,8 @@ def _require_int(value: Any, name: str) -> int:
 
 
 def _require_finite_float(value: Any, name: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise TypeError(f"{name} must be a JSON number and not bool/string/null")
     numeric = float(value)
     if not math.isfinite(numeric):
         raise ValueError(f"{name} must be finite")
@@ -115,6 +118,8 @@ class DatasetGenerationConfig:
                 raise ValueError("ideal_shots must be positive")
         else:
             ideal_shots = None
+        if not isinstance(self.store_statevectors, bool):
+            raise TypeError("store_statevectors must be exactly bool")
         max_samples = _require_int(self.max_samples, "max_samples")
         if max_samples <= 0:
             raise ValueError("max_samples must be positive")
@@ -169,6 +174,8 @@ def config_to_dict(config: DatasetGenerationConfig) -> dict[str, Any]:
 
 def config_from_dict(payload: dict[str, Any]) -> DatasetGenerationConfig:
     """Load a generation config from a dictionary, rejecting unknown fields."""
+    if not isinstance(payload, Mapping):
+        raise TypeError("config payload must be a mapping")
     allowed = set(DatasetGenerationConfig.__dataclass_fields__)  # type: ignore[attr-defined]
     extra = set(payload) - allowed
     if extra:
@@ -207,6 +214,14 @@ def save_generation_config(config: DatasetGenerationConfig, path: str | Path) ->
     Path(path).write_text(json.dumps(config_to_dict(config), sort_keys=True, indent=2, allow_nan=False) + "\n")
 
 
+def _reject_json_constant(value: str) -> None:
+    raise ValueError(f"Invalid non-finite JSON constant in generation config: {value}")
+
+
 def load_generation_config(path: str | Path) -> DatasetGenerationConfig:
     """Load a generation config from a strict JSON file."""
-    return config_from_dict(json.loads(Path(path).read_text()))
+    try:
+        payload = json.loads(Path(path).read_text(), parse_constant=_reject_json_constant)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Malformed generation config JSON: {path}") from exc
+    return config_from_dict(payload)

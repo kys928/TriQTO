@@ -68,11 +68,42 @@ def sample_signature(result):
     ]
 
 
+def normalize_parameter(value: Any) -> Any:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int | float):
+        numeric = float(value)
+        if not math.isfinite(numeric):
+            raise ValueError(f"Unsupported nonfinite circuit parameter in test: {value!r}")
+        return numeric
+    if isinstance(value, complex):
+        if not math.isfinite(value.real) or not math.isfinite(value.imag):
+            raise ValueError(f"Unsupported nonfinite complex circuit parameter in test: {value!r}")
+        return [float(value.real), float(value.imag)]
+    if value is None or isinstance(value, str):
+        return value
+    return str(value)
+
+
 def circuit_structure(circuit):
+    instructions = []
+    for instruction in circuit.data:
+        operation = instruction.operation
+        instructions.append(
+            {
+                "name": operation.name,
+                "params": [normalize_parameter(param) for param in operation.params],
+                "qubits": [circuit.find_bit(qubit).index for qubit in instruction.qubits],
+                "clbits": [circuit.find_bit(clbit).index for clbit in instruction.clbits],
+                "condition": normalize_parameter(getattr(operation, "condition", None)),
+            }
+        )
     return {
         "n_qubits": circuit.num_qubits,
         "n_clbits": circuit.num_clbits,
-        "instructions": [instruction.operation.name for instruction in circuit.data],
+        "global_phase": normalize_parameter(circuit.global_phase),
+        "parameters": sorted(parameter.name for parameter in circuit.parameters),
+        "instructions": instructions,
     }
 
 
@@ -334,9 +365,14 @@ def _assert_artifact_readback(result, root: Path) -> None:
         assert row["distortion_id"] in distortion_ids
         assert row["metric_id"] in metric_ids
     samples_by_run = {}
+    expected_counts_by_run = {}
     for sample in result.samples:
         samples_by_run[sample.clean_run_id] = (sample.clean_result.probabilities, sample.clean_result.statevector.data)
         samples_by_run[sample.distorted_run_id] = (sample.distorted_result.probabilities, sample.distorted_result.statevector.data)
+        if sample.clean_shot_run_id and sample.clean_shot_result is not None:
+            expected_counts_by_run[sample.clean_shot_run_id] = sample.clean_shot_result.counts
+        if sample.distorted_shot_run_id and sample.distorted_shot_result is not None:
+            expected_counts_by_run[sample.distorted_shot_run_id] = sample.distorted_shot_result.counts
     for row in simulation_rows:
         for key in ("probabilities_ref", "statevector_ref", "counts_ref"):
             if row.get(key) is not None:
@@ -349,12 +385,17 @@ def _assert_artifact_readback(result, root: Path) -> None:
                 np.testing.assert_allclose(np.load(root / row["statevector_ref"]), samples_by_run[row["run_id"]][1])
         elif row["simulation_mode"] == "ideal_shot":
             counts = json.loads((root / row["counts_ref"]).read_text())
+            assert counts == expected_counts_by_run[row["run_id"]]
+            assert all(isinstance(key, str) for key in counts)
+            assert all(isinstance(value, int) and not isinstance(value, bool) and value >= 0 for value in counts.values())
             assert sum(counts.values()) == result.config.ideal_shots
     expected_structures = {sample.clean_circuit_id: circuit_structure(sample.clean_circuit) for sample in result.samples}
     expected_structures.update({sample.distorted_circuit_id: circuit_structure(sample.distorted_circuit) for sample in result.samples})
     for row in circuit_rows:
         with (root / row["metadata"]["artifact_ref"]).open("rb") as handle:
-            loaded = qpy.load(handle)[0]
+            loaded_circuits = qpy.load(handle)
+        assert len(loaded_circuits) == 1
+        loaded = loaded_circuits[0]
         assert circuit_structure(loaded) == expected_structures[row["circuit_id"]]
 
 
@@ -368,11 +409,11 @@ def test_missing_and_absolute_references_raise_explicit_errors(tmp_path: Path) -
     missing_record = copy.deepcopy(circuit_records[0])
     missing_record.metadata["artifact_ref"] = "artifacts/circuits/missing.qpy"
     with pytest.raises(FileNotFoundError, match=missing_record.circuit_id):
-        verify_dataset_references(write_result.output_root, [missing_record], simulation_records)
+        verify_dataset_references(write_result.output_root, [missing_record], simulation_records, require_statevectors=result.config.store_statevectors)
     absolute_record = copy.deepcopy(circuit_records[0])
     absolute_record.metadata["artifact_ref"] = str((tmp_path / "absolute.qpy").absolute())
     with pytest.raises(ValueError, match=absolute_record.circuit_id):
-        verify_dataset_references(write_result.output_root, [absolute_record], simulation_records)
+        verify_dataset_references(write_result.output_root, [absolute_record], simulation_records, require_statevectors=result.config.store_statevectors)
 
 
 def test_qpy_lazy_failure_keeps_in_memory_generation_usable(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -423,3 +464,233 @@ def test_kl_infinity_encoded_and_no_aer_import() -> None:
     assert values["kl_clean_to_distorted__nonfinite"] == "positive_infinity"
     json.dumps(values, allow_nan=False)
     assert "qiskit_aer" not in sys.modules
+
+
+def test_metric_manifest_typed_readback_preserves_empty_metric_maps(tmp_path: Path) -> None:
+    pytest.importorskip("pyarrow")
+    result = generate_dataset(base_config())
+    write_result = write_dataset(result, tmp_path / "dataset")
+    raw_rows = ManifestReader(write_result.output_root / "manifests").read_records("metric_manifest")
+    assert raw_rows
+    typed = ManifestReader(write_result.output_root / "manifests").read_typed_records("metric_manifest", type(result.metric_records[0]))
+    original_by_id = {record.metric_id: record for record in result.metric_records}
+    for record in typed:
+        original = original_by_id[record.metric_id]
+        assert record.born_metrics == original.born_metrics
+        assert record.hilbert_metrics == {}
+        assert record.parameter_metrics == {}
+        assert record.topology_metrics == {}
+        assert record.hilbert_available_mask is False
+        assert record.hilbert_metrics.get("missing") is None
+
+
+def test_reference_verification_required_fields_and_path_safety(tmp_path: Path) -> None:
+    pytest.importorskip("pyarrow")
+    result = generate_dataset(base_config(ideal_shots=4))
+    write_result = write_dataset(result, tmp_path / "dataset")
+    reader = ManifestReader(write_result.output_root / "manifests")
+    circuits = reader.read_typed_records("circuit_manifest", CircuitRecord)
+    simulations = reader.read_typed_records("simulation_manifest", type(result.simulation_records[0]))
+    verify_dataset_references(write_result.output_root, circuits, simulations, require_statevectors=True)
+
+    missing_artifact_ref = copy.deepcopy(circuits[0])
+    missing_artifact_ref.metadata.pop("artifact_ref")
+    with pytest.raises(ValueError, match="artifact_ref"):
+        verify_dataset_references(write_result.output_root, [missing_artifact_ref], simulations, require_statevectors=True)
+
+    directory_ref = copy.deepcopy(circuits[0])
+    directory_ref.metadata["artifact_ref"] = "artifacts/circuits"
+    with pytest.raises(ValueError, match="artifact_ref"):
+        verify_dataset_references(write_result.output_root, [directory_ref], simulations, require_statevectors=True)
+
+    for bad_ref in ["../outside.json", "artifacts/../../outside.json", str((tmp_path / "outside.json").absolute()), "", "."]:
+        bad_record = copy.deepcopy(circuits[0])
+        bad_record.metadata["artifact_ref"] = bad_ref
+        with pytest.raises(ValueError, match=bad_record.circuit_id):
+            verify_dataset_references(write_result.output_root, [bad_record], simulations, require_statevectors=True)
+
+    statevector = next(record for record in simulations if record.simulation_mode == "ideal_statevector")
+    no_prob = copy.deepcopy(statevector)
+    no_prob.probabilities_ref = None
+    with pytest.raises(ValueError, match="probabilities_ref"):
+        verify_dataset_references(write_result.output_root, circuits, [no_prob], require_statevectors=True)
+    missing_prob = copy.deepcopy(statevector)
+    missing_prob.probabilities_ref = "artifacts/probabilities/missing.json"
+    with pytest.raises(FileNotFoundError, match="probabilities_ref"):
+        verify_dataset_references(write_result.output_root, circuits, [missing_prob], require_statevectors=True)
+    no_statevector = copy.deepcopy(statevector)
+    no_statevector.statevector_ref = None
+    with pytest.raises(ValueError, match="statevector_ref"):
+        verify_dataset_references(write_result.output_root, circuits, [no_statevector], require_statevectors=True)
+    missing_statevector = copy.deepcopy(statevector)
+    missing_statevector.statevector_ref = "artifacts/statevectors/missing.npy"
+    with pytest.raises(FileNotFoundError, match="statevector_ref"):
+        verify_dataset_references(write_result.output_root, circuits, [missing_statevector], require_statevectors=True)
+    with_statevector_when_disabled = copy.deepcopy(statevector)
+    with pytest.raises(ValueError, match="statevector_ref"):
+        verify_dataset_references(write_result.output_root, circuits, [with_statevector_when_disabled], require_statevectors=False)
+
+    shot = next(record for record in simulations if record.simulation_mode == "ideal_shot")
+    no_counts = copy.deepcopy(shot)
+    no_counts.counts_ref = None
+    with pytest.raises(ValueError, match="counts_ref"):
+        verify_dataset_references(write_result.output_root, circuits, [no_counts], require_statevectors=True)
+    missing_counts = copy.deepcopy(shot)
+    missing_counts.counts_ref = "artifacts/counts/missing.json"
+    with pytest.raises(FileNotFoundError, match="counts_ref"):
+        verify_dataset_references(write_result.output_root, circuits, [missing_counts], require_statevectors=True)
+    no_source = copy.deepcopy(shot)
+    no_source.metadata.pop("source_run_id")
+    with pytest.raises(ValueError, match="source_run_id"):
+        verify_dataset_references(write_result.output_root, circuits, [no_source], require_statevectors=True)
+    unknown = copy.deepcopy(shot)
+    unknown.simulation_mode = "hardware"
+    with pytest.raises(ValueError, match="simulation_mode"):
+        verify_dataset_references(write_result.output_root, circuits, [unknown], require_statevectors=True)
+
+
+def test_nonfinite_metric_encoding_and_decoding_strictness() -> None:
+    import triqto.data_generation.pipeline as pipeline
+    from triqto.metrics.results import BornMetricBundle, BornMetricResult
+
+    finite = {"total_variation": 0.25}
+    assert pipeline._decode_metric_values(finite) == {"total_variation": 0.25}
+    encoded = pipeline._metric_values(compare_born_distributions({"0": 1.0}, {"1": 1.0}))
+    decoded = pipeline._decode_metric_values(encoded)
+    assert math.isinf(decoded["kl_clean_to_distorted"])
+    json.dumps(encoded, allow_nan=False)
+
+    def bundle(value: Any) -> BornMetricBundle:
+        return BornMetricBundle(
+            metric_family="born",
+            support=["0"],
+            metrics={
+                "bad_metric": BornMetricResult(
+                    metric_name="bad_metric",
+                    metric_family="born",
+                    value=value,
+                    lower_is_better=True,
+                    symmetric=False,
+                    bounded=False,
+                    value_range=(0.0, None),
+                )
+            },
+        )
+
+    with pytest.raises(ValueError, match="bad_metric"):
+        pipeline._metric_values(bundle(float("nan")))
+    with pytest.raises(ValueError, match="bad_metric"):
+        pipeline._metric_values(bundle(float("-inf")))
+    with pytest.raises(TypeError, match="bad_metric"):
+        pipeline._metric_values(bundle("1.0"))
+    with pytest.raises(ValueError, match="null"):
+        pipeline._decode_metric_values({"x": None})
+    with pytest.raises(ValueError, match="unknown"):
+        pipeline._decode_metric_values({"x": None, "x__nonfinite": "nan"})
+    with pytest.raises(ValueError, match="Orphan"):
+        pipeline._decode_metric_values({"x__nonfinite": "positive_infinity"})
+
+
+def test_strict_config_validation_and_json_loading(tmp_path: Path) -> None:
+    with pytest.raises(TypeError):
+        base_config(store_statevectors=1)
+    with pytest.raises(TypeError):
+        base_config(parameter_low="0.25")
+    with pytest.raises(TypeError):
+        base_config(born_zero_atol=True)
+    with pytest.raises(TypeError):
+        base_config(base_seed=2.0)
+    with pytest.raises(TypeError):
+        base_config(ideal_shots=4.0)
+    with pytest.raises(TypeError):
+        CircuitGenerationSpec(" bell ", 2.0, {})
+    config = base_config(dataset_name=" tiny ", schema_version=" triqto.phase7.v1 ")
+    assert config.dataset_name == "tiny"
+    assert config.schema_version == "triqto.phase7.v1"
+    original_circuit_specs = [CircuitGenerationSpec("bell", 2, {}, 1)]
+    original_distortion_specs = [DistortionSpec("rx_overrotation", {"strength": 0.1})]
+    config = DatasetGenerationConfig("copy", 1, original_circuit_specs, original_distortion_specs)
+    original_circuit_specs.clear()
+    original_distortion_specs.clear()
+    assert config.circuit_specs and config.distortion_specs
+    with pytest.raises(TypeError):
+        config_from_dict([])  # type: ignore[arg-type]
+    bad_json = tmp_path / "bad.json"
+    bad_json.write_text('{"dataset_name":"x","base_seed":NaN}')
+    from triqto.data_generation import load_generation_config
+    with pytest.raises(ValueError, match="Invalid non-finite JSON constant"):
+        load_generation_config(bad_json)
+
+
+def test_typed_manifest_roundtrips_and_semantic_joins(tmp_path: Path) -> None:
+    pytest.importorskip("pyarrow")
+    from triqto.storage import DistortionRecord, MetricRecord, SimulationRecord
+    from triqto.data_generation import validate_dataset_joins
+
+    result = generate_dataset(base_config(ideal_shots=8))
+    write_result = write_dataset(result, tmp_path / "dataset")
+    reader = ManifestReader(write_result.output_root / "manifests")
+    sample_records = reader.read_typed_records("sample_manifest", DatasetSampleRecord)
+    circuit_records = reader.read_typed_records("circuit_manifest", CircuitRecord)
+    simulation_records = reader.read_typed_records("simulation_manifest", SimulationRecord)
+    distortion_records = reader.read_typed_records("distortion_manifest", DistortionRecord)
+    metric_records = reader.read_typed_records("metric_manifest", MetricRecord)
+    for records in [sample_records, circuit_records, simulation_records, distortion_records, metric_records]:
+        for record in records:
+            record.validate()
+    validate_dataset_joins(sample_records, circuit_records, simulation_records, distortion_records, metric_records)
+    original_samples = {record.sample_id: normalize_rows([record.to_dict()])[0] for record in result.sample_records}
+    for record in sample_records:
+        typed_dict = normalize_rows([record.to_dict()])[0]
+        original = original_samples[record.sample_id]
+        assert typed_dict["sample_id"] == original["sample_id"]
+        assert typed_dict["clean_circuit_id"] == original["clean_circuit_id"]
+        assert typed_dict["distorted_circuit_id"] == original["distorted_circuit_id"]
+        assert typed_dict["parameter_bindings"] == original["parameter_bindings"]
+        assert typed_dict["metadata"]["born_zero_atol"] == result.config.born_zero_atol
+    for record in simulation_records:
+        if record.simulation_mode == "ideal_statevector":
+            assert record.probabilities_ref
+            assert record.metadata["sampling_source"] == "exact_statevector"
+        if record.simulation_mode == "ideal_shot":
+            assert record.counts_ref
+            assert record.metadata["sampling_source"] == "sampled_from_exact_born_probabilities"
+    for record in metric_records:
+        assert record.hilbert_metrics == {}
+        assert record.parameter_metrics == {}
+        assert record.topology_metrics == {}
+        assert record.born_metrics
+
+
+def test_write_dataset_failure_cleanup_preserves_unrelated_files(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    import triqto.data_generation.artifacts as artifacts
+
+    result = generate_dataset(base_config())
+    target = tmp_path / "dataset"
+    target.mkdir()
+    unrelated = target / "unrelated.txt"
+    unrelated.write_text("keep me")
+    monkeypatch.setattr(
+        artifacts,
+        "_load_qpy_module",
+        lambda: (_ for _ in ()).throw(RuntimeError("QPY forced failure")),
+    )
+    with pytest.raises(RuntimeError, match="QPY forced failure"):
+        write_dataset(result, target, overwrite=True)
+    assert unrelated.read_text() == "keep me"
+    assert not (target / "dataset_complete.json").exists()
+
+
+def test_write_dataset_manifest_failure_cleanup(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    import triqto.data_generation.artifacts as artifacts
+
+    result = generate_dataset(base_config())
+
+    def fail_write_records(self, *args, **kwargs):
+        raise RuntimeError("manifest forced failure")
+
+    monkeypatch.setattr(artifacts.ManifestWriter, "write_records", fail_write_records)
+    with pytest.raises(RuntimeError, match="manifest forced failure"):
+        write_dataset(result, tmp_path / "dataset")
+    assert not (tmp_path / "dataset" / "dataset_complete.json").exists()
+    assert not any(tmp_path.glob(".dataset.triqto-staging-*"))

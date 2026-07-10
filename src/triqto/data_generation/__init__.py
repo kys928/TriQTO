@@ -1,5 +1,5 @@
 """Phase 7 deterministic raw dataset generation."""
-from .artifacts import verify_dataset_references, write_dataset
+from .artifacts import validate_dataset_joins, verify_dataset_references, write_dataset
 from .pipeline import generate_dataset
 from .records import DatasetGenerationResult, DatasetWriteResult, GeneratedDatasetSample
 from .seeding import derive_child_seed
@@ -32,6 +32,7 @@ __all__ = [
     "predicted_sample_count",
     "save_generation_config",
     "scientific_generation_id",
+    "validate_dataset_joins",
     "verify_dataset_references",
     "write_dataset",
 ]

@@ -13,6 +13,18 @@ JsonMap = dict[str, Any]
 T = TypeVar("T", bound="ManifestRecordMixin")
 
 
+def _normalize_manifest_value(value: Any) -> Any:
+    if isinstance(value, float) and value != value:
+        return None
+    if hasattr(value, "tolist"):
+        return _normalize_manifest_value(value.tolist())
+    if isinstance(value, dict):
+        return {key: _normalize_manifest_value(val) for key, val in value.items()}
+    if isinstance(value, list):
+        return [_normalize_manifest_value(item) for item in value]
+    return value
+
+
 class ManifestRecordMixin:
     """Mixin providing common conversion and validation hooks for manifest rows."""
 
@@ -27,7 +39,7 @@ class ManifestRecordMixin:
     @classmethod
     def from_dict(cls: type[T], row: JsonMap) -> T:
         """Build a record from a dictionary, ignoring no fields implicitly."""
-        return cls(**row)
+        return cls(**_normalize_manifest_value(row))
 
     def validate(self) -> None:
         """Validate that required string fields are present.
@@ -128,6 +140,14 @@ class MetricRecord(ManifestRecordMixin):
     topology_metrics: JsonMap = field(default_factory=dict)
     hilbert_available_mask: bool = False
     metadata: JsonMap = field(default_factory=dict)
+
+    @classmethod
+    def from_dict(cls, row: JsonMap) -> "MetricRecord":
+        normalized = _normalize_manifest_value(dict(row))
+        for name in ("born_metrics", "hilbert_metrics", "parameter_metrics", "topology_metrics", "metadata"):
+            if normalized.get(name) is None:
+                normalized[name] = {}
+        return cls(**normalized)
 
 
 @dataclass(slots=True)
