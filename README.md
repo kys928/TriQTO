@@ -33,7 +33,7 @@ The architecture reserves first-class modules for sine/cosine angle encodings, m
 
 ## Baselines
 
-Physics priors are scaffolding and validators, not unquestioned final authority. Random, rule-only, loss-only, SPSA, COBYLA, and transpiler-only baselines are planned as explicit comparisons.
+Physics priors are scaffolding and validators, not unquestioned final authority. Phase 10 implements deterministic random, privileged rule-only, clean-target loss-only, SPSA, COBYLA, and backend-free transpiler controls. Their access privileges and limits are persisted explicitly.
 
 ## Implementation phases
 
@@ -69,3 +69,9 @@ Phase 8 introduces no graph neural network, training split, topology feature, co
 Phase 9 converts completed Phase 7/8 sources into deterministic bounded action candidates and exact ideal-statevector validation rollouts. Candidate edits currently include no-op, RX/RY/RZ rotations, and observed-interaction RZZ edits. Every candidate is applied to an independent circuit copy, compared with the clean Phase 7 Born target, assigned a transparent reward, and deterministically ranked.
 
 The engine includes privileged synthetic oracle inverses only as supervised labels for known Phase 7 unitary distortions. It is not a learned policy and does not infer those inverses from hardware observations. Marker-only distortions receive no fabricated circuit oracle, and no-op can win. Phase 9 performs no noisy simulation, hardware calls, topology, baselines, training-view construction, or model training. See [`docs/ACTION_SCHEMA.md`](docs/ACTION_SCHEMA.md).
+
+## Phase 10 baseline suite
+
+Phase 10 consumes the exact completed Phase 7/8/9 chain and evaluates six deterministic controls under the same exact Born objective: random correction, privileged synthetic rule-only inversion, clean-target loss-only action selection, SPSA, COBYLA, and backend-free transpilation. Results are immutable typed artifacts with explicit access-privilege metadata and byte-level source immutability checks.
+
+The baseline suite does not yet compare a trained TriQTO policy because the model and training phases have not been implemented. The transpiler control is semantic and backend-free, not hardware-aware. See [`docs/BASELINE_SCHEMA.md`](docs/BASELINE_SCHEMA.md).

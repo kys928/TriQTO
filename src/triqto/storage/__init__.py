@@ -5,6 +5,7 @@ from triqto.storage.action_schema import (
     ActionCandidateRecordV1,
     ActionRolloutRecord,
 )
+from triqto.storage.baseline_schema import BaselineResultRecord
 from triqto.storage.graph_schema import GraphPairRecord, GraphRecord
 from triqto.storage.manifest import ManifestReader, ManifestWriter
 from triqto.storage.schema import (
@@ -24,6 +25,7 @@ __all__ = [
     "ActionCandidateRecordV1",
     "ActionRolloutRecord",
     "BackendRecord",
+    "BaselineResultRecord",
     "CircuitRecord",
     "DatasetSampleRecord",
     "DistortionRecord",

@@ -1,2 +1,26 @@
-evaluation: baselines
-split_strategy: future_manifest_defined
+schema_version: triqto.baselines.phase10.v1
+enabled_baselines:
+  - random_correction
+  - rule_only
+  - loss_only
+  - spsa
+  - cobyla
+  - transpiler_only
+random_seed: 2026
+random_include_no_op: false
+random_allow_oracle: false
+loss_only_allow_oracle: false
+metric_weights: [1.0, 1.0, 1.0]
+max_abs_angle: 3.141592653589793
+improvement_atol: 1.0e-12
+spsa_iterations: 12
+spsa_a: 0.2
+spsa_c: 0.1
+spsa_alpha: 0.602
+spsa_gamma: 0.101
+cobyla_maxiter: 80
+cobyla_initial_step: 0.2
+cobyla_tolerance: 1.0e-9
+transpiler_optimization_level: 3
+max_optimizer_dimensions: 128
+max_objective_evaluations: 20000
