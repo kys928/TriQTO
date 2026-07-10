@@ -1,11 +1,12 @@
-"""TriQTO topology.topology_cache module.
-
-Placeholder contracts for the Phase 1 repository skeleton. TODO: implement in the scheduled future phase without fake heavy logic.
-"""
-
+"""Explicit non-global cache utilities for repeated topology computations."""
 from __future__ import annotations
 
+from .models import TopologyCache
 
-def describe_contract() -> str:
-    """Return a short description of this placeholder module contract."""
-    return "TriQTO placeholder for topology.topology_cache; implementation deferred."
+
+def make_topology_cache() -> TopologyCache:
+    """Return a fresh cache instance; Phase 11 never uses global mutable cache state."""
+    return TopologyCache()
+
+
+__all__ = ["TopologyCache", "make_topology_cache"]
