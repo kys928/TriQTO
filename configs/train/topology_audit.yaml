@@ -1,3 +1,9 @@
 task: topology_audit
-required_input_groups: ['topology', 'metrics']
-target_groups: [task_specific_targets]
+training_view_task: topology_audit
+required_input_groups: [topology]
+optional_input_groups: [metrics]
+target_groups: [topology_audit_only]
+mask_policy: audit_only
+topology_loss_weight: 0.0
+cross_split_policy: audit_only
+training_enabled: false
