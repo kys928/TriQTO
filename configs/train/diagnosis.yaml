@@ -1,3 +1,8 @@
 task: diagnosis
-required_input_groups: ['circuit_graph', 'born', 'backend']
-target_groups: [task_specific_targets]
+training_view_task: diagnosis
+required_input_groups: [circuit_graph, born]
+optional_input_groups: [backend]
+target_groups: [distortion_type, distortion_strength, affected_qubits]
+mask_policy: explicit_per_item
+split_policy: clean_circuit_id
+training_enabled: false
