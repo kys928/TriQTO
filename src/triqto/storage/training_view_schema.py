@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+import numbers
 from pathlib import PurePosixPath
 import re
 from typing import Any, ClassVar
@@ -19,13 +20,14 @@ def _nonblank(value: Any, name: str) -> str:
 
 
 def _nonnegative_int(value: Any, name: str, *, positive: bool = False) -> int:
-    if isinstance(value, bool) or not isinstance(value, int):
+    if isinstance(value, bool) or not isinstance(value, numbers.Integral):
         raise TypeError(f"{name} must be an integer and not bool")
-    if positive and value <= 0:
+    normalized = int(value)
+    if positive and normalized <= 0:
         raise ValueError(f"{name} must be positive")
-    if not positive and value < 0:
+    if not positive and normalized < 0:
         raise ValueError(f"{name} must be nonnegative")
-    return value
+    return normalized
 
 
 def _safe_ref(value: Any, name: str) -> str:
@@ -95,7 +97,7 @@ class TrainingViewDefinitionRecordV1(ManifestRecordMixin):
         for split, count in self.split_counts.items():
             _nonblank(split, "split_counts key")
             total += _nonnegative_int(count, f"split_counts[{split}]")
-        if total != self.item_count:
+        if total != int(self.item_count):
             raise ValueError("split_counts must sum to item_count")
         if not isinstance(self.metadata, Mapping):
             raise TypeError("metadata must be a mapping")
