@@ -1,3 +1,8 @@
 task: hilbert_to_born
-required_input_groups: ['hilbert', 'born']
-target_groups: [task_specific_targets]
+training_view_task: hilbert_to_born
+required_input_groups: [hilbert]
+target_groups: [born_distribution]
+mask_policy: optional_simulation_only
+split_policy: clean_circuit_id
+hardware_compatible: false
+training_enabled: false

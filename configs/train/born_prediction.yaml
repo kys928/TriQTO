@@ -1,3 +1,8 @@
 task: born_prediction
-required_input_groups: ['circuit_graph', 'parameter', 'phasor']
-target_groups: [task_specific_targets]
+training_view_task: born_prediction
+required_input_groups: [circuit_graph, parameter, phasor]
+forbidden_input_fields: [outcome_bitstrings, exact_probabilities, supplemental_counts]
+target_groups: [born_distribution]
+mask_policy: physical_target_exclusion
+split_policy: clean_circuit_id
+training_enabled: false

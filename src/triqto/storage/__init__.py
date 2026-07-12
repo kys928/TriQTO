@@ -20,6 +20,10 @@ from triqto.storage.schema import (
     TrainingViewRecord,
 )
 from triqto.storage.topology_schema import TopologyGroupRecordV1
+from triqto.storage.training_view_schema import (
+    TrainingViewDefinitionRecordV1,
+    TrainingViewItemRecordV1,
+)
 
 __all__ = [
     "ActionCandidateRecord",
@@ -38,5 +42,7 @@ __all__ = [
     "SimulationRecord",
     "TopologyGroupRecordV1",
     "TopologyRecord",
+    "TrainingViewDefinitionRecordV1",
+    "TrainingViewItemRecordV1",
     "TrainingViewRecord",
 ]
