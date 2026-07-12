@@ -75,3 +75,9 @@ The engine includes privileged synthetic oracle inverses only as supervised labe
 Phase 10 consumes the exact completed Phase 7/8/9 chain and evaluates six deterministic controls under the same exact Born objective: random correction, privileged synthetic rule-only inversion, clean-target loss-only action selection, SPSA, COBYLA, and backend-free transpilation. Results are immutable typed artifacts with explicit access-privilege metadata and byte-level source immutability checks.
 
 The baseline suite does not yet compare a trained TriQTO policy because the model and training phases have not been implemented. The transpiler control is semantic and backend-free, not hardware-aware. See [`docs/BASELINE_SCHEMA.md`](docs/BASELINE_SCHEMA.md).
+
+## Phase 11 persistent-homology audit
+
+Phase 11 implements deterministic Vietoris-Rips persistent homology over aligned action-neighborhood and circuit-cohort point clouds. It computes H0 and H1 by default, optional H2, Betti curves, persistence entropy, top lifetimes, collapse/loop/late-merge heuristics, and bottleneck/Wasserstein alignment across parameter, pure-state Hilbert, and Born manifolds.
+
+Parameter topology uses a downstream pullback-style pseudometric rather than plain Euclidean distance. Hilbert topology is optional and maskable, uses Fubini-Study projective distance, and never persists raw statevectors. Latent topology is explicitly unavailable until a learned model exists. Topology remains **audit + reusable feature** with `lambda_top = 0`; no topology optimization or training signal is claimed. See [`docs/TOPOLOGY_SCHEMA.md`](docs/TOPOLOGY_SCHEMA.md).
