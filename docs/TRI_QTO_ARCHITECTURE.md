@@ -10,68 +10,64 @@ Optimization signals may become more interpretable and transferable when modeled
 The central map is `θ → |ψ(θ, x)⟩ → pθ(y|x) = |⟨y|ψ(θ, x)⟩|²`.
 
 ## 4. Parameter manifold
-Parameter records describe trainable angles, constraints, sin/cos encodings, and local perturbations.
+Parameter records describe trainable angles, constraints, sine/cosine encodings, and local perturbations. The Phase 13 model keeps raw parameter and periodic phasor streams separate so their contribution can be audited.
 
 ## 5. Hilbert-state manifold
-Simulation can expose statevector or density-matrix references. These are optional and masked in hardware mode.
+Simulation can expose pure-state amplitudes. Phase 13 canonicalizes global phase before encoding and treats Hilbert information as optional privileged input. Density matrices and general channels remain future work.
 
 ## 6. Born-probability manifold
-Measurement probabilities and counts are the common observable interface across simulation and hardware.
+Measurement probabilities and counts are the common observable interface across simulation and hardware. Phase 13 uses variable-support basis-string tables rather than a fixed `2^n` output layer.
 
 ## 7. Variable-size circuit/lattice graph representation
-Qubits are nodes, entangling gates or couplings are edges, gates are layer/time features, and measurements are output evidence.
+Qubits are nodes, entangling gates or couplings are edges, gates are layer/time features, and measurements are output evidence. Phase 13 batches concatenated graphs through ownership indices instead of fixing a global qubit count.
 
 ## 8. Phasor-aware representation
-Features include parameter values and sine/cosine angle encodings, with future model layers reserved for richer relative-phase and interference-aware processing.
+Parameters use explicit sine/cosine encodings. Graph messages are mixed through learned in-phase and quadrature channels using bounded sine/cosine phase fields. This preserves a phasor language without pretending the classical network is executing a quantum operation.
 
 ## 9. Dual-mode simulation/hardware encoder
-Phase 12 now defines the input masks the future encoder must obey. Simulation views may reference Hilbert state. Hardware-masked simulation contains no Hilbert values or references and carries an explicit false Hilbert-availability signal.
+Simulation mode may use Hilbert features. Hardware mode rejects Hilbert tensors and Hilbert-dependent topology before forward computation. A mode embedding conditions mask-aware fusion while the information-set difference remains explicit.
 
 ## 10. Geometry metric stack
-Metrics are scaffolded for parameter, Hilbert, and Born manifolds, including QGT/QFI placeholders.
+Parameter pullback geometry, Hilbert fidelity/Fubini–Study geometry, and Born Hellinger/Jensen–Shannon/Fisher–Rao geometry remain data and training objectives rather than implicit Euclidean assumptions. Phase 13 includes mask-aware geometry-consistency loss primitives but no trainer.
 
 ## 11. Persistent homology module
-Phase 11 computes deterministic Vietoris-Rips persistent homology over aligned action neighborhoods and circuit cohorts. H0 and H1 are active; H2 is available only when explicitly configured. Outputs include diagrams, Betti curves, persistence entropy, top lifetimes, total persistence, and bounded audit heuristics.
+Phase 11 computes deterministic Vietoris-Rips persistent homology over aligned action neighborhoods and circuit cohorts. H0 and H1 are active; H2 is optional. Outputs include diagrams, Betti curves, persistence entropy, top lifetimes, total persistence, and bounded audit heuristics.
 
 ## 12. Cross-manifold topology alignment
-Phase 11 compares parameter, optional pure-state Hilbert, and Born persistence diagrams using bottleneck and 1-Wasserstein distances. Parameter distance is a downstream pullback-style pseudometric, Hilbert distance is projective Fubini-Study distance, and Born distance is configurable among Hellinger, square-root Jensen-Shannon, and normalized Fisher-Rao distance.
+Phase 11 compares parameter, optional pure-state Hilbert, and Born persistence diagrams. Phase 13 can encode the resulting feature vectors, while its topology prediction head cannot directly copy topology input and has no supervised target in this phase.
 
 ## 13. Distortion diagnosis
-Distortion records describe phase, amplitude, entangling, readout, depolarizing, damping, thermal, layout, and mixed noise. Phase 12 isolates distortion type, strength, and affected-qubit labels from diagnosis inputs.
+The diagnosis head predicts a coarse versioned distortion family, optional strength, and affected-qubit logits. Mapping raw Phase 12 distortion names into the coarse label vocabulary is an explicit future data-adapter responsibility.
 
 ## 14. Learned action/correction policy
-Actions may operate at node, edge, or circuit level and are validated before reward estimation. Phase 12 orders candidates independently of target rank and keeps rollout scores as targets rather than observable inputs.
+The action head scores a variable number of candidates and normalizes them independently per graph. Candidate ordering is independent of target rank. Privileged oracle status is target/provenance metadata, not an observable input feature.
 
 ## 15. Baselines
-Random correction, rule-only correction, loss-only optimization, SPSA, COBYLA, and transpiler-only baselines are required.
+Random correction, rule-only correction, loss-only optimization, SPSA, COBYLA, and transpiler-only baselines remain required controls for later evaluation.
 
 ## 16. Training stages
-Phase 12 materializes diagnosis, action-ranking, Born-prediction, optional Hilbert-to-Born, topology-audit, joint-multitask, and hardware-masked simulation views. Actual model architecture and optimization remain Phases 13 and 14.
+Phase 12 materializes leakage-safe views. Phase 13 implements the forward architecture and loss contracts. Phase 14 will add data adapters, optimization, schedules, checkpoints, and actual learning while enforcing Phase 12 per-head masks.
 
 ## 17. Hardware validation
-IBM Runtime validation is deferred until simulation, fake backend, data lake, masking, model, training, and evaluation contracts work. Hardware-masked simulation is explicitly not hardware evidence.
+IBM Runtime validation remains deferred until training and evaluation are complete. Hardware-masked simulation is explicitly not hardware evidence.
 
 ## 18. Limitations
-No learned TriQTO model, model training, hardware execution, or performance claim exists yet. Topology remains audited evidence and reusable features with `lambda_top = 0`; Phase 12 makes no claim that topology is predictive or beneficial before later ablations.
+The Phase 13 network is untrained. Its outputs carry no empirical performance meaning. It has not demonstrated correction success, topology benefit, simulator-to-hardware transfer, generalization, or quantum advantage.
 
 ## 19. Implementation phases
 See `docs/CODEX_IMPLEMENTATION_ORDER.md` for the exact phase order.
 
 ## Phase 9 deterministic action precursor
 
-The learned action policy remains a later model/training concern. Phase 9 implements the validated action substrate that such a policy will need: a versioned bounded edit vocabulary, deterministic physics-prior candidates, privileged synthetic inverse labels for known simulator distortions, safe circuit application, exact Born rollout evaluation, transparent rewards, and immutable action/rollout records. Physics priors provide candidate scaffolding and supervision; they do not override a model that does not yet exist.
+Phase 9 implements a bounded action substrate: deterministic candidates, privileged synthetic inverse labels, safe circuit application, exact Born rollout evaluation, transparent rewards, and immutable records. Physics priors provide scaffolding and supervision; they do not replace a learned model.
 
 ## Phase 10 baseline controls
 
-Phase 10 makes baseline comparison executable before any learned TriQTO model exists. Random correction, privileged rule-only inversion, clean-target loss-only action selection, SPSA, COBYLA, and backend-free transpilation are evaluated against the same exact Born target and metric order. Each result records what privileged information its method used.
-
-These controls are not substitutes for the future learned policy. They establish the floor and simulator-oracle ceilings that later model evaluation must beat or approach. Hardware-aware transpilation, noisy execution, and device-calibrated optimization remain deferred until the hardware-validation layer; Phase 10 does not fabricate backend structure.
+Phase 10 evaluates deterministic controls against the same exact Born target and records every method's access privileges. These controls define floors and simulator-oracle ceilings for later model evaluation.
 
 ## Phase 11 TriQTO-PH audit
 
-TriQTO-PH materializes topology evidence across aligned parameter/Hilbert/Born point clouds from Phase 9 candidate neighborhoods and Phase 7 family cohorts. Parameter geometry includes downstream deformation, Hilbert topology is optional and pure-state simulation-only, Born topology remains available without Hilbert access, and latent topology remains unavailable until a learned model exists.
-
-The topology contract remains:
+TriQTO-PH materializes parameter/Hilbert/Born topology evidence across aligned point clouds. The topology contract remains:
 
 ```text
 topology = audit + feature
@@ -80,8 +76,31 @@ lambda_top = 0
 
 ## Phase 12 leakage-safe view layer
 
-Phase 12 is the boundary between the data lake and future models. It groups every distortion and action derived from one clean circuit into the same deterministic split. Topology cohorts spanning several split groups remain `audit_only` rather than contaminating train, validation, or test.
+Phase 12 groups all records derived from one clean circuit into one split, isolates targets from inputs, carries per-head masks, and removes Hilbert-dependent features from hardware-masked simulation.
 
-Born-prediction views physically omit Born evidence from structural graph inputs. Action-ranking views isolate clean-target rollout results as targets. Optional Hilbert views use statevector references only when available. Joint views carry per-head masks because one task may legitimately use evidence that would leak another task's target.
+## Phase 13 phase-coupled graph model
 
-Hardware-masked simulation removes Hilbert references and also removes topology computed with Hilbert access. It is a missing-data training mode, not a claim of real-hardware validation.
+The implemented model contains seven streams:
+
+```text
+circuit graph | parameter | phasor | optional Hilbert | Born | backend | topology
+```
+
+Each output head receives a separately masked fusion. A hard policy prevents runtime code from enabling known shortcut streams. The core circuit encoder uses directed multiedge message passing with learned phase quadratures:
+
+```text
+m_ij = m_cos · cos(phi_ij) + m_sin · sin(phi_ij)
+```
+
+This replaces transformer-style Q/K/V attention as the central interaction mechanism. Graph pooling supports variable qubit counts, Born prediction supports variable queried outcome support, and action ranking supports variable candidate counts.
+
+The model exposes fused latent states, which can later form the learned latent point cloud `P_Z`. Persistent homology over trained latent trajectories remains a Phase 14–15 activity because an untrained architecture does not yet define meaningful latent topology.
+
+The architecture manifest is deliberately honest:
+
+```text
+trained = false
+optimizer_state_present = false
+training_checkpoint = false
+topology_loss_weight = 0.0
+```

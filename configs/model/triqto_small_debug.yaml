@@ -1,2 +1,34 @@
+schema_version: triqto.model.phase13.v1
 model_name: triqto_small_debug
-purpose: shape and contract debugging only
+hidden_dim: 32
+graph_message_passing_layers: 2
+residual_mlp_layers: 1
+node_input_dim: 13
+edge_input_dim: 10
+gate_input_dim: 16
+backend_input_dim: 4
+topology_input_dim: 16
+action_candidate_feature_dim: 5
+action_edit_type_count: 8
+hilbert_deformation_dim: 8
+topology_prediction_dim: 8
+dropout: 0.0
+layer_norm_eps: 0.00001
+initialization_seed: 130007
+use_hilbert: true
+use_backend: true
+use_topology: true
+distortion_labels:
+  - phase_like
+  - amplitude_like
+  - entanglement_like
+  - lattice_layout_like
+  - noise_readout_like
+  - mixed_uncertain
+uncertainty_targets:
+  - diagnosis
+  - action_ranking
+  - born_prediction
+  - hilbert_deformation
+  - topology_audit
+topology_loss_weight: 0.0

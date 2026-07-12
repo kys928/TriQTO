@@ -1,11 +1,32 @@
-"""TriQTO model.fusion.tri_manifold_fusion module.
-
-Placeholder contracts for the Phase 1 repository skeleton. TODO: implement in the scheduled future phase without fake heavy logic.
-"""
-
+"""Mask-aware fusion of graph, parameter, phasor, Hilbert, Born, and backend streams."""
 from __future__ import annotations
 
+from torch import Tensor, nn
 
-def describe_contract() -> str:
-    """Return a short description of this placeholder module contract."""
-    return "TriQTO placeholder for model.fusion.tri_manifold_fusion; implementation deferred."
+from triqto.model.layers import MaskAwareFusion
+
+
+class TriManifoldFusion(nn.Module):
+    """Fuse non-topology streams; unavailable inputs contribute exactly zero."""
+
+    def __init__(
+        self,
+        hidden_dim: int,
+        stream_count: int,
+        *,
+        dropout: float = 0.0,
+        layer_norm_eps: float = 1e-5,
+    ) -> None:
+        super().__init__()
+        self.fusion = MaskAwareFusion(
+            stream_count,
+            hidden_dim,
+            dropout=dropout,
+            layer_norm_eps=layer_norm_eps,
+        )
+
+    def forward(self, streams: Tensor, available_mask: Tensor) -> tuple[Tensor, Tensor]:
+        return self.fusion(streams, available_mask)
+
+
+__all__ = ["TriManifoldFusion"]

@@ -74,16 +74,24 @@ The engine includes privileged synthetic oracle inverses only as supervised labe
 
 Phase 10 consumes the exact completed Phase 7/8/9 chain and evaluates six deterministic controls under the same exact Born objective: random correction, privileged synthetic rule-only inversion, clean-target loss-only action selection, SPSA, COBYLA, and backend-free transpilation. Results are immutable typed artifacts with explicit access-privilege metadata and byte-level source immutability checks.
 
-The baseline suite does not yet compare a trained TriQTO policy because the model and training phases have not been implemented. The transpiler control is semantic and backend-free, not hardware-aware. See [`docs/BASELINE_SCHEMA.md`](docs/BASELINE_SCHEMA.md).
+The baseline suite does not yet compare a trained TriQTO policy because the training phase has not been implemented. The transpiler control is semantic and backend-free, not hardware-aware. See [`docs/BASELINE_SCHEMA.md`](docs/BASELINE_SCHEMA.md).
 
 ## Phase 11 persistent-homology audit
 
 Phase 11 implements deterministic Vietoris-Rips persistent homology over aligned action-neighborhood and circuit-cohort point clouds. It computes H0 and H1 by default, optional H2, Betti curves, persistence entropy, top lifetimes, collapse/loop/late-merge heuristics, and bottleneck/Wasserstein alignment across parameter, pure-state Hilbert, and Born manifolds.
 
-Parameter topology uses a downstream pullback-style pseudometric rather than plain Euclidean distance. Hilbert topology is optional and maskable, uses Fubini-Study projective distance, and never persists raw statevectors. Latent topology is explicitly unavailable until a learned model exists. Topology remains **audit + reusable feature** with `lambda_top = 0`; no topology optimization or training signal is claimed. See [`docs/TOPOLOGY_SCHEMA.md`](docs/TOPOLOGY_SCHEMA.md).
+Parameter topology uses a downstream pullback-style pseudometric rather than plain Euclidean distance. Hilbert topology is optional and maskable, uses Fubini–Study projective distance, and never persists raw statevectors. Topology remains **audit + reusable feature** with `lambda_top = 0`; no topology optimization or training signal is claimed. See [`docs/TOPOLOGY_SCHEMA.md`](docs/TOPOLOGY_SCHEMA.md).
 
 ## Phase 12 task-specific training views
 
 Phase 12 turns the validated Phase 7/8/9/11 chain into deterministic diagnosis, action-ranking, Born-prediction, optional Hilbert-to-Born, topology-audit, joint-multitask, and hardware-masked simulation views. Related distortions and actions are split together by clean circuit, while topology cohorts spanning several splits remain `audit_only`.
 
 The view layer physically blocks Born-target leakage from Born-prediction graph inputs, separates action rollout labels from candidate inputs, carries explicit privileged-oracle masks, supports optional Hilbert references, and removes Hilbert-dependent topology from hardware-masked simulation. It performs no model training and keeps `lambda_top = 0`. See [`docs/TRAINING_VIEW_SCHEMA.md`](docs/TRAINING_VIEW_SCHEMA.md).
+
+## Phase 13 model architecture
+
+Phase 13 implements the untrained PyTorch TriQTO architecture. It combines a variable-size circuit graph encoder, explicit parameter and phasor streams, optional global-phase-invariant Hilbert encoding, variable-support Born encoding, optional backend/topology streams, dual simulation/hardware mode, and head-specific mask-aware fusion.
+
+The graph core uses learned sine/cosine phase quadratures over directed lattice messages rather than transformer Q/K/V attention. Hard stream policies and Phase 12 runtime masks prevent Born-target copying, direct Hilbert copying in the Hilbert-deformation head, direct topology copying in the topology audit head, and Hilbert leakage into hardware-mode rows. Inactive heads and unavailable streams are forced to zero.
+
+The architecture exposes diagnosis, variable-candidate action ranking, variable-support Born prediction, Hilbert-deformation, uncertainty, and topology-audit heads. It is deterministically initialized and identity-versioned, but explicitly records `trained=false`, no optimizer state, no training checkpoint, and `lambda_top=0`. See [`docs/MODEL_ARCHITECTURE.md`](docs/MODEL_ARCHITECTURE.md).

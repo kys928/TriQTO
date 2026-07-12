@@ -1,41 +1,83 @@
 # Training Plan
 
-Phase 12 now materializes deterministic task-specific views for:
+## Current implementation boundary
 
-- distortion diagnosis;
-- action ranking;
-- Born prediction;
-- optional Hilbert-to-Born prediction;
-- topology audit;
-- joint multitask learning;
-- hardware-masked simulation training.
+Phase 12 materializes deterministic task-specific views for diagnosis, action ranking, Born prediction, optional Hilbert-to-Born prediction, topology audit, joint multitask learning, and hardware-masked simulation.
 
-The view layer does not train a model. It defines split groups, source references, materialized structural arrays, targets, availability masks, per-head masks, and leakage exclusions.
+Phase 13 now implements the untrained model architecture and strict tensor/loss contracts. It does not perform optimization. Phase 14 will implement the data adapter, trainer, optimizer, schedules, checkpointing, and actual learning.
 
 ## Split policy
 
-All records derived from the same `clean_circuit_id` stay in one deterministic train, validation, or test split. Individual distortions or candidate actions are never randomly split away from their clean-circuit lineage. Topology cohorts spanning several source splits remain `audit_only`.
+All records derived from the same `clean_circuit_id` stay in one deterministic train, validation, or test split. Individual distortions or candidate actions are never split away from their clean-circuit lineage. Topology cohorts spanning several source splits remain `audit_only`.
+
+## Data-adapter responsibilities for Phase 14
+
+The Phase 14 adapter must:
+
+- typed-read and verify the completed Phase 12 dataset;
+- map variable Phase 12 graph arrays into `GraphTensorBatch` without fixed-qubit padding;
+- map raw distortion names into the versioned Phase 13 coarse label vocabulary explicitly;
+- construct parameter, phasor, Born, Hilbert, backend, topology, action, and outcome-query tensors;
+- translate Phase 12 per-head masks into the six Phase 13 architecture heads;
+- activate uncertainty wherever at least one supervised task is active;
+- preserve source usage distinctions so target-provenance artifacts never become inputs;
+- keep privileged-oracle masks out of observable candidate features;
+- map topology feature names into a fixed versioned dense feature vector;
+- reject, rather than silently truncate, oversized or malformed examples.
 
 ## Masking policy
 
-Hilbert inputs are optional. A missing statevector produces no Hilbert-to-Born item and a false Hilbert mask in joint views. Hardware-masked simulation removes every Hilbert input reference and excludes topology that was computed using Hilbert access.
+Hilbert inputs are optional. Missing statevectors produce false Hilbert masks. Hardware-mode rows contain no Hilbert tensors and no Hilbert-dependent topology.
 
-Born-prediction items materialize graph structure and parameter/phasor arrays without exact Born input evidence. Joint items carry per-head masks so the diagnosis head may use Born evidence while the Born-prediction head cannot.
+Born-prediction heads cannot consume Born input evidence. Joint views may contain Born evidence for diagnosis, so Phase 14 must enforce the per-head mask before fusion.
 
-Action-ranking candidate ordering is independent of target rank. Rollout metrics and ranks are targets, not candidate inputs. Privileged oracle candidates carry a separate mask.
+Inactive heads are explicitly marked inactive. Their latent states, fusion weights, predictions, and candidate/outcome probabilities remain zero.
+
+## Curriculum direction
+
+A defensible initial curriculum is:
+
+1. validate tensorization and overfit a tiny debug set;
+2. train diagnosis, Born prediction, and action ranking separately;
+3. train optional Hilbert-deformation supervision in simulation mode;
+4. enable joint multitask training with head-specific masks;
+5. introduce hardware-masked simulation rows;
+6. run topology as an audit/feature ablation with `lambda_top = 0`;
+7. compare against Phase 10 baselines on held-out circuit families, qubit counts, distortions, and later backends.
+
+This order is a plan, not a performance claim.
 
 ## Future loss
 
-The documented future loss remains:
-
-`L_total = L_task + λ_geo L_geo + λ_diag L_diag + λ_action L_action + λ_top L_top`
-
-During Phases 12–14 initial training:
+The documented future objective remains:
 
 ```text
-λ_top = 0
+L_total = L_task + lambda_geo L_geo + lambda_diag L_diag
+          + lambda_action L_action + lambda_top L_top
 ```
 
-Persistent homology is computed, logged, and available as a diagnostic feature from the beginning. Topology loss can become active only after controlled ablations demonstrate useful, non-leaking predictive signal.
+During initial Phase 14 training:
 
-Model architecture is Phase 13. Optimizers, gradients, epochs, checkpoints, and actual learning remain Phase 14.
+```text
+lambda_top = 0
+```
+
+Persistent homology is logged and available as a diagnostic feature from the beginning. A nonzero topology loss requires controlled ablations showing useful, non-leaking predictive signal and must be introduced through a later versioned change.
+
+## Training integrity requirements
+
+Phase 14 must record:
+
+- exact Phase 12 dataset and model architecture identities;
+- complete training configuration and random seeds;
+- deterministic/non-deterministic backend settings;
+- per-task and per-split sample counts;
+- head and stream mask utilization;
+- privileged-label usage;
+- optimizer/scheduler state;
+- checkpoint hashes;
+- baseline comparisons;
+- topology feature ablations;
+- simulator-only versus hardware-masked results.
+
+It must not label an initialized Phase 13 state as a trained checkpoint.
