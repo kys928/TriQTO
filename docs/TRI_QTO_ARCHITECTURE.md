@@ -104,3 +104,11 @@ optimizer_state_present = false
 training_checkpoint = false
 topology_loss_weight = 0.0
 ```
+
+## Phase 14 deterministic optimization
+
+Phase 14 connects Phase 12 views to the Phase 13 model through a strict variable-size adapter. Graphs, candidates, outcomes, parameters, and optional Hilbert amplitudes remain ragged. Action/topology normalization is fitted on train data only. The test split and `audit_only` records are excluded from gradients and model selection.
+
+The training curriculum progresses from foundational task views to joint multitask views and hardware-masked simulation. A separate Hilbert-to-Born auxiliary pass reuses the Born head without allowing standard Born prediction to consume privileged Hilbert or Born-target streams. Model, optimizer, scheduler, and RNG state are checkpointed without pickle and can be restored exactly.
+
+Persistent topology remains an audit and optional feature stream. Its objective coefficient is structurally present but fixed at zero throughout Phase 14.

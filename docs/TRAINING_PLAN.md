@@ -81,3 +81,9 @@ Phase 14 must record:
 - simulator-only versus hardware-masked results.
 
 It must not label an initialized Phase 13 state as a trained checkpoint.
+
+## Phase 14 implementation status
+
+The deterministic training engine is now implemented. The CLI is `scripts/train.py`, with strict recipes in `configs/train/phase14_base.yaml` and `configs/train/phase14_small_debug.yaml`. It validates Phase 12 sources, derives training-only feature statistics, executes the staged curriculum, writes exact resumable NPZ checkpoints, and atomically publishes typed epoch/checkpoint manifests.
+
+Phase 15 remains responsible for held-out test evaluation, baseline comparisons, generalization reports, calibration reports, and ablations. Phase 16 remains responsible for real hardware execution and validation.

@@ -1,4 +1,4 @@
-schema_version: triqto.model.phase13.v1
+schema_version: triqto.model.phase13.v2
 model_name: triqto_small_debug
 hidden_dim: 32
 graph_message_passing_layers: 2
