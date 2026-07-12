@@ -1,3 +1,9 @@
 task: action_ranking
-required_input_groups: ['circuit_graph', 'action_candidates', 'metrics']
-target_groups: [task_specific_targets]
+training_view_task: action_ranking
+required_input_groups: [circuit_graph, action_candidates]
+optional_input_groups: [metric_context]
+target_groups: [candidate_rank, candidate_reward, selected_action]
+mask_policy: explicit_per_item
+split_policy: clean_circuit_id
+privileged_oracle_policy: include_with_target_mask
+training_enabled: false
