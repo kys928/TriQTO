@@ -95,3 +95,9 @@ Phase 13 implements the untrained PyTorch TriQTO architecture. It combines a var
 The graph core uses learned sine/cosine phase quadratures over directed lattice messages rather than transformer Q/K/V attention. Hard stream policies and Phase 12 runtime masks prevent Born-target copying, direct Hilbert copying in the Hilbert-deformation head, direct topology copying in the topology audit head, and Hilbert leakage into hardware-mode rows. Inactive heads and unavailable streams are forced to zero.
 
 The architecture exposes diagnosis, variable-candidate action ranking, variable-support Born prediction, Hilbert-deformation, uncertainty, and topology-audit heads. It is deterministically initialized and identity-versioned, but explicitly records `trained=false`, no optimizer state, no training checkpoint, and `lambda_top=0`. See [`docs/MODEL_ARCHITECTURE.md`](docs/MODEL_ARCHITECTURE.md).
+
+## Phase 14 deterministic training engine
+
+Phase 14 trains the Phase 13 graph model from completed Phase 12 views while preserving clean-circuit splits and per-head leakage masks. It provides train-only normalization, deterministic budget-aware batching, staged single-task/joint/hardware-masked curricula, AdamW or SGD, constant or warmup-cosine schedules, gradient accumulation and clipping, validation-based best-checkpoint selection, and exact resume.
+
+Checkpoints are pickle-free NPZ artifacts containing model, optimizer, scheduler, and Python/NumPy/Torch RNG state with logical content hashes. Training and checkpoint manifests are typed-read before atomic publication. Test records and `audit_only` topology records never enter optimization, and `lambda_top` remains exactly zero. Phase 14 makes no held-out, hardware, universal-correction, or quantum-advantage claim. See [`docs/TRAINING_ENGINE.md`](docs/TRAINING_ENGINE.md).

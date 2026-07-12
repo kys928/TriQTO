@@ -1,11 +1,17 @@
-"""TriQTO training.hardware_masking module.
-
-Placeholder contracts for the Phase 1 repository skeleton. TODO: implement in the scheduled future phase without fake heavy logic.
-"""
-
+"""Explicit hardware-mode invariants reused by Phase 14 adapters."""
 from __future__ import annotations
 
+from triqto.model import TriQTOBatch, TriQTOModelConfig
 
-def describe_contract() -> str:
-    """Return a short description of this placeholder module contract."""
-    return "TriQTO placeholder for training.hardware_masking; implementation deferred."
+
+def validate_hardware_masked_batch(batch: TriQTOBatch, config: TriQTOModelConfig) -> None:
+    batch.validate(config)
+    hardware = batch.resolved_hardware_mask()
+    if batch.hilbert is not None and bool((hardware & batch.hilbert.available_mask).any()):
+        raise ValueError("Hardware-mode rows cannot contain Hilbert values")
+    dependency = batch.resolved_topology_hilbert_dependency()
+    if batch.topology is not None and bool((hardware & dependency & batch.topology.available_mask).any()):
+        raise ValueError("Hardware-mode rows cannot contain Hilbert-dependent topology")
+
+
+__all__ = ["validate_hardware_masked_batch"]
