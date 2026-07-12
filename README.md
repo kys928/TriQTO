@@ -81,3 +81,9 @@ The baseline suite does not yet compare a trained TriQTO policy because the mode
 Phase 11 implements deterministic Vietoris-Rips persistent homology over aligned action-neighborhood and circuit-cohort point clouds. It computes H0 and H1 by default, optional H2, Betti curves, persistence entropy, top lifetimes, collapse/loop/late-merge heuristics, and bottleneck/Wasserstein alignment across parameter, pure-state Hilbert, and Born manifolds.
 
 Parameter topology uses a downstream pullback-style pseudometric rather than plain Euclidean distance. Hilbert topology is optional and maskable, uses Fubini-Study projective distance, and never persists raw statevectors. Latent topology is explicitly unavailable until a learned model exists. Topology remains **audit + reusable feature** with `lambda_top = 0`; no topology optimization or training signal is claimed. See [`docs/TOPOLOGY_SCHEMA.md`](docs/TOPOLOGY_SCHEMA.md).
+
+## Phase 12 task-specific training views
+
+Phase 12 turns the validated Phase 7/8/9/11 chain into deterministic diagnosis, action-ranking, Born-prediction, optional Hilbert-to-Born, topology-audit, joint-multitask, and hardware-masked simulation views. Related distortions and actions are split together by clean circuit, while topology cohorts spanning several splits remain `audit_only`.
+
+The view layer physically blocks Born-target leakage from Born-prediction graph inputs, separates action rollout labels from candidate inputs, carries explicit privileged-oracle masks, supports optional Hilbert references, and removes Hilbert-dependent topology from hardware-masked simulation. It performs no model training and keeps `lambda_top = 0`. See [`docs/TRAINING_VIEW_SCHEMA.md`](docs/TRAINING_VIEW_SCHEMA.md).
