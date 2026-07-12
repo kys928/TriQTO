@@ -1,3 +1,10 @@
 task: hardware_masked
-required_input_groups: ['circuit_graph', 'born', 'backend', 'hilbert_mask']
-target_groups: [task_specific_targets]
+training_view_task: hardware_masked
+required_input_groups: [circuit_graph, born, action_candidates, hilbert_mask]
+optional_input_groups: [parameter, phasor, topology, backend]
+target_groups: [diagnosis, action_ranking, born_prediction, topology_audit_only]
+mask_policy: hilbert_scrubbed_simulation
+split_policy: clean_circuit_id
+hardware_data: false
+topology_loss_weight: 0.0
+training_enabled: false
