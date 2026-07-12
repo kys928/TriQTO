@@ -13,7 +13,12 @@ from triqto.storage.training_view_schema import (
 from .action_ranking_view import build_action_ranking_items
 from .born_prediction_view import build_born_prediction_items
 from .config import TrainingViewConfig
-from .constants import TASK_INPUT_GROUPS, TASK_ORDER, TASK_TARGET_GROUPS
+from .constants import (
+    SPLIT_ORDER,
+    TASK_INPUT_GROUPS,
+    TASK_ORDER,
+    TASK_TARGET_GROUPS,
+)
 from .context import build_view_context
 from .diagnosis_view import build_diagnosis_items
 from .hardware_masked_view import build_hardware_masked_items
@@ -50,6 +55,14 @@ def _by_sample(items: list[TrainingViewItem]) -> dict[str, TrainingViewItem]:
             )
         result[sample_id] = item
     return result
+
+
+def _fixed_split_counts(items: list[TrainingViewItem]) -> dict[str, int]:
+    observed = Counter(item.split for item in items)
+    unknown = set(observed) - set(SPLIT_ORDER)
+    if unknown:
+        raise ValueError(f"Unknown Phase 12 splits: {sorted(unknown)}")
+    return {split: int(observed.get(split, 0)) for split in SPLIT_ORDER}
 
 
 def build_training_view_result(
@@ -140,7 +153,7 @@ def build_training_view_result(
         items_by_task[item.task].append(item)
     for task in view_config.tasks:
         task_items = items_by_task.get(task, [])
-        split_counts = dict(sorted(Counter(item.split for item in task_items).items()))
+        split_counts = _fixed_split_counts(task_items)
         definition = TrainingViewDefinition(
             training_view_id=view_ids[task],
             training_view_dataset_id=dataset_id,
@@ -208,7 +221,7 @@ def build_training_view_result(
     verify_training_view_source_snapshots(sources)
 
     task_counts = {task: len(items_by_task.get(task, [])) for task in view_config.tasks}
-    split_counts = dict(sorted(Counter(item.split for item in items).items()))
+    split_counts = _fixed_split_counts(items)
     privileged_count = sum(item.privileged_target_available_mask for item in items)
     hilbert_count = sum(item.hilbert_available_mask for item in items)
     topology_count = sum(item.topology_available_mask for item in items)
