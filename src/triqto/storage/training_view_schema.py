@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+import math
 import numbers
 from pathlib import PurePosixPath
 import re
@@ -20,9 +21,12 @@ def _nonblank(value: Any, name: str) -> str:
 
 
 def _nonnegative_int(value: Any, name: str, *, positive: bool = False) -> int:
-    if isinstance(value, bool) or not isinstance(value, numbers.Integral):
-        raise TypeError(f"{name} must be an integer and not bool")
-    normalized = int(value)
+    if isinstance(value, bool) or not isinstance(value, numbers.Real):
+        raise TypeError(f"{name} must be an integer-valued number and not bool")
+    numeric = float(value)
+    if not math.isfinite(numeric) or not numeric.is_integer():
+        raise TypeError(f"{name} must be an integer-valued number and not bool")
+    normalized = int(numeric)
     if positive and normalized <= 0:
         raise ValueError(f"{name} must be positive")
     if not positive and normalized < 0:
