@@ -291,7 +291,10 @@ def validate_training_view_dataset_joins(
     records: dict[str, TrainingViewItemRecordV1] = {}
     artifact_refs: set[str] = set()
     split_groups: dict[str, str] = {}
-    counts: dict[str, dict[str, int]] = {view_id: {} for view_id in definitions}
+    counts: dict[str, dict[str, int]] = {
+        view_id: {split: 0 for split in SPLIT_ORDER}
+        for view_id in definitions
+    }
     for record in item_records:
         record.validate()
         if record.view_item_id in records:
@@ -306,6 +309,8 @@ def validate_training_view_dataset_joins(
             )
         if record.task != definition.task:
             raise ValueError("Training item task does not match view definition")
+        if record.split not in SPLIT_ORDER:
+            raise ValueError(f"Unknown training item split {record.split!r}")
         previous = split_groups.setdefault(record.split_group_id, record.split)
         if record.split != previous and record.split != "audit_only" and previous != "audit_only":
             raise ValueError(
@@ -313,13 +318,16 @@ def validate_training_view_dataset_joins(
             )
         records[record.view_item_id] = record
         artifact_refs.add(record.artifact_ref)
-        counts[record.training_view_id][record.split] = (
-            counts[record.training_view_id].get(record.split, 0) + 1
-        )
+        counts[record.training_view_id][record.split] += 1
     for view_id, definition in definitions.items():
-        if definition.item_count != sum(counts[view_id].values()):
+        expected_counts = counts[view_id]
+        if int(definition.item_count) != sum(expected_counts.values()):
             raise ValueError(f"View {view_id} item_count mismatch")
-        if dict(definition.split_counts) != dict(sorted(counts[view_id].items())):
+        normalized_definition_counts = {
+            split: int(definition.split_counts[split])
+            for split in SPLIT_ORDER
+        }
+        if normalized_definition_counts != expected_counts:
             raise ValueError(f"View {view_id} split_counts mismatch")
 
     if items_by_id is not None:
