@@ -1,0 +1,22 @@
+schema_version: triqto.training_views.phase12.v1
+tasks:
+  - diagnosis
+  - action_ranking
+  - born_prediction
+  - hilbert_to_born
+  - topology_audit
+  - joint_multitask
+  - hardware_masked
+split_seed: 2026
+train_fraction: 0.8
+validation_fraction: 0.1
+test_fraction: 0.1
+split_grouping: clean_circuit_id
+topology_cross_split_policy: audit_only
+include_hilbert: true
+include_topology: true
+allow_empty_hilbert_view: true
+topology_loss_weight: 0.0
+max_items: 1000000
+max_candidates_per_item: 4096
+max_source_refs_per_item: 16384
