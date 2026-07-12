@@ -12,6 +12,7 @@ from typing import Any, ClassVar
 from .schema import JsonMap, ManifestRecordMixin
 
 _HASH_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
+_SPLIT_KEYS = ("train", "validation", "test", "audit_only")
 
 
 def _nonblank(value: Any, name: str) -> str:
@@ -97,10 +98,16 @@ class TrainingViewDefinitionRecordV1(ManifestRecordMixin):
         _nonnegative_int(self.item_count, "item_count")
         if not isinstance(self.split_counts, Mapping):
             raise TypeError("split_counts must be a mapping")
+        if set(self.split_counts) != set(_SPLIT_KEYS):
+            raise ValueError(
+                "split_counts must contain exactly train, validation, test, and audit_only"
+            )
         total = 0
-        for split, count in self.split_counts.items():
-            _nonblank(split, "split_counts key")
-            total += _nonnegative_int(count, f"split_counts[{split}]")
+        for split in _SPLIT_KEYS:
+            total += _nonnegative_int(
+                self.split_counts[split],
+                f"split_counts[{split}]",
+            )
         if total != int(self.item_count):
             raise ValueError("split_counts must sum to item_count")
         if not isinstance(self.metadata, Mapping):
