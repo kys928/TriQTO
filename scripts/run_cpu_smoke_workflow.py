@@ -24,6 +24,7 @@ from triqto.evaluation import load_phase15_config, run_phase15_evaluation
 from triqto.evaluation.integrated import load_integrated_phase15_config, run_integrated_phase15_evaluation
 from triqto.graph import GraphConversionConfig, convert_completed_dataset_to_graphs, write_graph_dataset
 from triqto.model import TriQTOModelConfig
+from triqto.phase15_5 import load_phase155_config, run_phase15_5
 from triqto.topology import TopologyAuditConfig, build_topology_audit_result, write_topology_dataset
 from triqto.topology.checkpoint_latent import run_checkpoint_bound_latent_topology
 from triqto.topology.latent import load_latent_topology_config
@@ -102,10 +103,12 @@ def run(output: Path) -> dict[str, object]:
     phase12, phase14 = output / "phase12", output / "phase14"
     latent, latent_topology = output / "latent_extraction", output / "latent_topology"
     phase15, integrated_root = output / "phase15", output / "phase15_integrated"
+    phase155_root = output / "phase15_5"
 
     operational_config = load_operational_action_smoke_config(ROOT / "configs/actions/operational_smoke.yaml")
     adapter_config = load_operational_view_adapter_config(ROOT / "configs/training_views/operational_actions_smoke.yaml")
     latent_config = load_latent_extraction_config(ROOT / "configs/eval/latent_extraction_smoke.yaml")
+    phase155_config = load_phase155_config(ROOT / "configs/eval/phase15_5_smoke.json")
 
     generation = generate_dataset(load_generation_config(ROOT / "configs/data/backend_holdout_generation.json"))
     write_dataset(generation, phase7)
@@ -145,6 +148,14 @@ def run(output: Path) -> dict[str, object]:
         integration_config=load_integrated_phase15_config(ROOT / "configs/eval/phase15_operational_topology_smoke.yaml"),
         operational_action_root=operational, latent_topology_root=latent_topology, phase7_root=phase7,
     )
+    phase155_result = run_phase15_5(
+        phase7_root=phase7,
+        training_view_root=phase12,
+        training_root=phase14,
+        checkpoint=checkpoint,
+        output_root=phase155_root,
+        config=phase155_config,
+    )
     manifest = {
         "label": "smoke engineering validation",
         "commands": ["scripts/run_cpu_smoke_workflow.py --output <dir>"],
@@ -152,6 +163,7 @@ def run(output: Path) -> dict[str, object]:
         "dependency_profile": "CPU-safe pinned repository environment",
         "evidence_tier": "fake_backend_fixture",
         "operational_evidence_tier": operational_config.evidence_tier,
+        "phase15_5_evidence_tier": "noisy_simulator_with_fake_backend_fixture",
         "artifact_ids": {
             "phase7_generation_id": generation.scientific_generation_id,
             "phase8_graph_conversion_id": graph.graph_conversion_id,
@@ -164,16 +176,24 @@ def run(output: Path) -> dict[str, object]:
             "latent_topology_id": latent_topology_result["result"]["latent_topology_id"],
             "phase15_run_id": phase15_result["summary"]["phase15_run_id"],
             "integrated_phase15_run_id": integrated_result["summary"]["integrated_phase15_run_id"],
+            "phase15_5_run_id": phase155_result["summary"]["phase15_5_run_id"],
+            "phase15_5_policy_checkpoint_id": phase155_result["summary"]["policy_checkpoint_id"],
         },
         "test_split": phase15_result["summary"]["split_semantics"],
+        "phase15_5_test_split": phase155_result["summary"]["split_semantics"],
         "latent_split": latent_result["metadata"]["split"],
         "metrics": phase15_result["summary"]["metrics"],
+        "phase15_5_metrics": phase155_result["summary"]["aggregate"],
         "operational_action_families_pooled": False,
+        "phase15_5_matched_operational_supervision": True,
         "topology_loss_weight": 0.0,
         "limitations": [
             "not research-quality evidence", "no physical hardware",
             "fake backend is offline fixture evidence",
+            "noisy evidence is seeded Aer simulation, not hardware calibration",
             "basis probe is evidence acquisition, not correction",
+            "Phase 15.5 targets use privileged clean simulation pairs but model inputs exclude those targets",
+            "grouped Phase 12 test is not broad OOD evidence",
             "no calibration or physical-hardware generalization claim",
             "no topology-benefit or causal-topology claim",
             "topology loss remains exactly zero",

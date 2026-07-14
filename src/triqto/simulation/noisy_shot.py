@@ -1,13 +1,20 @@
 """Seeded Aer noisy-shot execution with explicit noise provenance."""
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
 from triqto.core.ids import make_deterministic_id
 
-from .result_normalization import bind_parameter_values, counts_to_probabilities, normalize_counts
+from .measurement import MeasurementSetting, measurement_setting_for
+from .result_normalization import (
+    bind_parameter_values,
+    copy_without_final_measurements,
+    counts_to_probabilities,
+    extract_quantum_circuit,
+    normalize_counts,
+)
 from .results import IdealShotResult
 
 SUPPORTED_NOISE_CHANNELS = {"depolarizing", "amplitude_damping", "phase_damping", "thermal_relaxation", "readout_error"}
@@ -64,15 +71,37 @@ def _build_noise_model(spec: NoiseSpec):
     return model
 
 
-def simulate_noisy_aer_shots(circuit_or_generated: Any, *, noise: NoiseSpec, shots: int = 1024, seed: int = 0, parameter_values: Mapping[str, float] | Mapping[Any, float] | None = None) -> IdealShotResult:
+def _apply_basis_rotation(circuit: Any, setting: MeasurementSetting) -> None:
+    for qubit, basis in enumerate(setting.bases):
+        if basis == "X":
+            circuit.h(qubit)
+        elif basis == "Y":
+            circuit.sdg(qubit)
+            circuit.h(qubit)
+
+
+def simulate_noisy_aer_shots(
+    circuit_or_generated: Any,
+    *,
+    noise: NoiseSpec,
+    shots: int = 1024,
+    seed: int = 0,
+    parameter_values: Mapping[str, float] | Mapping[Any, float] | None = None,
+    measurement_basis: str | tuple[str, ...] | MeasurementSetting | None = None,
+) -> IdealShotResult:
+    """Run seeded noisy Aer shots for an explicit basis-conditioned measurement."""
     if shots <= 0:
         raise ValueError("shots must be positive")
     from qiskit_aer import AerSimulator
 
-    circuit = bind_parameter_values(getattr(circuit_or_generated, "circuit", circuit_or_generated), parameter_values)
-    measured = circuit.copy()
-    if not any(inst.operation.name == "measure" for inst in measured.data):
-        measured.measure_all()
+    original = extract_quantum_circuit(circuit_or_generated)
+    bound = bind_parameter_values(original, parameter_values)
+    measured = copy_without_final_measurements(bound)
+    setting = measurement_basis if isinstance(measurement_basis, MeasurementSetting) else measurement_setting_for(measured.num_qubits, measurement_basis)
+    if setting.n_qubits != measured.num_qubits:
+        raise ValueError("measurement setting qubit count must match circuit")
+    _apply_basis_rotation(measured, setting)
+    measured.measure_all()
     simulator = AerSimulator(noise_model=_build_noise_model(noise), seed_simulator=seed)
     result = simulator.run(measured, shots=shots, seed_simulator=seed).result()
     counts = normalize_counts(result.get_counts())
@@ -83,7 +112,17 @@ def simulate_noisy_aer_shots(circuit_or_generated: Any, *, noise: NoiseSpec, sho
         counts=counts,
         probabilities=counts_to_probabilities(counts),
         source_probabilities={},
-        metadata={"seed": seed, "shots_requested": shots, "shots_realized": sum(counts.values()), "noise_model_id": noise.noise_model_id, "noise_spec": list(noise.channels), "evidence_tier": "noisy_simulator"},
+        metadata={
+            "seed": seed,
+            "shots_requested": shots,
+            "shots_realized": sum(counts.values()),
+            "noise_model_id": noise.noise_model_id,
+            "noise_spec": list(noise.channels),
+            "measurement_setting": setting.to_metadata(),
+            "probability_domain": "p(y|M)",
+            "evidence_tier": "noisy_simulator",
+            "physical_hardware": False,
+        },
     )
 
 
