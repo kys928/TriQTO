@@ -1,6 +1,7 @@
 """Tests for Phase 4 ideal simulation."""
 from __future__ import annotations
 
+import subprocess
 import sys
 
 import pytest
@@ -112,4 +113,15 @@ def test_simulation_package_exports_expected_functions():
 
 
 def test_qiskit_aer_import_is_not_required():
-    assert "qiskit_aer" not in sys.modules
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import triqto.simulation; import sys; "
+            "assert 'qiskit_aer' not in sys.modules",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr

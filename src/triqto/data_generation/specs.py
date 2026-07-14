@@ -220,8 +220,20 @@ def _reject_json_constant(value: str) -> None:
 
 def load_generation_config(path: str | Path) -> DatasetGenerationConfig:
     """Load a generation config from a strict JSON file."""
+    source = Path(path)
+    if source.suffix.lower() in {".yaml", ".yml"}:
+        from triqto.config.loader import load_config
+
+        load_config(source)
+        raise ValueError(
+            "Repository capability YAMLs are not executable Phase 7 configs; "
+            "use the strict DatasetGenerationConfig JSON schema"
+        )
     try:
-        payload = json.loads(Path(path).read_text(), parse_constant=_reject_json_constant)
+        payload = json.loads(
+            source.read_text(),
+            parse_constant=_reject_json_constant,
+        )
     except json.JSONDecodeError as exc:
         raise ValueError(f"Malformed generation config JSON: {path}") from exc
     return config_from_dict(payload)

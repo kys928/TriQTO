@@ -1,3 +1,20 @@
-# Optional GPU constraints extend the CPU set and are not used by CI/default tests.
--r cpu.txt
+# Optional CUDA direct-dependency constraints. This profile is intentionally
+# independent from cpu.txt so CPU and GPU variants cannot share a namespace.
+--extra-index-url https://download.pytorch.org/whl/cu128
+qiskit==2.1.2
 qiskit-aer-gpu==0.15.1
+qiskit-ibm-runtime==0.40.1
+numpy==2.3.2
+scipy==1.16.1
+pandas==2.3.1
+pyarrow==21.0.0
+h5py==3.14.0
+zarr==3.1.0
+networkx==3.5
+torch==2.8.0
+pyyaml==6.0.2
+tqdm==4.67.1
+matplotlib==3.10.5
+pytest==8.4.1
+ripser==0.6.12
+gudhi==3.11.0

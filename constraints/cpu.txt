@@ -1,4 +1,5 @@
-# Fully pinned CPU/default constraints captured for reproducible TriQTO CI installs.
+# CPU/default direct-dependency constraints for stable TriQTO CI installs.
+# Transitive dependencies are intentionally not described as fully locked.
 # This file intentionally does not include qiskit-aer-gpu or CUDA-specific torch index URLs.
 --extra-index-url https://download.pytorch.org/whl/cpu
 qiskit==2.1.2

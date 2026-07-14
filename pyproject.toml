@@ -1,12 +1,12 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools==80.9.0", "wheel==0.45.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "triqto"
 version = "0.1.0"
 description = "Tri-Manifold Quantum Topological Optimization research scaffold"
-requires-python = ">=3.11,<3.12"
+requires-python = ">=3.11,<3.13"
 readme = "README.md"
 
 [tool.setuptools.packages.find]

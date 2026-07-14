@@ -1,3 +1,5 @@
+unsupported: true
+unsupported_reason: Legacy planning YAML is not the typed Phase 7 JSON schema consumed by generate_dataset.py.
 qubit_counts: [4]
 circuit_families: [ghz]
 distortions: [phase_rz_drift]

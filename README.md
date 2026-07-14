@@ -106,22 +106,24 @@ Checkpoints are pickle-free NPZ artifacts containing model, optimizer, scheduler
 
 TriQTO is currently an offline deterministic research scaffold. The executable default path supports CPU-safe ideal-simulator tests and deterministic artifact/provenance checks. It does **not** establish quantum advantage, hardware validation, OOD generalization, calibrated uncertainty, or causal topology impact. Hardware Runtime work remains credential-gated future work and is not executed by default.
 
-## Reproducible CPU installation
+## CPU-safe direct dependency installation
 
-Supported default matrix: Python 3.11, Qiskit 2.1.2, Qiskit Aer 0.17.1, IBM Runtime client 0.40.1, Torch 2.8.0, NumPy 2.3.2, SciPy 1.16.1, PyArrow 21.0.0, Ripser 0.6.12, and Gudhi 3.11.0. The default dependency path is CPU-safe and excludes `qiskit-aer-gpu`.
+The tested default matrix covers Python 3.11 and 3.12 with Qiskit 2.1.2, Qiskit Aer 0.17.1, IBM Runtime client 0.40.1, Torch 2.8.0+cpu, NumPy 2.3.2, SciPy 1.16.1, PyArrow 21.0.0, Ripser 0.6.12, and Gudhi 3.11.0. The default dependency path excludes `qiskit-aer-gpu` and CI installs without a package cache.
 
 ```bash
-python -m pip install --upgrade pip
+python -m pip install pip==25.1.1 setuptools==80.9.0 wheel==0.45.1
 python -m pip install -r requirements.txt -c constraints/cpu.txt
 python -m pip install -e .
-python scripts/verify_dependency_pins.py
+python scripts/verify_dependency_pins.py --check-installed
 PYTHONPATH=src pytest -q
 ```
 
-Optional GPU dependencies are isolated in `requirements-gpu.txt` plus `constraints/gpu.txt`; do not use them for default CI or CPU-only validation.
+These files pin direct dependencies; they are not a hash-locked transitive environment. `pip check`, installed-version verification, and clean CI resolution guard the supported direct matrix without claiming byte-for-byte environment reproduction.
+
+The optional CUDA profile is isolated in `requirements-gpu.txt` and `constraints/gpu.txt`. It replaces CPU Aer with `qiskit-aer-gpu` and replaces the CPU Torch wheel with a CUDA wheel. Default CI checks profile separation only; complete resolution and runtime behavior remain unvalidated until a CUDA runner is added.
 
 ## Config migration note
 
-Broad future configs that mention noisy Aer, fake-backend/transpilation, RunPod, hardware validation, or unsupported actions are explicitly marked `unsupported: true` with a reason. Active configs are validated by `triqto.config.validators` and must not imply unimplemented execution modes. Old artifacts/configs that relied on `monster_generation.yaml`, `runpod_generation.yaml`, `hardware_validation.yaml`, or `configs/eval/heldout_*.yaml` as executable should be treated as planning inputs until the corresponding mode has implementation and offline tests.
+Broad future configs that mention noisy Aer, fake-backend/transpilation, RunPod, hardware validation, or unsupported actions are explicitly marked `unsupported: true` with a reason. The legacy `local_smoke_test.yaml` is also planning-only because the executable Phase 7 CLI consumes its separate strict JSON schema. Unsupported YAMLs fail closed through `triqto.config.loader.load_config()` unless a caller explicitly opts into planning-only inspection. Typed phase-specific loaders remain the authoritative execution boundaries.
 
 See `docs/CAPABILITY_MATRIX.md` for the maintained capability matrix.

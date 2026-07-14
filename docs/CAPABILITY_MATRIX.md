@@ -15,14 +15,19 @@ TriQTO currently provides an offline, deterministic research scaffold. It must n
 
 ## Dependency matrix
 
-Supported default environment: Python 3.11 on CPU with dependencies pinned by `requirements-cpu.txt` and `constraints/cpu.txt`.
+Supported default environments: Python 3.11 and 3.12 on CPU with direct dependencies pinned by `requirements-cpu.txt` and `constraints/cpu.txt`. Transitive packages are not hash-locked, so this is not described as byte-for-byte environment reproduction.
 
 Install default CPU profile:
 
 ```bash
-python -m pip install --upgrade pip
+python -m pip install pip==25.1.1 setuptools==80.9.0 wheel==0.45.1
 python -m pip install -r requirements.txt -c constraints/cpu.txt
 python -m pip install -e .
+python scripts/verify_dependency_pins.py --check-installed
 ```
 
-Optional GPU profile is isolated in `requirements-gpu.txt` and `constraints/gpu.txt`; it is never used by default CI.
+The optional CUDA profile is independent from the CPU profile so `qiskit-aer` and `qiskit-aer-gpu` cannot collide. Default CI checks that separation statically; complete GPU resolution and runtime behavior remain unvalidated until a CUDA runner is added.
+
+## Configuration boundary
+
+Repository capability YAMLs are planning/claim-boundary documents. Unsupported YAMLs are rejected by the generic loader unless explicitly opened for planning inspection. Executable scientific phases continue to use their strict typed JSON/YAML loaders and real registries; the generic capability loader does not replace those schemas.

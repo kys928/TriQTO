@@ -1,4 +1,4 @@
-# Direct dependencies only. Exact resolved versions live in constraints/cpu.txt.
+# Direct dependencies only. Transitive dependencies are not locked by this file.
 --extra-index-url https://download.pytorch.org/whl/cpu
 qiskit==2.1.2
 qiskit-aer==0.17.1

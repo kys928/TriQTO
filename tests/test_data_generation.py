@@ -4,6 +4,7 @@ import copy
 import json
 import math
 from pathlib import Path
+import subprocess
 import sys
 from typing import Any
 
@@ -463,7 +464,18 @@ def test_kl_infinity_encoded_and_no_aer_import() -> None:
     assert values["kl_clean_to_distorted"] is None
     assert values["kl_clean_to_distorted__nonfinite"] == "positive_infinity"
     json.dumps(values, allow_nan=False)
-    assert "qiskit_aer" not in sys.modules
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import triqto.data_generation.pipeline; import sys; "
+            "assert 'qiskit_aer' not in sys.modules",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def test_metric_manifest_typed_readback_preserves_empty_metric_maps(tmp_path: Path) -> None:

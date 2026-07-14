@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import math
+import subprocess
 import sys
 from dataclasses import asdict
 
@@ -159,7 +160,18 @@ def test_not_transpiled_context_adds_applicability_warning() -> None:
 
 
 def test_no_qiskit_aer_import_is_required() -> None:
-    assert "qiskit_aer" not in sys.modules
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import triqto.metrics; import sys; "
+            "assert 'qiskit_aer' not in sys.modules",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def test_born_visible_rx_distortion_produces_nonzero_metric_shift() -> None:
