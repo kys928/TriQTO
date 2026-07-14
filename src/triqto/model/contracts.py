@@ -190,6 +190,7 @@ class BornTensorBatch:
     probabilities: Tensor
     batch_index: Tensor
     available_mask: Tensor
+    measurement_basis_codes: Tensor | None = None
 
     def validate(self, count: int, atol: float = 1e-6) -> None:
         bits = _float(self.outcome_bits, "born.outcome_bits", 2)
@@ -197,10 +198,28 @@ class BornTensorBatch:
         prob = _float(self.probabilities, "born.probabilities", 1)
         index = _long(self.batch_index, "born.batch_index", 1)
         available = _bool(self.available_mask, "born.available_mask", 1)
-        _same_device([("bits", bits), ("mask", mask), ("prob", prob),
-                      ("index", index), ("available", available)])
+        named = [("bits", bits), ("mask", mask), ("prob", prob), ("index", index), ("available", available)]
+        basis_codes = None
+        if self.measurement_basis_codes is not None:
+            basis_codes = _long(self.measurement_basis_codes, "born.measurement_basis_codes", 2)
+            named.append(("measurement_basis_codes", basis_codes))
+        _same_device(named)
         if prob.shape != (bits.shape[0],) or index.shape != prob.shape or available.shape != (count,):
             raise ValueError("born row shapes are inconsistent")
+        if basis_codes is not None:
+            if basis_codes.shape != bits.shape:
+                raise ValueError("born.measurement_basis_codes must match outcome_bits shape")
+            if bool((basis_codes[~mask] != 0).any()):
+                raise ValueError("masked measurement basis codes must be zero")
+            active_basis = basis_codes[mask]
+            if active_basis.numel() and not bool(((active_basis >= 0) & (active_basis <= 2)).all()):
+                raise ValueError("measurement basis codes must be 0(Z), 1(X), or 2(Y)")
+            for graph in range(count):
+                rows = torch.nonzero(index == graph, as_tuple=False).flatten()
+                if rows.numel() > 1:
+                    local = basis_codes.index_select(0, rows)
+                    if not torch.equal(local, local[0].expand_as(local)):
+                        raise ValueError("measurement basis codes must be identical within each graph distribution")
         _batch_index(index, count, "born.batch_index", True)
         _availability(index, available, "born")
         _basis(bits, mask, index, count, "born")

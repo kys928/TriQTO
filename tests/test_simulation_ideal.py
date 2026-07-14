@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sys
+import subprocess
 
 import pytest
 from qiskit import QuantumCircuit
@@ -112,4 +113,6 @@ def test_simulation_package_exports_expected_functions():
 
 
 def test_qiskit_aer_import_is_not_required():
-    assert "qiskit_aer" not in sys.modules
+    code = "import sys; import triqto.simulation; assert 'qiskit_aer' not in sys.modules"
+    result = subprocess.run([sys.executable, "-c", code], text=True, capture_output=True)
+    assert result.returncode == 0, result.stderr

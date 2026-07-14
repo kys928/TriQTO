@@ -145,6 +145,7 @@ GRAPH_CORE_ARRAY_NAMES = (
     "parameter_sin",
     "parameter_cos",
     "outcome_bitstrings",
+    "measurement_basis_codes",
     "exact_probabilities",
     "global_features",
 )

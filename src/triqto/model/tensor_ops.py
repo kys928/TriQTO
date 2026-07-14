@@ -58,30 +58,44 @@ def masked_zero(embedding: Tensor, available_mask: Tensor) -> Tensor:
 
 
 def canonicalize_global_phase(amplitudes_real_imag: Tensor, batch_index: Tensor, graph_count: int) -> Tensor:
-    """Rotate each state by a deterministic reference amplitude's conjugate phase."""
+    """Continuously remove global phase using a soft state-wide phasor anchor.
+
+    This avoids largest-amplitude argmax discontinuities.  The anchor is the
+    probability-weighted sum of unit phasors.  When that anchor is near zero, the
+    function deterministically leaves the state unrotated rather than dividing by
+    a vanishing amplitude.
+    """
     if amplitudes_real_imag.ndim != 2 or amplitudes_real_imag.shape[1] != 2:
         raise ValueError("amplitudes_real_imag must have shape [A,2]")
     rotated = amplitudes_real_imag.clone()
+    tiny = torch.finfo(amplitudes_real_imag.dtype).eps * 16
     for graph_index in range(graph_count):
         positions = torch.nonzero(batch_index == graph_index, as_tuple=False).flatten()
         if positions.numel() == 0:
             continue
         local = amplitudes_real_imag.index_select(0, positions)
-        magnitude_sq = local.square().sum(dim=1)
-        reference_local = int(torch.argmax(magnitude_sq))
-        reference = local[reference_local]
-        norm = reference.square().sum().sqrt().clamp_min(torch.finfo(local.dtype).tiny)
-        ref_real = reference[0] / norm
-        ref_imag = reference[1] / norm
         real = local[:, 0]
         imag = local[:, 1]
+        magnitude = local.square().sum(dim=1).sqrt()
+        state_norm = magnitude.square().sum().sqrt()
+        if float(state_norm.detach().cpu()) <= float(tiny):
+            rotated.index_copy_(0, positions, torch.zeros_like(local))
+            continue
+        unit_real = real / magnitude.clamp_min(tiny)
+        unit_imag = imag / magnitude.clamp_min(tiny)
+        weights = magnitude.square() / magnitude.square().sum().clamp_min(tiny)
+        anchor_real = (weights * unit_real).sum()
+        anchor_imag = (weights * unit_imag).sum()
+        anchor_norm = torch.stack((anchor_real, anchor_imag)).square().sum().sqrt()
+        safe = anchor_norm > tiny
+        ref_real = torch.where(safe, anchor_real / anchor_norm.clamp_min(tiny), torch.ones_like(anchor_real))
+        ref_imag = torch.where(safe, anchor_imag / anchor_norm.clamp_min(tiny), torch.zeros_like(anchor_imag))
         canonical = torch.stack(
             (real * ref_real + imag * ref_imag, imag * ref_real - real * ref_imag),
             dim=1,
         )
         rotated.index_copy_(0, positions, canonical)
     return rotated
-
 
 __all__ = [
     "canonicalize_global_phase",

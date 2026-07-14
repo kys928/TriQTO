@@ -1,2 +1,8 @@
+schema_version: triqto.eval.holdout.v1
 evaluation: heldout_qubit_counts
-split_strategy: future_manifest_defined
+split_strategy: axis_holdout
+axis: n_qubits
+heldout_values: ["6"]
+claim_label: ood_n_qubits
+seed: 2026
+requires_phase15_audit: true
