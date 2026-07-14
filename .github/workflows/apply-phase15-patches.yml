@@ -3,6 +3,8 @@ name: Apply Phase 15 Integration Patches
 on:
   push:
     branches: [phase-15-evaluation-reports]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: write
@@ -83,6 +85,14 @@ jobs:
               raise RuntimeError("safe-float block mismatch")
           evaluator.write_text(text.replace(old, new, 1))
 
+          artifacts = Path("src/triqto/evaluation/artifacts.py")
+          text = artifacts.read_text()
+          text = text.replace(
+              '        if not np.isfinite(array).all() if array.dtype.kind in {"f", "c"} else False:\n',
+              '        if array.dtype.kind in {"f", "c"} and not np.isfinite(array).all():\n',
+          )
+          artifacts.write_text(text)
+
           readme = Path("README.md")
           text = readme.read_text()
           if "## Phase 15 deterministic evaluation" not in text:
@@ -117,6 +127,7 @@ The topology objective remains inactive at `lambda_top = 0`. Hardware-masked sim
 '''
               architecture.write_text(text)
 
+          Path(".phase15-patch-trigger").unlink(missing_ok=True)
           Path(".github/workflows/apply-phase15-patches.yml").unlink()
           PY
           git config user.name "github-actions[bot]"
