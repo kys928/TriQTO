@@ -49,6 +49,13 @@ from .models import (
     AppliedAction,
     CompletedGraphDataset,
 )
+from .operational import (
+    OperationalActionResult,
+    basis_probe_action,
+    layout_selection_action,
+    routing_transpilation_action,
+    semantics_verified_depth_reduction,
+)
 from .pipeline import build_action_engine_result
 from .rewards import RewardBreakdown, primary_metric_array, score_action_rollout
 from .rollout_runner import run_action_rollouts
@@ -75,6 +82,7 @@ __all__ = [
     "ActionWriteResult",
     "AppliedAction",
     "CompletedGraphDataset",
+    "OperationalActionResult",
     "RewardBreakdown",
     "action_config_from_dict",
     "action_config_to_dict",
@@ -88,6 +96,7 @@ __all__ = [
     "action_schema_id",
     "apply_action",
     "build_action_engine_result",
+    "basis_probe_action",
     "candidate_action_id",
     "candidate_circuit_id",
     "circuit_semantic_hash",
@@ -97,18 +106,21 @@ __all__ = [
     "load_action_engine_sources",
     "load_candidate_circuit",
     "load_completed_graph_dataset",
+    "layout_selection_action",
     "load_rollout_artifact",
     "normalize_rotation_angle",
     "observed_two_qubit_edges",
     "oracle_inverse_edits",
     "primary_metric_array",
     "rollout_content_hash",
+    "routing_transpilation_action",
     "run_action_rollouts",
     "save_action_artifact",
     "save_action_config",
     "save_candidate_circuit",
     "save_rollout_artifact",
     "score_action_rollout",
+    "semantics_verified_depth_reduction",
     "supported_edit_types",
     "validate_action_candidate",
     "validate_action_dataset_joins",

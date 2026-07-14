@@ -271,6 +271,32 @@ def _topology_batch(arrays: dict[str, np.ndarray], spec: TrainingDataSpec) -> De
     )
 
 
+def _backend_batch(arrays: dict[str, np.ndarray], spec: TrainingDataSpec) -> DenseFeatureBatch | None:
+    features = arrays.get("backend_features")
+    available = arrays.get("backend_available_mask")
+    if features is None and available is None:
+        return None
+    if features is None or available is None:
+        raise ValueError("Incomplete backend arrays")
+    names = tuple(str(value) for value in arrays.get("backend_feature_names", np.asarray([], dtype="<U1")).tolist())
+    if names != spec.backend_feature_names:
+        raise ValueError("Backend feature schema does not match training-only adapter spec")
+    matrix = np.asarray(features, dtype=np.float32).copy()
+    if spec.normalize_backend_features:
+        mean = np.asarray(spec.backend_feature_mean, dtype=np.float32)
+        std = np.asarray(spec.backend_feature_std, dtype=np.float32)
+        matrix = (matrix - mean.reshape(1, -1)) / std.reshape(1, -1)
+    tensor = _float_tensor(matrix)
+    mask = _bool_tensor(np.asarray(available, dtype=np.bool_).reshape(-1))
+    if tensor.shape != (1, 16) or mask.shape != (1,):
+        raise ValueError("Backend feature tensors must have shape (1, 16) and mask shape (1,)")
+    if not bool(mask[0]):
+        if bool((tensor != 0).any()):
+            raise ValueError("Unavailable backend feature row must be zero")
+        return None
+    return DenseFeatureBatch(features=tensor, available_mask=mask)
+
+
 def _action_batches(
     arrays: dict[str, np.ndarray],
     spec: TrainingDataSpec,
@@ -396,7 +422,7 @@ def _born_targets(arrays: dict[str, np.ndarray]) -> BornTargets:
     )
 
 
-def _hard_head_masks(item: Any, parameter: bool, hilbert: bool, born: bool, topology: bool, hardware: bool) -> tuple[Tensor, Tensor]:
+def _hard_head_masks(item: Any, parameter: bool, hilbert: bool, born: bool, backend: bool, topology: bool, hardware: bool) -> tuple[Tensor, Tensor]:
     mask = torch.zeros((1, len(HEAD_ORDER), len(STREAM_ORDER)), dtype=torch.bool)
     active = torch.zeros((1, len(HEAD_ORDER)), dtype=torch.bool)
     stream_available = {
@@ -405,7 +431,7 @@ def _hard_head_masks(item: Any, parameter: bool, hilbert: bool, born: bool, topo
         "phasor": parameter,
         "hilbert": hilbert,
         "born": born,
-        "backend": False,
+        "backend": backend,
         "topology": topology,
     }
     stream_position = {name: index for index, name in enumerate(STREAM_ORDER)}
@@ -474,6 +500,8 @@ def build_training_data_spec(
     action_rows: list[np.ndarray] = []
     topology_rows: list[dict[str, float]] = []
     topology_names: set[str] = set()
+    backend_rows: list[np.ndarray] = []
+    backend_feature_names: tuple[str, ...] = ()
     for record in sorted(dataset.item_records, key=lambda row: row.view_item_id):
         if record.split != "train" or record.task == "topology_audit":
             continue
@@ -483,6 +511,12 @@ def build_training_data_spec(
             if names != _ACTION_FEATURE_NAMES:
                 raise ValueError(f"Unexpected Phase 12 action feature schema: {names}")
             action_rows.append(np.asarray(item.arrays["action_candidate_features"], dtype=np.float64))
+        if "backend_features" in item.arrays and bool(np.asarray(item.arrays["backend_available_mask"], dtype=np.bool_).reshape(-1)[0]):
+            names = tuple(str(value) for value in item.arrays["backend_feature_names"].tolist())
+            if backend_feature_names and names != backend_feature_names:
+                raise ValueError("Backend feature schema changed across training items")
+            backend_feature_names = names
+            backend_rows.append(np.asarray(item.arrays["backend_features"], dtype=np.float64))
         pairs = _topology_pairs(item.arrays)
         if pairs:
             topology_rows.append(pairs)
@@ -513,6 +547,15 @@ def build_training_data_spec(
     else:
         topology_mean = np.zeros(0, dtype=np.float64)
         topology_std = np.ones(0, dtype=np.float64)
+    if backend_rows:
+        backend_matrix = np.concatenate(backend_rows, axis=0)
+        backend_mean = backend_matrix.mean(axis=0)
+        backend_std = backend_matrix.std(axis=0)
+        backend_std[backend_std < 1e-12] = 1.0
+    else:
+        backend_mean = np.zeros(16, dtype=np.float64)
+        backend_std = np.ones(16, dtype=np.float64)
+        backend_feature_names = tuple(f"backend_feature_{index}" for index in range(16))
     spec = TrainingDataSpec(
         training_view_dataset_id=dataset.training_view_dataset_id,
         distortion_labels=DISTORTION_LABELS,
@@ -525,9 +568,13 @@ def build_training_data_spec(
         topology_feature_names=ordered_topology,
         topology_feature_mean=tuple(float(value) for value in topology_mean),
         topology_feature_std=tuple(float(value) for value in topology_std),
+        backend_feature_names=backend_feature_names,
+        backend_feature_mean=tuple(float(value) for value in backend_mean),
+        backend_feature_std=tuple(float(value) for value in backend_std),
         topology_input_dim=model_config.topology_input_dim,
         normalize_action_features=training_config.normalize_action_features,
         normalize_topology_features=training_config.normalize_topology_features,
+        normalize_backend_features=training_config.normalize_backend_features,
         adapter_version=TRAINING_ADAPTER_VERSION,
     )
     spec.validate()
@@ -573,6 +620,7 @@ def load_training_examples(
         queries = _outcome_queries(arrays)
         hilbert, hilbert_state = _hilbert_batch(item, phase7, n_qubits)
         topology = _topology_batch(arrays, spec)
+        backend = _backend_batch(arrays, spec)
         actions, action_targets = _action_batches(arrays, spec, n_qubits)
         diagnosis = _diagnosis_targets(arrays, n_qubits)
         born_targets = _born_targets(arrays)
@@ -582,6 +630,7 @@ def load_training_examples(
             parameter is not None,
             hilbert is not None,
             born_input is not None,
+            backend is not None,
             topology is not None,
             hardware,
         )
@@ -590,7 +639,7 @@ def load_training_examples(
             parameter=parameter,
             born=born_input,
             hilbert=hilbert,
-            backend=None,
+            backend=backend,
             topology=topology,
             actions=actions,
             born_queries=queries,

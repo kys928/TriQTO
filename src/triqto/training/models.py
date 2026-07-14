@@ -64,9 +64,13 @@ class TrainingDataSpec:
     topology_feature_names: tuple[str, ...]
     topology_feature_mean: tuple[float, ...]
     topology_feature_std: tuple[float, ...]
+    backend_feature_names: tuple[str, ...]
+    backend_feature_mean: tuple[float, ...]
+    backend_feature_std: tuple[float, ...]
     topology_input_dim: int
     normalize_action_features: bool
     normalize_topology_features: bool
+    normalize_backend_features: bool
     adapter_version: str
 
     def validate(self) -> None:
@@ -77,6 +81,7 @@ class TrainingDataSpec:
             ("action_edit_types", self.action_edit_types),
             ("action_feature_names", self.action_feature_names),
             ("topology_feature_names", self.topology_feature_names),
+            ("backend_feature_names", self.backend_feature_names),
         ):
             if len(set(values)) != len(values) or any(not value for value in values):
                 raise ValueError(f"{name} must contain unique nonblank strings")
@@ -92,6 +97,12 @@ class TrainingDataSpec:
             raise ValueError("topology_feature_std width mismatch")
         if any(value <= 0 for value in self.topology_feature_std):
             raise ValueError("topology_feature_std must be strictly positive")
+        if len(self.backend_feature_mean) != len(self.backend_feature_names):
+            raise ValueError("backend_feature_mean width mismatch")
+        if len(self.backend_feature_std) != len(self.backend_feature_names):
+            raise ValueError("backend_feature_std width mismatch")
+        if any(value <= 0 for value in self.backend_feature_std):
+            raise ValueError("backend_feature_std must be strictly positive")
         if self.topology_input_dim <= 0:
             raise ValueError("topology_input_dim must be positive")
         if len(self.topology_feature_names) > self.topology_input_dim:
@@ -100,6 +111,8 @@ class TrainingDataSpec:
             raise TypeError("normalize_action_features must be bool")
         if not isinstance(self.normalize_topology_features, bool):
             raise TypeError("normalize_topology_features must be bool")
+        if not isinstance(self.normalize_backend_features, bool):
+            raise TypeError("normalize_backend_features must be bool")
         if not self.adapter_version:
             raise ValueError("adapter_version must be nonblank")
 
@@ -117,9 +130,13 @@ class TrainingDataSpec:
             "topology_feature_names": list(self.topology_feature_names),
             "topology_feature_mean": list(self.topology_feature_mean),
             "topology_feature_std": list(self.topology_feature_std),
+            "backend_feature_names": list(self.backend_feature_names),
+            "backend_feature_mean": list(self.backend_feature_mean),
+            "backend_feature_std": list(self.backend_feature_std),
             "topology_input_dim": self.topology_input_dim,
             "normalize_action_features": self.normalize_action_features,
             "normalize_topology_features": self.normalize_topology_features,
+            "normalize_backend_features": self.normalize_backend_features,
             "adapter_version": self.adapter_version,
         }
 
@@ -139,9 +156,13 @@ class TrainingDataSpec:
             "topology_feature_names",
             "topology_feature_mean",
             "topology_feature_std",
+            "backend_feature_names",
+            "backend_feature_mean",
+            "backend_feature_std",
             "topology_input_dim",
             "normalize_action_features",
             "normalize_topology_features",
+            "normalize_backend_features",
             "adapter_version",
         }
         if set(payload) != expected:
@@ -162,9 +183,13 @@ class TrainingDataSpec:
             topology_feature_names=tuple(payload["topology_feature_names"]),
             topology_feature_mean=tuple(float(value) for value in payload["topology_feature_mean"]),
             topology_feature_std=tuple(float(value) for value in payload["topology_feature_std"]),
+            backend_feature_names=tuple(payload["backend_feature_names"]),
+            backend_feature_mean=tuple(float(value) for value in payload["backend_feature_mean"]),
+            backend_feature_std=tuple(float(value) for value in payload["backend_feature_std"]),
             topology_input_dim=int(payload["topology_input_dim"]),
             normalize_action_features=payload["normalize_action_features"],
             normalize_topology_features=payload["normalize_topology_features"],
+            normalize_backend_features=payload["normalize_backend_features"],
             adapter_version=payload["adapter_version"],
         )
         result.validate()

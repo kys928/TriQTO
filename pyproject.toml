@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "triqto"
 version = "0.1.0"
 description = "Tri-Manifold Quantum Topological Optimization research scaffold"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.12"
 readme = "README.md"
 
 [tool.setuptools.packages.find]

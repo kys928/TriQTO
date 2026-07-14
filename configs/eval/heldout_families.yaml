@@ -1,2 +1,8 @@
+schema_version: triqto.eval.holdout.v1
 evaluation: heldout_families
-split_strategy: future_manifest_defined
+split_strategy: axis_holdout
+axis: family
+heldout_values: [qft_like]
+claim_label: ood_family
+seed: 2026
+requires_phase15_audit: true

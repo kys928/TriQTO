@@ -28,9 +28,22 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --quiet --upgrade pip
-          python -m pip install --quiet -r requirements.txt
+          python -m pip install --quiet -r requirements.txt -c constraints/cpu.txt
           python -m pip install --quiet -e .
           python -m pip check
+
+      - name: Verify dependency pins and CPU imports
+        run: |
+          python scripts/verify_dependency_pins.py
+          python - <<'PY'
+          import torch
+          import qiskit
+          import qiskit_aer
+          assert torch.version.cuda is None, torch.version.cuda
+          print("torch", torch.__version__)
+          print("qiskit", qiskit.__version__)
+          print("qiskit_aer", qiskit_aer.__version__)
+          PY
 
       - name: Compile Python sources
         run: python -m compileall -q src scripts

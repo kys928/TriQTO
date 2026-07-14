@@ -70,6 +70,7 @@ class CircuitGraphData:
     parameter_sin: np.ndarray
     parameter_cos: np.ndarray
     outcome_bitstrings: np.ndarray
+    measurement_basis_codes: np.ndarray
     exact_probabilities: np.ndarray
     global_features: np.ndarray
     count_outcome_bitstrings: np.ndarray
@@ -102,6 +103,11 @@ class GraphSamplePair:
     born_observable_shift_absent: bool
     marker_only: bool
     applicability_warning: str | None
+    identifiability_status: str = "identifiable"
+    identifiability_reason: str = "observable_born_shift"
+    diagnosis_supervision_mask: bool = True
+    action_supervision_mask: bool = True
+    born_target_mask: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)
     content_hash: str = ""
 

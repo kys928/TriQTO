@@ -166,6 +166,11 @@ def pair_content_hash(pair: GraphSamplePair) -> str:
         "born_zero_shift": pair.born_zero_shift,
         "born_observable_shift_absent": pair.born_observable_shift_absent,
         "marker_only": pair.marker_only,
+        "identifiability_status": pair.identifiability_status,
+        "identifiability_reason": pair.identifiability_reason,
+        "diagnosis_supervision_mask": pair.diagnosis_supervision_mask,
+        "action_supervision_mask": pair.action_supervision_mask,
+        "born_target_mask": pair.born_target_mask,
         "applicability_warning": pair.applicability_warning,
         "metadata": pair.metadata,
     }

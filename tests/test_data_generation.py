@@ -3,7 +3,9 @@ from __future__ import annotations
 import copy
 import json
 import math
+import os
 from pathlib import Path
+import subprocess
 import sys
 from typing import Any
 
@@ -26,6 +28,25 @@ from triqto.data_generation import (
 from triqto.metrics import BornMetricBundle, compare_born_distributions
 from triqto.storage import CircuitRecord, ManifestReader
 from triqto.storage.schema import DatasetSampleRecord
+
+
+def run_clean_import_check(source: str) -> None:
+    root = Path(__file__).resolve().parents[1]
+    env = os.environ.copy()
+    existing = env.get("PYTHONPATH")
+    env["PYTHONPATH"] = (
+        str(root / "src")
+        if not existing
+        else os.pathsep.join((str(root / "src"), existing))
+    )
+    subprocess.run(
+        [sys.executable, "-c", source],
+        cwd=root,
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
 
 def base_config(**overrides: Any) -> DatasetGenerationConfig:
@@ -457,13 +478,19 @@ def _compare_artifact_trees(left_root: Path, right_root: Path) -> None:
 
 
 def test_kl_infinity_encoded_and_no_aer_import() -> None:
-    import triqto.data_generation.pipeline as pipeline
-
-    values = pipeline._metric_values(compare_born_distributions({"0": 1.0}, {"1": 1.0}))
-    assert values["kl_clean_to_distorted"] is None
-    assert values["kl_clean_to_distorted__nonfinite"] == "positive_infinity"
-    json.dumps(values, allow_nan=False)
-    assert "qiskit_aer" not in sys.modules
+    source = """
+import json
+import sys
+assert "qiskit_aer" not in sys.modules
+from triqto.data_generation import pipeline
+from triqto.metrics import compare_born_distributions
+values = pipeline._metric_values(compare_born_distributions({"0": 1.0}, {"1": 1.0}))
+assert values["kl_clean_to_distorted"] is None
+assert values["kl_clean_to_distorted__nonfinite"] == "positive_infinity"
+json.dumps(values, allow_nan=False)
+assert "qiskit_aer" not in sys.modules
+"""
+    run_clean_import_check(source)
 
 
 def test_metric_manifest_typed_readback_preserves_empty_metric_maps(tmp_path: Path) -> None:

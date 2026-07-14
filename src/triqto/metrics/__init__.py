@@ -29,3 +29,7 @@ __all__ = [
     "total_variation_distance",
     "validate_probability_distribution",
 ]
+
+from .hilbert import pure_state_fidelity, fidelity, fubini_study_distance, density_matrix_fidelity, trace_distance, purity, bures_distance
+from .qgt import pure_state_qgt, qgt_from_state_function
+from .qfi import pure_state_qfi, qfi_from_state_function
