@@ -1,0 +1,20 @@
+schema_version: triqto.evaluation.phase15.v1
+run_name: triqto_phase15_small_debug
+seed: 2026
+tasks:
+  - diagnosis
+  - action_ranking
+  - born_prediction
+ablations:
+  - full
+  - no_topology
+  - no_hilbert
+batch_size: 2
+calibration_bins: 5
+checkpoint_selection: best
+require_test_items: true
+include_baseline_comparison: false
+max_items: 10000
+device: cpu
+dtype: float32
+distribution_epsilon: 1.0e-12
