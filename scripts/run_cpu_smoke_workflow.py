@@ -120,7 +120,8 @@ def run(output: Path) -> dict[str, object]:
         "commands": ["scripts/run_cpu_smoke_workflow.py --output <dir>"],
         "seed": 2026,
         "dependency_profile": "CPU-safe pinned repository environment",
-        "evidence_tier": "fake_backend_fixture_plus_mixed_offline_operational",
+        "evidence_tier": "fake_backend_fixture",
+        "operational_evidence_tier": "mixed_offline",
         "artifact_ids": {
             "phase7_generation_id": generation.scientific_generation_id,
             "phase8_graph_conversion_id": graph.graph_conversion_id,
