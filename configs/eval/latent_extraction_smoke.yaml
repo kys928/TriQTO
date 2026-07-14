@@ -1,0 +1,7 @@
+split: validation
+tasks:
+  - diagnosis
+head: diagnosis
+representation: head_latent
+max_points: 128
+batch_size: 8
