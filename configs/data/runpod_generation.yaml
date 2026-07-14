@@ -1,2 +1,4 @@
+unsupported: true
+unsupported_reason: RunPod generation remains future operational work and inherits unsupported monster-generation capabilities.
 # runpod_generation placeholder config for future TriQTO runs.
 extends: monster_generation.yaml

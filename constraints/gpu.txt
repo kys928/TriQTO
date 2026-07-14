@@ -1,0 +1,3 @@
+# Optional GPU constraints extend the CPU set and are not used by CI/default tests.
+-r cpu.txt
+qiskit-aer-gpu==0.15.1

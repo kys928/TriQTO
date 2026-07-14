@@ -1,17 +1,3 @@
-qiskit
-qiskit-aer
-qiskit-ibm-runtime
-numpy
-scipy
-pandas
-pyarrow
-h5py
-zarr
-networkx
-torch
-pyyaml
-tqdm
-matplotlib
-pytest
-ripser
-gudhi
+# CPU-safe default runtime/test dependencies for TriQTO.
+# Install with: python -m pip install -r requirements.txt -c constraints/cpu.txt
+-r requirements-cpu.txt

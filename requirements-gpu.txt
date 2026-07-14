@@ -1,2 +1,3 @@
--r requirements.txt
-qiskit-aer-gpu
+# Optional GPU profile. Use only on hosts with compatible CUDA runtime.
+-r requirements-cpu.txt
+qiskit-aer-gpu==0.15.1

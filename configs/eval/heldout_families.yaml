@@ -1,2 +1,4 @@
+unsupported: true
+unsupported_reason: Future OOD holdout split; not executable until group-safe split manifests are implemented.
 evaluation: heldout_families
 split_strategy: future_manifest_defined
