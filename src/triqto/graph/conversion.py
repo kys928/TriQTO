@@ -212,6 +212,10 @@ def convert_completed_dataset_to_graphs(
             born_target_mask=bool(sample_metadata.get("born_target_mask", True)),
             metadata={
                 "distortion_type": distortion_record.distortion_type,
+                "backend_id": sample_metadata.get("backend_id"),
+                "backend_assignment_level": sample_metadata.get("backend_assignment_level"),
+                "backend_assignment_id": sample_metadata.get("backend_assignment_id"),
+                "backend_snapshot_identity_source": "content_derived_phase7_backend_snapshot",
                 "phase": 8,
             },
         )
@@ -268,6 +272,10 @@ def convert_completed_dataset_to_graphs(
                 "diagnosis_supervision_mask": pair.diagnosis_supervision_mask,
                 "action_supervision_mask": pair.action_supervision_mask,
                 "born_target_mask": pair.born_target_mask,
+                "backend_id": pair.metadata.get("backend_id"),
+                "backend_assignment_level": pair.metadata.get("backend_assignment_level"),
+                "backend_assignment_id": pair.metadata.get("backend_assignment_id"),
+                "backend_snapshot_identity_source": pair.metadata.get("backend_snapshot_identity_source"),
                 "phase": 8,
             },
         )

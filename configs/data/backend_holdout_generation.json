@@ -1,0 +1,57 @@
+{
+  "backend_names": [
+    "triqto_local_line_fake_v1",
+    "triqto_local_line_fake_v2"
+  ],
+  "base_seed": 1,
+  "circuit_specs": [
+    {
+      "family": "bell",
+      "generator_kwargs": {
+        "measure": true
+      },
+      "n_qubits": 2,
+      "repetitions": 4
+    }
+  ],
+  "dataset_name": "triqto_backend_holdout_fake_axis_smoke",
+  "distortion_specs": [
+    {
+      "kwargs": {
+        "qubits": [
+          0
+        ],
+        "strength": 0.1
+      },
+      "name": "rx_overrotation"
+    },
+    {
+      "kwargs": {
+        "qubits": [
+          0
+        ],
+        "strength": 0.2
+      },
+      "name": "phase_rz_drift"
+    },
+    {
+      "kwargs": {
+        "probability": 0.1,
+        "qubits": [
+          0
+        ]
+      },
+      "name": "readout_bitflip_marker"
+    }
+  ],
+  "ideal_shots": null,
+  "max_samples": 12,
+  "measurement_bases": [
+    "Z"
+  ],
+  "parameter_high": 3.141592653589793,
+  "parameter_low": -3.141592653589793,
+  "schema_version": "triqto.phase7.v1",
+  "store_statevectors": false,
+  "strict_identifiability": false
+}
