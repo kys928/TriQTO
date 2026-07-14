@@ -2,6 +2,14 @@
 """Train the Phase 13 TriQTO model from a completed Phase 12 view dataset."""
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
 import argparse
 import json
 

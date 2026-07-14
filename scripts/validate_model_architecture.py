@@ -2,6 +2,14 @@
 """Instantiate and forward-check the untrained Phase 13 TriQTO architecture."""
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
 import argparse
 import json
 from pathlib import Path

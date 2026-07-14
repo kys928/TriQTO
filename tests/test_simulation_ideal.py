@@ -1,8 +1,10 @@
 """Tests for Phase 4 ideal simulation."""
 from __future__ import annotations
 
+import os
 import sys
 import subprocess
+from pathlib import Path
 
 import pytest
 from qiskit import QuantumCircuit
@@ -114,5 +116,8 @@ def test_simulation_package_exports_expected_functions():
 
 def test_qiskit_aer_import_is_not_required():
     code = "import sys; import triqto.simulation; assert 'qiskit_aer' not in sys.modules"
-    result = subprocess.run([sys.executable, "-c", code], text=True, capture_output=True)
+    env = os.environ.copy()
+    repo_src = str(Path(__file__).resolve().parents[1] / "src")
+    env["PYTHONPATH"] = repo_src + os.pathsep + env.get("PYTHONPATH", "")
+    result = subprocess.run([sys.executable, "-c", code], text=True, capture_output=True, env=env)
     assert result.returncode == 0, result.stderr

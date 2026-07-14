@@ -129,3 +129,7 @@ See `docs/CAPABILITY_MATRIX.md` for the maintained capability matrix.
 ### Current evidence boundary update
 
 The current branch includes offline fake-backend metadata propagation into Phase 7/12/14 artifacts, deterministic backend-holdout audits, standalone operational actions, and checkpoint-bound latent-topology diagnostics. These are not physical-hardware results: no IBM Runtime job is submitted by default or in tests, fake-backend evidence remains simulator/fixture evidence, latent topology requires a real checkpoint identity supplied by a reproducible run, and no OOD or calibration claim is made without corresponding empirical artifacts.
+
+## Capability-category status (2026-07-14)
+
+The maintained category matrix is in [`docs/CAPABILITY_MATRIX.md`](docs/CAPABILITY_MATRIX.md) and uses these exact categories: integrated into the primary pipeline, standalone executable API, credential-gated, empirically unvalidated, and planning-only/unsupported. In this repository state, fake-backend fixture evidence reaches Phase 7/12/14 model-training inputs with masks; noisy/density evidence remains a standalone API and does not enter the main data lake by default; no physical IBM hardware job has been submitted; no committed trained research checkpoint, calibrated-uncertainty result, backend-holdout performance report, or trained-representation latent-topology result exists; Phase 15 is present only as tested identity/generalization utility pieces rather than a completed empirical report publisher; and topology loss remains exactly zero.
