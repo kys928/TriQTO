@@ -1,4 +1,4 @@
-"""Public Phase 14 deterministic training-engine APIs."""
+"""Public Phase 14 deterministic training and latent-extraction APIs."""
 from .callbacks import EarlyStoppingState
 from .checkpoints import (
     capture_rng_state,
@@ -30,6 +30,16 @@ from .identities import (
     training_run_id,
     training_schema_id,
 )
+from .latent_extraction import (
+    LATENT_EXTRACTION_SCHEMA,
+    LatentExtractionConfig,
+    extract_checkpoint_latents,
+    extract_latent_coordinates,
+    latent_extraction_config_to_dict,
+    load_latent_extraction,
+    load_latent_extraction_config,
+    restore_checkpoint_for_latents,
+)
 from .losses import compute_supervised_losses
 from .models import (
     CheckpointSummary,
@@ -50,12 +60,14 @@ from .source import (
 from .trainer import run_training
 
 __all__ = [
+    "LATENT_EXTRACTION_SCHEMA",
     "CheckpointSummary",
     "CurriculumStageConfig",
     "DeterministicLRScheduler",
     "EarlyStoppingState",
     "EpochMetrics",
     "EpochPlan",
+    "LatentExtractionConfig",
     "LossConfig",
     "OptimizerConfig",
     "SchedulerConfig",
@@ -72,12 +84,18 @@ __all__ = [
     "collate_training_examples",
     "compute_supervised_losses",
     "deterministic_budget_batches",
+    "extract_checkpoint_latents",
+    "extract_latent_coordinates",
     "finite_gradient_norm",
+    "latent_extraction_config_to_dict",
     "load_completed_training_view_dataset",
+    "load_latent_extraction",
+    "load_latent_extraction_config",
     "load_phase7_managed_snapshot",
     "load_training_checkpoint",
     "load_training_config",
     "load_training_examples",
+    "restore_checkpoint_for_latents",
     "restore_rng_state",
     "run_training",
     "save_training_checkpoint",
