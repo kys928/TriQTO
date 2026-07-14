@@ -7,6 +7,7 @@ from .base_view import (
     graph_structure_arrays,
     make_training_item,
     measurement_born_arrays,
+    sample_scientific_metadata,
     strict_float,
     unicode_array,
 )
@@ -101,6 +102,7 @@ def build_diagnosis_items(context: ViewBuildContext) -> list[TrainingViewItem]:
             topology_available=False,
             privileged_target_available=diagnosis_supervised,
             metadata={
+                **sample_scientific_metadata(context, sample),
                 "sample_id": sample.sample_id,
                 "graph_pair_id": pair_record.graph_pair_id,
                 "clean_graph_id": pair_record.clean_graph_id,

@@ -3,7 +3,12 @@ from __future__ import annotations
 
 import numpy as np
 
-from .base_view import graph_structure_arrays, make_training_item, unicode_array
+from .base_view import (
+    graph_structure_arrays,
+    make_training_item,
+    sample_scientific_metadata,
+    unicode_array,
+)
 from .context import ViewBuildContext
 from .models import TrainingViewItem
 
@@ -141,6 +146,7 @@ def build_action_ranking_items(context: ViewBuildContext) -> list[TrainingViewIt
             topology_available=False,
             privileged_target_available=action_supervised and any(privileged),
             metadata={
+                **sample_scientific_metadata(context, sample),
                 "sample_id": sample.sample_id,
                 "graph_pair_id": pair_record.graph_pair_id,
                 "candidate_order": "sorted_action_id_not_target_rank",

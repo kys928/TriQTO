@@ -40,7 +40,7 @@ from triqto.training import (
     training_schema_id,
     run_training,
 )
-from triqto.training.losses import _distribution_losses
+from triqto.training.losses import _distribution_losses, _heteroscedastic_mean
 from triqto.training.trainer import _run_epoch
 from triqto.training.models import (
     ActionTargets,
@@ -373,6 +373,50 @@ def test_distribution_losses_average_complete_measurement_setting_distances() ->
         torch.tensor(1.0 - 2.0 ** -0.5, dtype=torch.float64)
     )
     assert torch.allclose(hellinger, expected_hellinger)
+
+
+def test_uncertainty_weighting_is_per_example_not_an_averaged_task_scale() -> None:
+    losses = torch.tensor([1.0, 4.0], requires_grad=True)
+    log_variance = torch.tensor(
+        [0.0, float(np.log(4.0))],
+        requires_grad=True,
+    )
+    value = _heteroscedastic_mean(
+        losses,
+        log_variance,
+        torch.tensor([True, True]),
+    )
+    expected = (1.0 + 1.0 + np.log(4.0)) / 2.0
+    assert value.item() == pytest.approx(expected)
+    pooled_scale = log_variance.mean()
+    old_task_weighting = torch.exp(-pooled_scale) * losses.mean() + pooled_scale
+    assert value.item() != pytest.approx(old_task_weighting.item())
+    value.backward()
+    assert losses.grad is not None
+    assert losses.grad[0].item() != pytest.approx(losses.grad[1].item())
+
+
+def test_uncertainty_head_receives_per_example_likelihood_gradients() -> None:
+    batch = collate_training_examples(
+        [example(0, (0.95, 0.05)), example(1, (0.2, 0.8))]
+    )
+    model = TriQTOModel(model_config())
+    losses = compute_supervised_losses(
+        model(batch.model_batch),
+        batch,
+        LossConfig(geometry_weight=0.0, uncertainty_weighting=True),
+    )
+    losses["total"].backward()
+    uncertainty_gradients = [
+        parameter.grad
+        for name, parameter in model.named_parameters()
+        if name.startswith("uncertainty_head.")
+    ]
+    assert uncertainty_gradients
+    assert any(
+        gradient is not None and bool(torch.count_nonzero(gradient))
+        for gradient in uncertainty_gradients
+    )
 
 
 def test_partial_gradient_accumulation_matches_equivalent_item_batches() -> None:

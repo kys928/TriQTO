@@ -1,6 +1,6 @@
 # TriQTO capability matrix
 
-TriQTO currently provides an offline, deterministic research scaffold. It must not be described as hardware-validated, OOD-generalizing, uncertainty-calibrated, or topology-validated.
+TriQTO currently provides an offline, deterministic research scaffold. It must not be described as hardware-validated, broadly OOD-generalizing, uncertainty-calibrated, or topology-validated.
 
 | Capability | Status | Notes |
 | --- | --- | --- |
@@ -12,8 +12,10 @@ TriQTO currently provides an offline, deterministic research scaffold. It must n
 | Fake-backend / transpilation evidence | Intentionally unsupported in active configs | Future work; no fabricated backend features. |
 | IBM Runtime ingestion | Credential-gated placeholder only | Not run by default; no credentials in tests. |
 | Topology loss | Diagnostic/audit only | `topology_loss_weight` remains `0.0` by default. |
-| Phase 15 OOD/generalization claims | Unsupported | IID results must not be labeled as OOD generalization. |
-| Per-example calibrated uncertainty | Unsupported | Existing uncertainty outputs are not validated calibration evidence. |
+| Axis-disjoint Phase 12/15 holdout contract | Implemented, offline-tested | Family, qubit-count, and distortion-type values can be reserved exclusively for test and re-audited at evaluation; backend holdout fails without backend evidence. |
+| Phase 15 IID evaluation | Implemented, offline-tested | An untouched same-universe test partition; must not be labeled OOD. |
+| Per-example uncertainty training/evaluation | Implemented, offline-tested contract | Heteroscedastic likelihood is per example and the head is evaluated directly; no committed result establishes calibration. |
+| Phase 15 empirical generalization/calibration claims | Not established | No trained checkpoint or empirical result is committed. |
 
 ## Dependency matrix
 

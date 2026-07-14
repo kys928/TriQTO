@@ -12,6 +12,9 @@ import yaml
 
 from .constants import TASK_ORDER, TRAINING_VIEW_SCHEMA_VERSION
 
+SPLIT_STRATEGIES = ("clean_circuit_hash", "axis_holdout")
+HOLDOUT_AXES = ("family", "n_qubits", "distortion_type", "backend_id")
+
 
 def _require_bool(value: Any, name: str) -> bool:
     if not isinstance(value, bool):
@@ -57,6 +60,23 @@ def _require_tasks(value: Any) -> tuple[str, ...]:
     return tuple(tasks)
 
 
+def _holdout_values(value: Any, axis: str | None) -> tuple[str, ...]:
+    if isinstance(value, (str, bytes)) or not isinstance(value, Sequence):
+        raise TypeError("holdout_values must be a sequence")
+    normalized: list[str] = []
+    for index, item in enumerate(value):
+        if axis == "n_qubits":
+            qubits = _require_int(item, f"holdout_values[{index}]", positive=True)
+            normalized.append(str(qubits))
+        else:
+            if not isinstance(item, str) or not item.strip():
+                raise ValueError(f"holdout_values[{index}] must be nonblank text")
+            normalized.append(item.strip())
+    if len(set(normalized)) != len(normalized):
+        raise ValueError("holdout_values must be unique")
+    return tuple(sorted(normalized))
+
+
 @dataclass(frozen=True, slots=True)
 class TrainingViewConfig:
     """Scientific split/mask policy plus fail-only operational ceilings."""
@@ -64,6 +84,9 @@ class TrainingViewConfig:
     schema_version: str = TRAINING_VIEW_SCHEMA_VERSION
     tasks: tuple[str, ...] = TASK_ORDER
     split_seed: int = 2026
+    split_strategy: str = "clean_circuit_hash"
+    holdout_axis: str | None = None
+    holdout_values: tuple[str, ...] = ()
     train_fraction: float = 0.8
     validation_fraction: float = 0.1
     test_fraction: float = 0.1
@@ -88,14 +111,56 @@ class TrainingViewConfig:
             )
         tasks = _require_tasks(self.tasks)
         seed = _require_int(self.split_seed, "split_seed")
+        if not isinstance(self.split_strategy, str):
+            raise TypeError("split_strategy must be text")
+        split_strategy = self.split_strategy.strip()
+        if split_strategy not in SPLIT_STRATEGIES:
+            raise ValueError(f"split_strategy must be one of {SPLIT_STRATEGIES}")
+        holdout_axis = self.holdout_axis
+        if holdout_axis is not None:
+            if not isinstance(holdout_axis, str):
+                raise TypeError("holdout_axis must be text or null")
+            holdout_axis = holdout_axis.strip()
+            if holdout_axis not in HOLDOUT_AXES:
+                raise ValueError(f"holdout_axis must be one of {HOLDOUT_AXES}")
+        holdout_values = _holdout_values(self.holdout_values, holdout_axis)
         train = _require_fraction(self.train_fraction, "train_fraction")
         validation = _require_fraction(
             self.validation_fraction,
             "validation_fraction",
         )
         test = _require_fraction(self.test_fraction, "test_fraction")
-        if not math.isclose(train + validation + test, 1.0, rel_tol=0.0, abs_tol=1e-12):
-            raise ValueError("train/validation/test fractions must sum to exactly one")
+        if split_strategy == "clean_circuit_hash":
+            if holdout_axis is not None or holdout_values:
+                raise ValueError(
+                    "clean_circuit_hash split does not accept holdout_axis/holdout_values"
+                )
+            if not math.isclose(
+                train + validation + test,
+                1.0,
+                rel_tol=0.0,
+                abs_tol=1e-12,
+            ):
+                raise ValueError("train/validation/test fractions must sum to exactly one")
+        else:
+            if holdout_axis is None or not holdout_values:
+                raise ValueError(
+                    "axis_holdout requires holdout_axis and nonempty holdout_values"
+                )
+            if test != 0.0:
+                raise ValueError(
+                    "axis_holdout requires test_fraction=0; test membership comes "
+                    "only from holdout_values"
+                )
+            if train <= 0.0 or validation <= 0.0 or not math.isclose(
+                train + validation,
+                1.0,
+                rel_tol=0.0,
+                abs_tol=1e-12,
+            ):
+                raise ValueError(
+                    "axis_holdout train/validation fractions must be positive and sum to one"
+                )
         if not isinstance(self.split_grouping, str):
             raise TypeError("split_grouping must be text")
         split_grouping = self.split_grouping.strip()
@@ -143,6 +208,9 @@ class TrainingViewConfig:
         object.__setattr__(self, "schema_version", schema)
         object.__setattr__(self, "tasks", tasks)
         object.__setattr__(self, "split_seed", seed)
+        object.__setattr__(self, "split_strategy", split_strategy)
+        object.__setattr__(self, "holdout_axis", holdout_axis)
+        object.__setattr__(self, "holdout_values", holdout_values)
         object.__setattr__(self, "train_fraction", train)
         object.__setattr__(self, "validation_fraction", validation)
         object.__setattr__(self, "test_fraction", test)
@@ -163,6 +231,7 @@ def training_view_config_to_dict(config: TrainingViewConfig) -> dict[str, Any]:
         raise TypeError("config must be TrainingViewConfig")
     payload = asdict(config)
     payload["tasks"] = list(config.tasks)
+    payload["holdout_values"] = list(config.holdout_values)
     return payload
 
 
@@ -208,6 +277,8 @@ def save_training_view_config(config: TrainingViewConfig, path: str | Path) -> P
 
 
 __all__ = [
+    "HOLDOUT_AXES",
+    "SPLIT_STRATEGIES",
     "TrainingViewConfig",
     "load_training_view_config",
     "save_training_view_config",

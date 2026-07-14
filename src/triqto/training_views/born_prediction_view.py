@@ -1,7 +1,12 @@
 """Born-prediction view with target probabilities physically excluded from graph inputs."""
 from __future__ import annotations
 
-from .base_view import graph_structure_arrays, make_training_item, measurement_born_arrays
+from .base_view import (
+    graph_structure_arrays,
+    make_training_item,
+    measurement_born_arrays,
+    sample_scientific_metadata,
+)
 from .context import ViewBuildContext
 from .models import TrainingViewItem
 
@@ -45,6 +50,7 @@ def build_born_prediction_items(context: ViewBuildContext) -> list[TrainingViewI
             topology_available=False,
             privileged_target_available=True,
             metadata={
+                **sample_scientific_metadata(context, sample),
                 "sample_id": sample.sample_id,
                 "graph_pair_id": pair_record.graph_pair_id,
                 "clean_graph_id": pair_record.clean_graph_id,

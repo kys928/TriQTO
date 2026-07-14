@@ -43,7 +43,12 @@ from .source import (
     load_training_view_sources,
     verify_training_view_source_snapshots,
 )
-from .splits import assign_split, build_sample_split_maps, topology_group_split
+from .splits import (
+    assign_development_split,
+    assign_split,
+    build_sample_split_maps,
+    topology_group_split,
+)
 from .topology_view import build_topology_audit_items
 from .validators import (
     validate_training_view_dataset_joins,
@@ -62,6 +67,7 @@ __all__ = [
     "TrainingViewSources",
     "TrainingViewWriteResult",
     "assign_split",
+    "assign_development_split",
     "build_action_ranking_items",
     "build_born_prediction_items",
     "build_diagnosis_items",

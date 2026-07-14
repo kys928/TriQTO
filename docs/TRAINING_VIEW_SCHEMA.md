@@ -15,17 +15,21 @@ Phase 10 baselines are evaluation controls and are not training inputs.
 
 Every managed source file is byte-snapshotted before and after view construction and publication. Phase 12 never modifies a source dataset.
 
-## Leakage-safe split policy
+## Leakage-safe split and OOD policies
 
-The split unit is `clean_circuit_id`, not an individual distorted row.
-
-All distortions, graph pairs, actions, rollouts, and sample-level task views derived from one clean circuit therefore inherit one deterministic split:
+The default `clean_circuit_hash` strategy uses `clean_circuit_id`, not an individual distorted row. All distortions, graph pairs, actions, rollouts, and sample-level task views derived from one clean circuit therefore inherit one deterministic split:
 
 ```text
 SHA-256(clean_circuit_id + split_seed) -> train | validation | test
 ```
 
 The default fractions are 80/10/10. Hash assignment is deterministic and does not rebalance small datasets by moving individual samples.
+
+The explicit `axis_holdout` strategy instead reserves configured values of exactly one axis—`family`, `n_qubits`, `distortion_type`, or `backend_id`—for `test`. Every remaining clean-circuit group is hashed into train/validation only; `test_fraction` must be zero because holdout membership is value-defined. Construction fails when configured values are absent or when either the development or test universe is empty.
+
+Family and qubit holdouts keep a clean circuit wholly within one partition. Distortion/backend holdouts key the leakage group by clean circuit plus axis value so the same logical circuit may intentionally appear under a development distortion/backend and a held-out one without placing the same axis-specific sample group in two partitions. Backend holdout fails closed while Phase 7 has no genuine backend IDs.
+
+Every item records the split strategy, axis, observed value, OOD marker, and family/qubit/distortion/backend metadata. Phase 15 independently re-audits disjointness rather than trusting a filename or test label.
 
 A topology cohort can contain points derived from several clean-circuit groups. When those source groups span more than one split, the topology item is retained as `audit_only` and is excluded from train/validation/test. Assigning it to one trainable split would expose information from another.
 

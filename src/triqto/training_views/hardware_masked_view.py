@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from .base_view import make_training_item, unicode_array
+from .base_view import make_training_item, sample_scientific_metadata, unicode_array
 from .constants import MANDATORY_ITEM_ARRAY_NAMES
 from .context import ViewBuildContext
 from .models import TrainingViewItem
@@ -42,6 +42,7 @@ def build_hardware_masked_items(
     )
     head_names = ("diagnosis", "action_ranking", "born_prediction", "topology_audit")
     for sample_id, joint in sorted(joint_items.items()):
+        sample = context.samples_by_id[sample_id]
         arrays = {
             name: value.copy()
             for name, value in joint.arrays.items()
@@ -136,6 +137,7 @@ def build_hardware_masked_items(
             topology_available=topology_safe,
             privileged_target_available=privileged,
             metadata={
+                **sample_scientific_metadata(context, sample),
                 "sample_id": sample_id,
                 "hardware_masked_simulation": True,
                 "hardware_data": False,

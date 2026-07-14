@@ -1,7 +1,11 @@
 """Optional simulation-only Hilbert-to-Born view builder."""
 from __future__ import annotations
 
-from .base_view import make_training_item, measurement_born_arrays
+from .base_view import (
+    make_training_item,
+    measurement_born_arrays,
+    sample_scientific_metadata,
+)
 from .context import ViewBuildContext
 from .models import TrainingViewItem
 
@@ -54,6 +58,7 @@ def build_hilbert_to_born_items(context: ViewBuildContext) -> list[TrainingViewI
             topology_available=False,
             privileged_target_available=True,
             metadata={
+                **sample_scientific_metadata(context, sample),
                 "sample_id": sample.sample_id,
                 "clean_run_id": sample.clean_run_id,
                 "simulation_only": True,

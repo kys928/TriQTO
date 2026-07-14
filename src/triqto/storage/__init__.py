@@ -6,6 +6,11 @@ from triqto.storage.action_schema import (
     ActionRolloutRecord,
 )
 from triqto.storage.baseline_schema import BaselineResultRecord
+from triqto.storage.evaluation_schema import (
+    EvaluationAggregateRecordV1,
+    EvaluationBaselineRecordV1,
+    EvaluationItemRecordV1,
+)
 from triqto.storage.graph_schema import GraphPairRecord, GraphRecord
 from triqto.storage.manifest import ManifestReader, ManifestWriter
 from triqto.storage.schema import (
@@ -39,6 +44,9 @@ __all__ = [
     "CircuitRecord",
     "DatasetSampleRecord",
     "DistortionRecord",
+    "EvaluationAggregateRecordV1",
+    "EvaluationBaselineRecordV1",
+    "EvaluationItemRecordV1",
     "GraphPairRecord",
     "GraphRecord",
     "ManifestReader",

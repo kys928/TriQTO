@@ -1,4 +1,23 @@
-unsupported: true
-unsupported_reason: Future OOD holdout split; not executable until group-safe split manifests are implemented.
-evaluation: heldout_qubit_counts
-split_strategy: future_manifest_defined
+schema_version: triqto.evaluation.phase15.v2
+run_name: triqto_phase15_ood_n_qubits_4
+seed: 2026
+tasks:
+  - diagnosis
+  - action_ranking
+  - born_prediction
+  - hilbert_to_born
+  - joint_multitask
+  - hardware_masked
+ablations: [full, no_topology, no_hilbert]
+batch_size: 16
+calibration_bins: 10
+checkpoint_selection: best
+require_test_items: true
+include_baseline_comparison: false
+max_items: 1000000
+device: auto
+dtype: float32
+distribution_epsilon: 1.0e-12
+evaluation_design: ood_axis_holdout
+holdout_axis: n_qubits
+holdout_values: ["4"]

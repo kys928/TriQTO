@@ -49,7 +49,7 @@ The implemented objective contains:
 - Born KL divergence and Hellinger distance computed over each graph's complete active support, then averaged across graphs;
 - auxiliary Hilbert-to-Born KL and Hellinger distance;
 - cross-example geometry consistency using Born Hellinger and optional normalized Fubini-Study targets;
-- optional heteroscedastic uncertainty weighting;
+- optional per-example heteroscedastic likelihood weighting: each active graph's learned log variance scales that graph's realized task loss before averaging;
 - a topology term present in the contract but multiplied by exactly zero.
 
 The topology boundary remains:
@@ -60,6 +60,8 @@ lambda_top = 0
 ```
 
 A nonzero topology loss requires a future versioned change supported by controlled ablations.
+
+The uncertainty output is not a pooled task weight. Diagnosis, action, basis-conditioned Born, and Hilbert-to-Born losses remain per-example through `exp(-s_i) L_i + s_i`, and inactive task/example pairs do not train an uncertainty component. This makes the head trainable as per-example uncertainty, but does not by itself prove calibration.
 
 ## Optimizer and scheduler
 

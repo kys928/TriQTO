@@ -1,19 +1,12 @@
 schema_version: triqto.training_views.phase12.v3
-tasks:
-  - diagnosis
-  - action_ranking
-  - born_prediction
-  - hilbert_to_born
-  - topology_audit
-  - joint_multitask
-  - hardware_masked
+tasks: [diagnosis, action_ranking, born_prediction, hilbert_to_born, topology_audit, joint_multitask, hardware_masked]
 split_seed: 2026
-split_strategy: clean_circuit_hash
-holdout_axis: null
-holdout_values: []
+split_strategy: axis_holdout
+holdout_axis: distortion_type
+holdout_values: [rx_overrotation]
 train_fraction: 0.8
-validation_fraction: 0.1
-test_fraction: 0.1
+validation_fraction: 0.2
+test_fraction: 0.0
 split_grouping: clean_circuit_id
 topology_cross_split_policy: audit_only
 include_hilbert: true

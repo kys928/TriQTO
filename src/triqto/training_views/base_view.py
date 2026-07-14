@@ -18,6 +18,7 @@ from .identities import (
     training_view_item_id,
 )
 from .models import TrainingViewItem
+from .splits import sample_holdout_axis_value
 
 
 def unicode_array(values: Sequence[str]) -> np.ndarray:
@@ -33,6 +34,44 @@ def strict_float(value: Any, name: str) -> float:
     if not math.isfinite(numeric):
         raise ValueError(f"{name} must be finite")
     return numeric
+
+
+def sample_scientific_metadata(context: Any, sample: Any) -> dict[str, Any]:
+    """Standardize OOD axes on every sample-anchored view item."""
+    distortion = context.distortions_by_id.get(sample.distortion_id)
+    if distortion is None:
+        raise ValueError(f"Sample {sample.sample_id} has no distortion record")
+    backend_id = sample.metadata.get("backend_id")
+    if backend_id is not None and (not isinstance(backend_id, str) or not backend_id):
+        raise ValueError("sample metadata.backend_id must be nonblank text or absent")
+    holdout_value = None
+    is_holdout = False
+    if context.config.split_strategy == "axis_holdout":
+        assert context.config.holdout_axis is not None
+        holdout_value = sample_holdout_axis_value(
+            sample,
+            axis=context.config.holdout_axis,
+            distortions_by_id=context.distortions_by_id,
+        )
+        is_holdout = holdout_value in context.config.holdout_values
+    return {
+        "family": sample.family,
+        "n_qubits": sample.n_qubits,
+        "distortion_id": sample.distortion_id,
+        "distortion_type": distortion.distortion_type,
+        "backend_id": backend_id,
+        "identifiability_status": sample.identifiability_status,
+        "identifiability_reason": sample.identifiability_reason,
+        "diagnosis_supervision_mask": sample.diagnosis_supervision_mask,
+        "unidentifiable_supervision_override": sample.metadata.get(
+            "unidentifiable_supervision_override",
+            False,
+        ),
+        "split_strategy": context.config.split_strategy,
+        "holdout_axis": context.config.holdout_axis,
+        "holdout_value": holdout_value,
+        "is_ood_holdout": is_holdout,
+    }
 
 
 def build_source_arrays(
@@ -241,6 +280,7 @@ __all__ = [
     "group_mask_arrays",
     "make_training_item",
     "measurement_born_arrays",
+    "sample_scientific_metadata",
     "strict_float",
     "unicode_array",
 ]

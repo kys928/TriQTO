@@ -475,6 +475,8 @@ def _hard_head_masks(item: Any, parameter: bool, hilbert: bool, born: bool, topo
         if item.task == "hilbert_to_born":
             active[0, head_position["born_prediction"]] = True
             mask[0, head_position["born_prediction"], stream_position["hilbert"]] = True
+            active[0, head_position["uncertainty"]] = True
+            mask[0, head_position["uncertainty"], stream_position["hilbert"]] = True
         elif item.task != "topology_audit":
             head = head_position[model_name]
             active[0, head] = True

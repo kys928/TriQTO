@@ -102,11 +102,17 @@ The architecture exposes diagnosis, variable-candidate action ranking, measureme
 
 Phase 14 trains the Phase 13 graph model from completed Phase 12 views while preserving clean-circuit splits and per-head leakage masks. It provides train-only normalization, deterministic budget-aware batching, staged single-task/joint/hardware-masked curricula, AdamW or SGD, constant or warmup-cosine schedules, gradient accumulation and clipping, validation-based best-checkpoint selection, and exact resume.
 
-Checkpoints are pickle-free NPZ artifacts containing model, optimizer, scheduler, and Python/NumPy/Torch RNG state with logical content hashes. Training and checkpoint manifests are typed-read before atomic publication. Test records and `audit_only` topology records never enter optimization, and `lambda_top` remains exactly zero. Phase 14 makes no held-out, hardware, universal-correction, or quantum-advantage claim. See [`docs/TRAINING_ENGINE.md`](docs/TRAINING_ENGINE.md).
+Checkpoints are pickle-free NPZ artifacts containing model, optimizer, scheduler, and Python/NumPy/Torch RNG state with logical content hashes. Training and checkpoint manifests are typed-read before atomic publication. Test records and `audit_only` topology records never enter optimization, and `lambda_top` remains exactly zero. The optional heteroscedastic objective applies each graph's uncertainty prediction to that graph's task loss rather than using a pooled task scale. Phase 14 makes no held-out, hardware, universal-correction, or quantum-advantage claim. See [`docs/TRAINING_ENGINE.md`](docs/TRAINING_ENGINE.md).
+
+## Phase 15 deterministic evaluation
+
+Phase 15 restores a validated Phase 14 checkpoint and scores only untouched Phase 12 test rows. `iid_test` is explicitly same-universe evaluation. The separate `ood_axis_holdout` design requires Phase 12 and Phase 15 to agree exactly on family, qubit-count, or distortion-type holdouts and independently proves development/test value disjointness; backend holdout remains unavailable without backend evidence.
+
+The evaluator excludes unidentifiable diagnosis/action targets, scores every `p(y | M)` setting separately, evaluates the learned per-example uncertainty output independently from softmax confidence, supports stream ablations, and compares multiple action-bearing tasks against Phase 10 baselines without identity collisions. These are executable contracts, not empirical results: no trained checkpoint or reviewer-grade performance report is committed. See [`docs/EVALUATION_ENGINE.md`](docs/EVALUATION_ENGINE.md).
 
 ## Current evidence level and claim boundaries
 
-TriQTO is currently an offline deterministic research scaffold. The executable default path supports CPU-safe ideal-simulator tests and deterministic artifact/provenance checks. It does **not** establish quantum advantage, hardware validation, OOD generalization, calibrated uncertainty, or causal topology impact. Hardware Runtime work remains credential-gated future work and is not executed by default.
+TriQTO is currently an offline deterministic research scaffold. The executable default path supports CPU-safe ideal-simulator tests, deterministic artifact/provenance checks, and audited axis-holdout evaluation contracts. It does **not** establish quantum advantage, hardware validation, broad OOD generalization, calibrated uncertainty, or causal topology impact. Hardware Runtime work remains credential-gated future work and is not executed by default.
 
 ## CPU-safe direct dependency installation
 

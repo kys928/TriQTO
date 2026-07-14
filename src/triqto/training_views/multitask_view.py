@@ -5,7 +5,7 @@ from collections.abc import Mapping
 
 import numpy as np
 
-from .base_view import make_training_item, unicode_array
+from .base_view import make_training_item, sample_scientific_metadata, unicode_array
 from .constants import MANDATORY_ITEM_ARRAY_NAMES
 from .context import ViewBuildContext
 from .models import TrainingViewItem
@@ -156,6 +156,7 @@ def build_joint_multitask_items(
             topology_available=topology_available,
             privileged_target_available=privileged,
             metadata={
+                **sample_scientific_metadata(context, sample),
                 "sample_id": sample_id,
                 "head_specific_mask_enforcement_required": True,
                 "born_input_is_for_diagnosis_not_born_prediction": True,

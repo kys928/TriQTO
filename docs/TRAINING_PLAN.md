@@ -4,15 +4,15 @@
 
 Phase 12 materializes deterministic task-specific views for diagnosis, action ranking, Born prediction, optional Hilbert-to-Born prediction, topology audit, joint multitask learning, and hardware-masked simulation.
 
-Phase 13 now implements the untrained model architecture and strict tensor/loss contracts. It does not perform optimization. Phase 14 will implement the data adapter, trainer, optimizer, schedules, checkpointing, and actual learning.
+Phase 13 implements the model architecture and strict tensor/output contracts. Phase 14 implements the data adapter, trainer, optimizer, schedules, safe checkpointing, per-example uncertainty likelihood, and actual learning. Phase 15 implements test-only evaluation, axis-holdout audits, uncertainty diagnostics, ablations, and baseline comparisons. No trained empirical result is committed.
 
 ## Split policy
 
-All records derived from the same `clean_circuit_id` stay in one deterministic train, validation, or test split. Individual distortions or candidate actions are never split away from their clean-circuit lineage. Topology cohorts spanning several source splits remain `audit_only`.
+The IID policy keeps all records derived from one `clean_circuit_id` in one deterministic train, validation, or test split. The OOD policy reserves configured family, qubit-count, distortion-type, or backend values for test and hashes all other groups into train/validation. Distortion/backend experiments use clean-circuit-plus-axis-value groups so intentional cross-axis comparisons do not leak one axis-specific sample group. Topology cohorts spanning several source splits remain `audit_only`.
 
-## Data-adapter responsibilities for Phase 14
+## Implemented data-adapter responsibilities for Phase 14
 
-The Phase 14 adapter must:
+The Phase 14 adapter:
 
 - typed-read and verify the completed Phase 12 dataset;
 - map variable Phase 12 graph arrays into `GraphTensorBatch` without fixed-qubit padding;
@@ -82,8 +82,8 @@ Phase 14 must record:
 
 It must not label an initialized Phase 13 state as a trained checkpoint.
 
-## Phase 14 implementation status
+## Phase 14/15 implementation status
 
 The deterministic training engine is now implemented. The CLI is `scripts/train.py`, with strict recipes in `configs/train/phase14_base.yaml` and `configs/train/phase14_small_debug.yaml`. It validates Phase 12 sources, derives training-only feature statistics, executes the staged curriculum, writes exact resumable NPZ checkpoints, and atomically publishes typed epoch/checkpoint manifests.
 
-Phase 15 remains responsible for held-out test evaluation, baseline comparisons, generalization reports, calibration reports, and ablations. Phase 16 remains responsible for real hardware execution and validation.
+Phase 15 is implemented as an immutable evaluation engine. It distinguishes IID test reporting from audited axis-disjoint OOD designs, excludes unidentifiable diagnosis/action labels, scores basis settings independently, evaluates the uncertainty head directly, and task-qualifies baseline identities. Phase 16 remains responsible for real hardware execution and validation.

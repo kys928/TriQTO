@@ -36,6 +36,7 @@ from .models import (
 )
 from .multitask_view import build_joint_multitask_items
 from .source import load_training_view_sources, verify_training_view_source_snapshots
+from .splits import sample_holdout_axis_value
 from .topology_view import build_topology_audit_items
 from .validators import (
     validate_training_view_dataset_joins,
@@ -161,7 +162,14 @@ def build_training_view_result(
             input_groups=TASK_INPUT_GROUPS[task],
             target_groups=TASK_TARGET_GROUPS[task],
             mask_policy="explicit_per_item_and_per_head_masks",
-            split_policy="sha256_grouped_by_clean_circuit_id",
+            split_policy=(
+                "sha256_grouped_by_clean_circuit_id"
+                if view_config.split_strategy == "clean_circuit_hash"
+                else (
+                    "explicit_axis_holdout_then_sha256_development_split:"
+                    f"{view_config.holdout_axis}"
+                )
+            ),
             item_count=len(task_items),
             split_counts=split_counts,
             metadata={
@@ -171,6 +179,9 @@ def build_training_view_result(
                 "training_executed": False,
                 "empty_view": len(task_items) == 0,
                 "hardware_data": False,
+                "split_strategy": view_config.split_strategy,
+                "holdout_axis": view_config.holdout_axis,
+                "holdout_values": list(view_config.holdout_values),
             },
         )
         definitions.append(definition)
@@ -225,6 +236,24 @@ def build_training_view_result(
     privileged_count = sum(item.privileged_target_available_mask for item in items)
     hilbert_count = sum(item.hilbert_available_mask for item in items)
     topology_count = sum(item.topology_available_mask for item in items)
+    development_axis_values: set[str] = set()
+    test_axis_values: set[str] = set()
+    if view_config.split_strategy == "axis_holdout":
+        assert view_config.holdout_axis is not None
+        for sample in sources.phase7.samples:
+            value = sample_holdout_axis_value(
+                sample,
+                axis=view_config.holdout_axis,
+                distortions_by_id=context.distortions_by_id,
+            )
+            target = (
+                test_axis_values
+                if context.sample_splits[sample.sample_id] == "test"
+                else development_axis_values
+            )
+            target.add(value)
+        if development_axis_values & test_axis_values:
+            raise ValueError("OOD holdout axis values overlap development and test")
     summary = {
         "source_scientific_generation_id": sources.phase7.source_scientific_generation_id,
         "graph_conversion_id": sources.graph.completion_marker["graph_conversion_id"],
@@ -242,7 +271,20 @@ def build_training_view_result(
         "topology_available_item_count": topology_count,
         "privileged_target_available_item_count": privileged_count,
         "cross_split_topology_items_are_audit_only": True,
-        "clean_circuit_grouped_split": True,
+        "split_strategy": view_config.split_strategy,
+        "holdout_axis": view_config.holdout_axis,
+        "configured_holdout_values": list(view_config.holdout_values),
+        "development_axis_values": sorted(development_axis_values),
+        "test_axis_values": sorted(test_axis_values),
+        "ood_axis_values_disjoint": not bool(
+            development_axis_values & test_axis_values
+        ),
+        "ood_generalization_design": (
+            view_config.split_strategy == "axis_holdout"
+        ),
+        "clean_circuit_grouped_split": (
+            view_config.split_strategy == "clean_circuit_hash"
+        ),
         "born_prediction_input_target_leakage_blocked": True,
         "action_rollout_targets_excluded_from_inputs": True,
         "hardware_masked_items_are_simulation": True,

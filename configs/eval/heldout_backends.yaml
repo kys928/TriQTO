@@ -1,4 +1,5 @@
 unsupported: true
-unsupported_reason: Future OOD holdout split; not executable until group-safe split manifests are implemented.
+unsupported_reason: Backend-axis splitting is implemented, but no executable data path currently produces genuine backend evidence or backend IDs.
 evaluation: heldout_backends
-split_strategy: future_manifest_defined
+split_strategy: axis_holdout
+holdout_axis: backend_id

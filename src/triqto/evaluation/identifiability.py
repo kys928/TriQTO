@@ -1,7 +1,7 @@
 """Identifiability-aware diagnosis evaluation boundaries.
 
-This module is deliberately small and independent of the draft Phase 15
-evaluator.  It prevents headline diagnosis metrics from silently including
+This module is deliberately small and is used by the Phase 15 evaluator. It
+prevents headline diagnosis metrics from silently including
 targets that cannot be inferred from the allowed observable evidence.
 """
 from __future__ import annotations

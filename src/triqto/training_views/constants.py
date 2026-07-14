@@ -1,11 +1,11 @@
 """Versioned constants for deterministic Phase 12 task-specific views."""
 from __future__ import annotations
 
-TRAINING_VIEW_SCHEMA_VERSION = "triqto.training_views.phase12.v2"
-TRAINING_VIEW_ARTIFACT_VERSION = "triqto.training_view_item.npz.v2"
+TRAINING_VIEW_SCHEMA_VERSION = "triqto.training_views.phase12.v3"
+TRAINING_VIEW_ARTIFACT_VERSION = "triqto.training_view_item.npz.v3"
 TRAINING_VIEW_DEFINITION_MANIFEST_VERSION = "triqto.training_view_manifest.v1"
 TRAINING_VIEW_ITEM_MANIFEST_VERSION = "triqto.training_item_manifest.v1"
-TRAINING_VIEW_SPLIT_VERSION = "triqto.clean_circuit_hash_split.v1"
+TRAINING_VIEW_SPLIT_VERSION = "triqto.axis_aware_holdout_split.v2"
 TRAINING_VIEW_MASK_VERSION = "triqto.task_input_mask_policy.v2"
 
 TASK_ORDER = (
