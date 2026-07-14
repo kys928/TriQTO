@@ -1,0 +1,12 @@
+schema_version: triqto.operational_smoke_config.v1
+probe_bases:
+  - X
+  - Y
+probe_shots: 128
+seed: 2026
+backend_n_qubits: 2
+backend_name: triqto_local_line_fake_operational_smoke
+transpilation_optimization_level: 1
+semantic_tolerance: 1.0e-10
+evidence_tier: mixed_offline
+physical_hardware: false

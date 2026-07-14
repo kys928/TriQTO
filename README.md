@@ -68,13 +68,13 @@ Phase 8 introduces no graph neural network, training split, topology feature, co
 
 Phase 9 converts completed Phase 7/8 sources into deterministic bounded action candidates and exact ideal-statevector validation rollouts. Candidate edits currently include no-op, RX/RY/RZ rotations, and observed-interaction RZZ edits. Every candidate is applied to an independent circuit copy, compared with the clean Phase 7 Born target, assigned a transparent reward, and deterministically ranked.
 
-The engine includes privileged synthetic oracle inverses only as supervised labels for known Phase 7 unitary distortions. It is not a learned policy and does not infer those inverses from hardware observations. Marker-only distortions receive no fabricated circuit oracle, and no-op can win. Phase 9 performs no noisy simulation, hardware calls, topology, baselines, training-view construction, or model training. See [`docs/ACTION_SCHEMA.md`](docs/ACTION_SCHEMA.md).
+The engine includes privileged synthetic oracle inverses only as supervised labels for known Phase 7 unitary distortions. It is not a hardware-facing inference rule. Marker-only distortions receive no fabricated circuit oracle, and no-op can win. See [`docs/ACTION_SCHEMA.md`](docs/ACTION_SCHEMA.md).
 
 ## Phase 10 baseline suite
 
 Phase 10 consumes the exact completed Phase 7/8/9 chain and evaluates six deterministic controls under the same exact Born objective: random correction, privileged synthetic rule-only inversion, clean-target loss-only action selection, SPSA, COBYLA, and backend-free transpilation. Results are immutable typed artifacts with explicit access-privilege metadata and byte-level source immutability checks.
 
-The baseline suite does not yet compare a trained TriQTO policy because the training phase has not been implemented. The transpiler control is semantic and backend-free, not hardware-aware. See [`docs/BASELINE_SCHEMA.md`](docs/BASELINE_SCHEMA.md).
+The baseline suite itself does not compare the current trained TriQTO checkpoint path. The transpiler control is semantic and backend-free, not hardware-aware. See [`docs/BASELINE_SCHEMA.md`](docs/BASELINE_SCHEMA.md).
 
 ## Phase 11 persistent-homology audit
 
@@ -90,11 +90,11 @@ The view layer physically blocks Born-target leakage from Born-prediction graph 
 
 ## Phase 13 model architecture
 
-Phase 13 implements the untrained PyTorch TriQTO architecture. It combines a variable-size circuit graph encoder, explicit parameter and phasor streams, optional global-phase-invariant Hilbert encoding, variable-support Born encoding, optional backend/topology streams, dual simulation/hardware mode, and head-specific mask-aware fusion.
+Phase 13 implements the PyTorch TriQTO architecture. It combines a variable-size circuit graph encoder, explicit parameter and phasor streams, optional global-phase-invariant Hilbert encoding, variable-support Born encoding, optional backend/topology streams, dual simulation/hardware mode, and head-specific mask-aware fusion.
 
 The graph core uses learned sine/cosine phase quadratures over directed lattice messages rather than transformer Q/K/V attention. Hard stream policies and Phase 12 runtime masks prevent Born-target copying, direct Hilbert copying in the Hilbert-deformation head, direct topology copying in the topology audit head, and Hilbert leakage into hardware-mode rows. Inactive heads and unavailable streams are forced to zero.
 
-The architecture exposes diagnosis, variable-candidate action ranking, variable-support Born prediction, Hilbert-deformation, uncertainty, and topology-audit heads. It is deterministically initialized and identity-versioned, but explicitly records `trained=false`, no optimizer state, no training checkpoint, and `lambda_top=0`. See [`docs/MODEL_ARCHITECTURE.md`](docs/MODEL_ARCHITECTURE.md).
+The architecture exposes diagnosis, variable-candidate action ranking, variable-support Born prediction, Hilbert-deformation, uncertainty, and topology-audit heads. Architecture manifests remain distinct from trained Phase 14 checkpoints and enforce `lambda_top=0`. See [`docs/MODEL_ARCHITECTURE.md`](docs/MODEL_ARCHITECTURE.md).
 
 ## Phase 14 deterministic training engine
 
@@ -102,9 +102,23 @@ Phase 14 trains the Phase 13 graph model from completed Phase 12 views while pre
 
 Checkpoints are pickle-free NPZ artifacts containing model, optimizer, scheduler, and Python/NumPy/Torch RNG state with logical content hashes. Training and checkpoint manifests are typed-read before atomic publication. Test records and `audit_only` topology records never enter optimization, and `lambda_top` remains exactly zero. Phase 14 makes no held-out, hardware, universal-correction, or quantum-advantage claim. See [`docs/TRAINING_ENGINE.md`](docs/TRAINING_ENGINE.md).
 
+## Operational actions and checkpoint-bound latent topology
+
+The extended CPU workflow now creates typed immutable operational-action artifacts for basis probes, fake-backend layout/routing, and semantics-verified depth reduction. Operational candidates use a separately versioned Phase-12-compatible adapter with availability and family masks, zero logical-correction target masks, and no privileged-oracle mask. This is structural integration; the repository does not claim that the Phase 14 logical-action policy was trained for operational action families.
+
+A real positive-step Phase 14 smoke checkpoint can be restored to extract ordered latent coordinates from an explicit Phase 12 split. Persistent homology consumes only that validated latent artifact and binds its identity to checkpoint bytes, model/source identities, split/head/representation, point order, coordinate hash, and topology configuration. Absolute scale is preserved by default; optional `shape_only` analysis is separately identified. Phase 15 reports operational families separately and labels latent topology diagnostic only.
+
+Run the complete engineering-validation workflow into a fresh external directory:
+
+```bash
+python scripts/run_cpu_smoke_workflow.py --output /tmp/triqto-operational-latent-smoke
+```
+
+No generated dataset, checkpoint, latent coordinate, topology result, or evaluation card is committed. See [`docs/OPERATIONAL_ACTIONS_AND_LATENT_TOPOLOGY.md`](docs/OPERATIONAL_ACTIONS_AND_LATENT_TOPOLOGY.md).
+
 ## Current evidence level and claim boundaries
 
-TriQTO is currently an offline deterministic research scaffold. The executable default path supports CPU-safe ideal-simulator tests and deterministic artifact/provenance checks. It does **not** establish quantum advantage, hardware validation, OOD generalization, calibrated uncertainty, or causal topology impact. Hardware Runtime work remains credential-gated future work and is not executed by default.
+TriQTO is currently an offline deterministic research scaffold. The executable CPU path includes ideal/fake-backend evidence, deterministic training/evaluation, operational engineering artifacts, and checkpoint-bound latent-topology diagnostics. It does **not** establish quantum advantage, physical-hardware validation, broad OOD generalization, calibrated uncertainty, a trained operational policy, or causal/topology benefit. IBM Runtime submission remains credential-gated and is not executed by default.
 
 ## Reproducible CPU installation
 
@@ -122,14 +136,14 @@ Optional GPU dependencies are isolated in `requirements-gpu.txt` plus `constrain
 
 ## Config migration note
 
-Broad future configs that mention noisy Aer, fake-backend/transpilation, RunPod, hardware validation, or unsupported actions are explicitly marked `unsupported: true` with a reason. Active configs are validated by `triqto.config.validators` and must not imply unimplemented execution modes. Old artifacts/configs that relied on `monster_generation.yaml`, `runpod_generation.yaml`, `hardware_validation.yaml`, or `configs/eval/heldout_*.yaml` as executable should be treated as planning inputs until the corresponding mode has implementation and offline tests.
+Broad future configs that mention noisy Aer, RunPod, physical hardware validation, or unsupported actions are explicitly marked `unsupported: true` with a reason. Active fake-backend, operational-action, adapter, latent-extraction, latent-topology, and smoke-evaluation configs are validated and covered by executable tests. Old artifacts/configs that relied on `monster_generation.yaml`, `runpod_generation.yaml`, `hardware_validation.yaml`, or broad `configs/eval/heldout_*.yaml` as executable should be treated as planning inputs until the corresponding mode has implementation and offline tests.
 
 See `docs/CAPABILITY_MATRIX.md` for the maintained capability matrix.
 
 ### Current evidence boundary update
 
-The current branch includes offline fake-backend metadata propagation into Phase 7/12/14 artifacts, an executable deterministic fake-backend-axis holdout smoke/evaluation/audit path, standalone operational actions, and checkpoint-bound latent-topology diagnostics. These are not physical-hardware results: no IBM Runtime job is submitted by default or in tests, fake-backend evidence remains simulator/fixture evidence, latent topology requires a real checkpoint identity supplied by a reproducible run, and no OOD or calibration claim is made without corresponding empirical artifacts.
+The repository includes offline fake-backend metadata propagation into Phase 7/12/14 artifacts, an executable deterministic fake-backend-axis holdout path, immutable operational-action generation with Phase-12-compatible masks, checkpoint-derived latent extraction, checkpoint-bound latent persistent homology, and family-specific Phase 15 reporting. These are engineering-validation capabilities, not physical-hardware or paper-level empirical results. Basis probes acquire evidence and are not corrections; compilation actions are not privileged inverses; fake-backend evidence remains fixture evidence; topology is diagnostic only; and `topology_loss_weight` remains exactly zero.
 
 ## Capability-category status (2026-07-14)
 
-The maintained category matrix is in [`docs/CAPABILITY_MATRIX.md`](docs/CAPABILITY_MATRIX.md) and uses these exact categories: integrated into the primary pipeline, standalone executable API, credential-gated, empirically unvalidated, and planning-only/unsupported. In this repository state, fake-backend fixture evidence reaches Phase 7/12/14 model-training inputs with masks; noisy/density evidence remains a standalone API and does not enter the main data lake by default; no physical IBM hardware job has been submitted; temporary smoke checkpoints/results can be created in user-selected output directories but no trained research checkpoint, weights, calibrated-uncertainty result, backend-holdout performance report, or trained-representation latent-topology result is committed; Phase 15 now has a compact CPU smoke evaluator/publisher for engineering validation only; and topology loss remains exactly zero.
+The maintained category matrix is in [`docs/CAPABILITY_MATRIX.md`](docs/CAPABILITY_MATRIX.md) and uses these exact categories: integrated into the primary pipeline, standalone executable API, credential-gated, empirically unvalidated, and planning-only/unsupported. Temporary smoke checkpoints and checkpoint-bound topology artifacts can be created in user-selected output directories, but no trained research checkpoint, operational-policy result, physical-hardware result, calibrated-uncertainty result, or topology-benefit result is committed.

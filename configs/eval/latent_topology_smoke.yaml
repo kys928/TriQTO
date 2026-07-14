@@ -1,0 +1,7 @@
+homology_dimensions:
+  - 0
+  - 1
+max_filtration: null
+normalized_shape_diagnostic: false
+betti_grid_size: 8
+top_k_lifetimes: 3

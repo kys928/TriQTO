@@ -1,0 +1,15 @@
+schema_version: triqto.operational_view_adapter.v1
+feature_names:
+  - depth_delta
+  - size_delta
+  - two_qubit_gate_delta
+  - acquires_evidence
+  - is_no_op
+family_order:
+  - logical_correction
+  - diagnostic_evidence_acquisition
+  - compilation
+  - semantics_preserving_optimization
+require_availability_mask: true
+require_zero_operational_targets: true
+require_no_privilege: true

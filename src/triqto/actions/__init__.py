@@ -1,4 +1,4 @@
-"""Public deterministic Phase 9 action and correction APIs."""
+"""Public deterministic Phase 9 logical and operational action APIs."""
 from __future__ import annotations
 
 from .action_space import supported_edit_types
@@ -50,11 +50,40 @@ from .models import (
     CompletedGraphDataset,
 )
 from .operational import (
+    OPERATIONAL_ACTION_SCHEMA,
     OperationalActionResult,
     basis_probe_action,
     layout_selection_action,
+    operational_action_content_hash,
+    operational_action_payload,
     routing_transpilation_action,
     semantics_verified_depth_reduction,
+)
+from .operational_adapter import (
+    OPERATIONAL_ACTION_FAMILIES,
+    OPERATIONAL_ACTION_FEATURE_NAMES,
+    OPERATIONAL_VIEW_ADAPTER_SCHEMA,
+    OperationalActionTensorBatch,
+    OperationalViewAdapterConfig,
+    build_operational_action_tensor_batch,
+    collate_operational_action_tensor_batches,
+    load_operational_view_adapter_config,
+    operational_actions_to_phase12_arrays,
+    operational_view_adapter_config_to_dict,
+)
+from .operational_artifacts import (
+    OPERATIONAL_ACTION_DATASET_SCHEMA,
+    load_operational_action_dataset,
+    load_operational_action_result,
+    save_operational_action_result,
+    validate_operational_action_result,
+    write_operational_action_dataset,
+)
+from .operational_config import (
+    OPERATIONAL_SMOKE_CONFIG_SCHEMA,
+    OperationalActionSmokeConfig,
+    load_operational_action_smoke_config,
+    operational_action_smoke_config_to_dict,
 )
 from .pipeline import build_action_engine_result
 from .rewards import RewardBreakdown, primary_metric_array, score_action_rollout
@@ -73,6 +102,12 @@ from .validators import (
 )
 
 __all__ = [
+    "OPERATIONAL_ACTION_DATASET_SCHEMA",
+    "OPERATIONAL_ACTION_FAMILIES",
+    "OPERATIONAL_ACTION_FEATURE_NAMES",
+    "OPERATIONAL_ACTION_SCHEMA",
+    "OPERATIONAL_SMOKE_CONFIG_SCHEMA",
+    "OPERATIONAL_VIEW_ADAPTER_SCHEMA",
     "ActionCandidate",
     "ActionEdit",
     "ActionEngineConfig",
@@ -83,6 +118,9 @@ __all__ = [
     "AppliedAction",
     "CompletedGraphDataset",
     "OperationalActionResult",
+    "OperationalActionSmokeConfig",
+    "OperationalActionTensorBatch",
+    "OperationalViewAdapterConfig",
     "RewardBreakdown",
     "action_config_from_dict",
     "action_config_to_dict",
@@ -95,21 +133,32 @@ __all__ = [
     "action_scientific_config_id",
     "action_schema_id",
     "apply_action",
-    "build_action_engine_result",
     "basis_probe_action",
+    "build_action_engine_result",
+    "build_operational_action_tensor_batch",
     "candidate_action_id",
     "candidate_circuit_id",
     "circuit_semantic_hash",
+    "collate_operational_action_tensor_batches",
     "generate_action_candidates",
+    "layout_selection_action",
     "load_action_artifact",
     "load_action_config",
     "load_action_engine_sources",
     "load_candidate_circuit",
     "load_completed_graph_dataset",
-    "layout_selection_action",
+    "load_operational_action_dataset",
+    "load_operational_action_result",
+    "load_operational_action_smoke_config",
+    "load_operational_view_adapter_config",
     "load_rollout_artifact",
     "normalize_rotation_angle",
     "observed_two_qubit_edges",
+    "operational_action_content_hash",
+    "operational_action_payload",
+    "operational_action_smoke_config_to_dict",
+    "operational_actions_to_phase12_arrays",
+    "operational_view_adapter_config_to_dict",
     "oracle_inverse_edits",
     "primary_metric_array",
     "rollout_content_hash",
@@ -118,6 +167,7 @@ __all__ = [
     "save_action_artifact",
     "save_action_config",
     "save_candidate_circuit",
+    "save_operational_action_result",
     "save_rollout_artifact",
     "score_action_rollout",
     "semantics_verified_depth_reduction",
@@ -127,6 +177,8 @@ __all__ = [
     "validate_action_edit",
     "validate_action_rollout",
     "validate_applied_action",
+    "validate_operational_action_result",
     "verify_action_source_snapshots",
     "write_action_dataset",
+    "write_operational_action_dataset",
 ]

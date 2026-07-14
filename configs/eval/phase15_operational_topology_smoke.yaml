@@ -1,0 +1,4 @@
+core_config: configs/eval/phase15_smoke.yaml
+require_operational_actions: true
+require_checkpoint_latent_topology: true
+label: operational and checkpoint-latent engineering validation

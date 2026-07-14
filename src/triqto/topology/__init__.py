@@ -1,4 +1,4 @@
-"""Public Phase 11 persistent-homology and topology-audit APIs."""
+"""Public Phase 11 and checkpoint-bound topology-audit APIs."""
 from __future__ import annotations
 
 from .alignment import (
@@ -11,6 +11,11 @@ from .artifacts import (
     load_topology_group_artifact,
     save_topology_group_artifact,
     write_topology_dataset,
+)
+from .checkpoint_latent import (
+    CHECKPOINT_LATENT_TOPOLOGY_SCHEMA,
+    load_checkpoint_bound_latent_topology,
+    run_checkpoint_bound_latent_topology,
 )
 from .config import (
     TopologyAuditConfig,
@@ -43,7 +48,11 @@ from .identities import (
     topology_operational_config_id,
     topology_schema_id,
 )
-from .latent import LatentTopologyConfig, compute_latent_topology
+from .latent import (
+    LatentTopologyConfig,
+    compute_latent_topology,
+    load_latent_topology_config,
+)
 from .models import (
     PersistenceSummary,
     TopologyAuditResult,
@@ -70,8 +79,10 @@ from .validators import (
 )
 
 __all__ = [
+    "CHECKPOINT_LATENT_TOPOLOGY_SCHEMA",
     "GROUP_KINDS",
     "MANIFOLD_ORDER",
+    "LatentTopologyConfig",
     "PersistenceSummary",
     "TopologyAuditConfig",
     "TopologyAuditResult",
@@ -80,7 +91,6 @@ __all__ = [
     "TopologyGroupSpec",
     "TopologyPointCloudGroup",
     "TopologyWriteResult",
-    "LatentTopologyConfig",
     "betti_curve",
     "born_distance_matrix",
     "bottleneck_distance",
@@ -90,14 +100,16 @@ __all__ = [
     "build_topology_audit_result",
     "build_topology_group_specs",
     "circular_parameter_distance_matrix",
+    "compute_latent_topology",
     "compute_manifold_distance_matrices",
     "compute_persistence_diagrams",
-    "compute_latent_topology",
     "diagram_statistics",
     "finite_diagram",
     "finite_lifetimes",
     "fubini_study_distance_matrix",
     "induced_parameter_distance_matrix",
+    "load_checkpoint_bound_latent_topology",
+    "load_latent_topology_config",
     "load_topology_config",
     "load_topology_group_artifact",
     "load_topology_sources",
@@ -105,6 +117,7 @@ __all__ = [
     "make_topology_cache",
     "normalize_distance_matrix",
     "persistence_entropy",
+    "run_checkpoint_bound_latent_topology",
     "save_topology_config",
     "save_topology_group_artifact",
     "scientific_topology_config_payload",

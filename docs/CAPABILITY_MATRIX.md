@@ -4,7 +4,7 @@ TriQTO currently provides an offline, deterministic research scaffold. It must n
 
 Status categories used below are exact repository claim boundaries:
 
-- **integrated into the primary pipeline**: executable through the current Phase 7/8/12/14 path and covered by tests.
+- **integrated into the primary pipeline**: executable through the current Phase 7/8/12/14/15 path or its validated operational extension and covered by tests.
 - **standalone executable API**: implemented and tested as a callable/CLI boundary, but not yet part of the primary trained-result path.
 - **credential-gated**: requires explicit external credentials and confirmation; not run by default tests.
 - **empirically unvalidated**: code may execute, but no repository-trained checkpoint/result supports a paper-level empirical claim.
@@ -16,20 +16,23 @@ Status categories used below are exact repository claim boundaries:
 | Sampled ideal shots | integrated into the primary pipeline | Offline ideal sampler evidence with deterministic seeds; not physical hardware. |
 | Measurement settings and identifiability masks | integrated into the primary pipeline | Basis-conditioned `p(y | M)` records and target masks are executable for simulator data; unidentifiable targets remain masked. |
 | Phase 8 graph artifacts | integrated into the primary pipeline | Graph/pair artifacts are deterministic and separate structural graph identity from sample ownership. |
-| Phase 12 task-specific training views | integrated into the primary pipeline | Diagnosis, action-ranking, Born-prediction, optional Hilbert-to-Born, topology-audit, joint, and hardware-masked views enforce leakage masks. |
-| Phase 14 deterministic training engine | integrated into the primary pipeline | Trains from Phase 12 views with train-only normalization and zero topology loss; test/audit-only rows do not fit normalization or select checkpoints. |
+| Phase 12 task-specific training views | integrated into the primary pipeline | Diagnosis, action-ranking, Born-prediction, optional Hilbert-to-Born, topology-audit, joint, and hardware-masked views enforce leakage masks. Operational actions use a separately versioned Phase-12-compatible candidate adapter because they do not share logical-correction targets. |
+| Phase 14 deterministic training engine | integrated into the primary pipeline | Trains from Phase 12 views with train-only normalization and zero topology loss; test/audit-only rows do not fit normalization or select checkpoints. The repository does not claim the logical-action policy is trained for operational action families. |
 | Fake-backend metadata stream | integrated into the primary pipeline | Stable local fake-backend evidence reaches Phase 7/12/14 model inputs with availability masks and train-only normalization. This is fixture/simulator evidence, not hardware validation. |
 | Backend-ID holdout utilities and audits | integrated into the primary pipeline | A strict fake-backend generation config, Phase 12 config, and Phase 15 audit config exercise an exact backend-ID axis holdout with clean-circuit assignment and train/validation-vs-test disjointness checks. Any result is limited to the recorded fake-backend fixture axis, not physical-hardware generalization. |
-| Phase 15 comparison identity utilities | standalone executable API | Baseline comparison IDs include task/view/ablation/execution/evidence discriminators; full empirical Phase 15 report publication remains unmerged. |
+| Phase 15 comparison identity utilities | standalone executable API | Baseline comparison IDs include task/view/ablation/execution/evidence discriminators; broad empirical publication remains unvalidated. |
 | Phase 15 trained evaluation/reporting | integrated into the primary pipeline | A CPU smoke evaluator restores a Phase 14 checkpoint, scores untouched Phase 12 test rows, publishes immutable compact manifests/cards, and can re-audit exact fake-backend holdout disjointness. This is engineering validation only; no research checkpoint/result is committed. |
+| Operational basis/layout/routing/depth actions | integrated into the primary pipeline | Typed immutable operational artifacts, strict configs, Phase-12-compatible candidate arrays, batching masks, CPU smoke execution, and family-specific Phase 15 reporting are executable. Basis probes acquire evidence; layout/routing/depth actions are compilation or semantics-preserving operations; none is treated as a privileged logical inverse. |
+| Operational action policy training | empirically unvalidated | Operational candidates have availability/family masks, zero logical-correction target masks, and no privileged-oracle mask. Phase 14 therefore does not pretend to learn an operational policy without matched operational supervision. |
+| Phase 9 logical correction actions | integrated into the primary pipeline | Synthetic inverse labels are limited to identifiable simulator distortions and remain distinct from operational compilation actions. |
+| Checkpoint-derived latent extraction | integrated into the primary pipeline | The CPU smoke workflow restores a real positive-step Phase 14 checkpoint, verifies checkpoint/model/Phase-12 identities, reads an explicit split without gradients, preserves ordered view-item IDs, and publishes immutable latent-coordinate artifacts. |
+| Checkpoint-bound latent persistent homology | integrated into the primary pipeline | Persistent homology consumes only validated latent-extraction artifacts and binds identity to checkpoint bytes, model identities, Phase 12 source, split/head/representation, ordered points, coordinate hash, and topology config. Absolute scale is default; optional shape-only normalization has a distinct identity. |
+| Topology benefit / causal value | empirically unvalidated | Checkpoint-bound latent topology is diagnostic only. No performance benefit, causal value, calibration, hardware transfer, or optimization success has been demonstrated. |
 | Noisy Aer shots / density simulation | standalone executable API | Seeded helpers are tested for small circuits, but noisy/density evidence does not enter the main Phase 7 data lake by default. |
 | Public Hilbert/QFI/QGT metrics | standalone executable API | Metric helpers are tested; physical hardware records must reject Hilbert-derived metrics. |
 | Global-phase continuity | integrated into the primary pipeline | Hilbert encoders avoid largest-amplitude argmax anchoring; global phase is provenance, not a supervised shortcut. |
 | IBM Runtime submission/collection boundary | credential-gated | Requires explicit confirmation and credentials; tests use doubles only and no real hardware call has been made. |
 | Physical hardware result claims | empirically unvalidated | No physical hardware was used by this repository state. |
-| Operational basis/layout/routing/depth actions | standalone executable API | Actions record preconditions, availability, before/after evidence, rejection reasons, and semantic-depth checks; compilation actions are not privileged inverse corrections. |
-| Phase 9 logical correction actions | integrated into the primary pipeline | Synthetic inverse labels are limited to identifiable simulator distortions and remain distinct from operational compilation actions. |
-| Latent persistent homology diagnostics | standalone executable API | Requires a nonblank checkpoint identity, point IDs, coordinate hash, split/head/config binding, and deterministic artifacts. |
 | Topology loss | integrated into the primary pipeline | Enforced exactly `0.0`; topology remains diagnostic/audit-only. |
 | Per-example uncertainty diagnostics | standalone executable API | Masked losses/diagnostics execute, but uncertainty calibration has not been demonstrated by a trained checkpoint/result. |
 | Clean CPU install/import path | integrated into the primary pipeline | Supported profile is Python 3.11 CPU with pinned requirements/constraints; Python 3.14 observations are not validation of the supported profile. |
@@ -41,13 +44,14 @@ Status categories used below are exact repository claim boundaries:
 - **Noisy/density evidence enters the main data lake:** no; it remains a standalone executable API.
 - **Fake-backend evidence reaches model training:** yes, as offline fixture evidence with masks through the Phase 7/12/14 path.
 - **Backend holdout has been executed:** yes as an executable deterministic fake-backend-axis smoke/audit evaluation path only; no paper-level held-out performance claim is committed.
+- **Operational actions are integrated:** yes for immutable generation, Phase-12-compatible masking/batching, smoke execution, and family-specific Phase 15 reporting. No operational policy-training result is claimed.
 - **Physical hardware was used:** no.
-- **Latent topology was run on trained representations:** no committed trained-representation topology result exists.
+- **Latent topology was run on trained representations:** yes in the temporary deterministic CPU smoke workflow using a restored positive-step checkpoint and an explicit Phase 12 split. No trained-representation topology artifact is committed and no topology-benefit claim is made.
 - **Uncertainty calibration was demonstrated:** no.
-- **Phase 15 is merged:** a compact CPU smoke evaluator/publisher is present for engineering validation; broad empirical reporting remains unvalidated.
-- **Placeholders remain:** credential-gated hardware execution, broad monster/RunPod/hardware configs, and full empirical Phase 15 publication remain unsupported/planning-only boundaries.
+- **Phase 15 is merged:** a compact CPU smoke evaluator/publisher and its operational/topology reporting extension are present for engineering validation; broad empirical reporting remains unvalidated.
+- **Placeholders remain:** credential-gated hardware execution, broad monster/RunPod/hardware configs, research-scale operational supervision, and full empirical publication remain unsupported or empirically unvalidated boundaries.
 - **Topology loss remains zero:** yes; nonzero topology loss is rejected.
 
 ## Warning audit
 
-The remaining test warnings are project-external `stevedore`/Qiskit IBM Runtime plugin deprecation warnings emitted while Qiskit discovers installed transpiler plugins. They do not indicate credential use or hardware submission. Project-owned deprecation/unsafe-behavior warnings are not globally suppressed.
+The remaining test warnings, when present, are project-external `stevedore`/Qiskit IBM Runtime plugin deprecation warnings emitted while Qiskit discovers installed transpiler plugins. They do not indicate credential use or hardware submission. Project-owned deprecation/unsafe-behavior warnings are not globally suppressed.
