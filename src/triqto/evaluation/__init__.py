@@ -11,10 +11,23 @@ from .generalization_tests import (
     audit_backend_holdout_for_phase15,
     load_backend_holdout_config,
 )
+from .integrated import (
+    INTEGRATED_PHASE15_SCHEMA,
+    IntegratedPhase15Config,
+    load_integrated_phase15_config,
+    load_integrated_phase15_result,
+    run_integrated_phase15_evaluation,
+)
+from .operational_reports import (
+    summarize_checkpoint_latent_topology,
+    summarize_operational_actions,
+)
 
 __all__ = [
+    "INTEGRATED_PHASE15_SCHEMA",
     "BackendHoldoutConfig",
     "BaselineComparisonKey",
+    "IntegratedPhase15Config",
     "Phase15EvaluationConfig",
     "SplitDefinition",
     "assign_axis_holdout",
@@ -25,8 +38,13 @@ __all__ = [
     "build_comparison_records",
     "comparison_id",
     "load_backend_holdout_config",
+    "load_integrated_phase15_config",
+    "load_integrated_phase15_result",
     "load_phase15_config",
     "load_phase15_result",
+    "run_integrated_phase15_evaluation",
     "run_phase15_evaluation",
+    "summarize_checkpoint_latent_topology",
+    "summarize_operational_actions",
     "validate_unique_comparisons",
 ]
