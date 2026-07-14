@@ -50,3 +50,13 @@ Standalone seeded Aer noisy-shot and density-matrix helpers are executable for s
 ## Uncertainty update
 
 Per-example masked uncertainty losses and direct uncertainty/error diagnostics are executable and tested. They are not evidence of calibrated uncertainty until enabled in a trained checkpoint and evaluated on produced IID/OOD artifacts.
+
+
+## Backend/transpilation evidence update
+
+A stable local fake-backend fixture and deterministic transpilation evidence API are executable and tested offline. Missing calibration, duration, readout-error, gate-error, and T1/T2 features are represented with availability masks and missing reasons, never fabricated zeros. This remains standalone evidence until Phase 12/15 backend-view integration is completed.
+
+
+## Hardware Runtime boundary update
+
+A credential-gated IBM Runtime boundary is implemented with typed hardware job/result records, explicit confirmation before submission, backend identity drift checks, shot/count validation, and rejection of simulator-only fields in physical artifacts. Tests use credential-free doubles only; no hardware execution is performed.
