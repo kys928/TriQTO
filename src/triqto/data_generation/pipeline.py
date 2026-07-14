@@ -11,16 +11,18 @@ from typing import Any
 
 from qiskit import QuantumCircuit
 
+from triqto.backends import local_line_backend
 from triqto.circuits.circuit_metadata import GeneratedCircuit, count_two_qubit_gates
 from triqto.circuits.families import generate_circuit_family, get_circuit_family
 from triqto.core.ids import make_circuit_id, make_deterministic_id, make_run_id, make_sample_id
 from triqto.distortions import apply_distortion
 from triqto.metrics import compare_born_distributions
 from triqto.metrics.results import BornMetricBundle
-from triqto.simulation import simulate_ideal_shots, simulate_ideal_statevector
+from triqto.simulation import measurement_setting_for, simulate_ideal_shots, simulate_ideal_statevector
 from triqto.storage import CircuitRecord, DistortionRecord, MetricRecord, SimulationRecord
 from triqto.storage.schema import DatasetSampleRecord
 
+from .identifiability import assess_identifiability, coverage_summary
 from .records import DatasetGenerationResult, GeneratedDatasetSample
 from .seeding import derive_child_seed
 from .specs import (
@@ -180,6 +182,38 @@ def _sorted_records(records_by_id: dict[str, Any]) -> list[Any]:
     return [records_by_id[key] for key in sorted(records_by_id)]
 
 
+def _backend_metadata_for_clean_circuit(config: DatasetGenerationConfig, clean_circuit_id: str, n_qubits: int) -> dict[str, Any]:
+    backend_names = tuple(config.backend_names)
+    selector_id = make_deterministic_id(
+        "backend_assignment",
+        {
+            "schema": "triqto.backend_assignment.clean_circuit.v1",
+            "clean_circuit_id": clean_circuit_id,
+            "backend_names": backend_names,
+            "base_seed": config.base_seed,
+        },
+    )
+    index = int(selector_id.rsplit("_", 1)[-1], 16) % len(backend_names)
+    backend = local_line_backend(max(2, n_qubits), name=backend_names[index])
+    return {
+        "backend_assignment_schema": "triqto.backend_assignment.clean_circuit.v1",
+        "backend_assignment_level": "clean_circuit",
+        "backend_assignment_key": clean_circuit_id,
+        "backend_assignment_id": selector_id,
+        "backend_id": backend.backend_id,
+        "backend_name": backend.backend_name,
+        "backend_source": backend.backend_source,
+        "backend_class": backend.backend_class,
+        "backend_n_qubits": backend.n_qubits,
+        "backend_basis_gates": list(backend.basis_gates),
+        "backend_coupling_map": [list(edge) for edge in backend.coupling_map],
+        "backend_calibration_timestamp": backend.calibration_timestamp,
+        "backend_feature_values": _json_copy(backend.feature_values),
+        "backend_feature_available": _json_copy(backend.feature_available),
+        "backend_missing_reasons": _json_copy(backend.missing_reasons),
+    }
+
+
 def generate_dataset(config: DatasetGenerationConfig) -> DatasetGenerationResult:
     """Generate deterministic in-memory Phase 7 raw clean/distorted Born samples."""
     operational_config_id = config_id(config)
@@ -214,15 +248,18 @@ def generate_dataset(config: DatasetGenerationConfig) -> DatasetGenerationResult
                     "parameter_bindings": parameter_bindings,
                 }
             )
+            primary_measurement = measurement_setting_for(spec.n_qubits, config.measurement_bases[0])
             clean_run_id = make_run_id(
                 {
                     "circuit_id": clean_circuit_id,
                     "simulation_mode": "ideal_statevector",
                     "schema_version": config.schema_version,
                     "metric_source": "exact_born_probabilities",
+                    **primary_measurement.setting_id_payload,
                 }
             )
-            clean_result = simulate_ideal_statevector(bound_circuit)
+            clean_result = simulate_ideal_statevector(bound_circuit, measurement_basis=primary_measurement)
+            backend_metadata = _backend_metadata_for_clean_circuit(config, clean_circuit_id, spec.n_qubits)
             _add_unique_record(
                 circuit_records,
                 _make_circuit_record(
@@ -235,6 +272,7 @@ def generate_dataset(config: DatasetGenerationConfig) -> DatasetGenerationResult
                         "parameter_bindings": parameter_bindings,
                         "parameter_sin_cos": parameter_sin_cos,
                         "generator_kwargs": generator_kwargs,
+                        **backend_metadata,
                     },
                 ),
                 clean_circuit_id,
@@ -250,6 +288,9 @@ def generate_dataset(config: DatasetGenerationConfig) -> DatasetGenerationResult
                         "role": "clean",
                         "probabilities_ref": f"artifacts/probabilities/{clean_run_id}.json",
                         "statevector_ref": f"artifacts/statevectors/{clean_run_id}.npy" if config.store_statevectors else None,
+                        "measurement_setting": primary_measurement.to_metadata(),
+                        "probability_domain": "p(y|M)",
+                        **backend_metadata,
                     },
                 ),
                 clean_run_id,
@@ -259,7 +300,7 @@ def generate_dataset(config: DatasetGenerationConfig) -> DatasetGenerationResult
             clean_shot_run_id = None
             if config.ideal_shots is not None:
                 clean_shot_seed = derive_child_seed(config.base_seed, "clean_shots", clean_payload)
-                clean_shot_result = simulate_ideal_shots(bound_circuit, shots=config.ideal_shots, seed=clean_shot_seed)
+                clean_shot_result = simulate_ideal_shots(bound_circuit, shots=config.ideal_shots, seed=clean_shot_seed, measurement_basis=primary_measurement)
                 clean_shot_run_id = make_run_id(
                     {
                         "circuit_id": clean_circuit_id,
@@ -267,6 +308,7 @@ def generate_dataset(config: DatasetGenerationConfig) -> DatasetGenerationResult
                         "shots": config.ideal_shots,
                         "seed": clean_shot_seed,
                         "schema_version": config.schema_version,
+                        **primary_measurement.setting_id_payload,
                     }
                 )
                 _add_unique_record(
@@ -280,6 +322,8 @@ def generate_dataset(config: DatasetGenerationConfig) -> DatasetGenerationResult
                             "source_run_id": clean_run_id,
                             "counts_ref": f"artifacts/counts/{clean_shot_run_id}.json",
                             "seed": clean_shot_seed,
+                            "measurement_setting": primary_measurement.to_metadata(),
+                            "probability_domain": "p(y|M)",
                         },
                     ),
                     clean_shot_run_id,
@@ -311,9 +355,10 @@ def generate_dataset(config: DatasetGenerationConfig) -> DatasetGenerationResult
                         "distortion_id": distortion_id,
                         "schema_version": config.schema_version,
                         "metric_source": "exact_born_probabilities",
+                        **primary_measurement.setting_id_payload,
                     }
                 )
-                distorted_result = simulate_ideal_statevector(distortion.distorted_circuit)
+                distorted_result = simulate_ideal_statevector(distortion.distorted_circuit, measurement_basis=primary_measurement)
                 context_metadata = dict(distortion.metadata)
                 context_metadata["distortion_family"] = distortion.distortion_family
                 born_metrics = compare_born_distributions(
@@ -346,6 +391,14 @@ def generate_dataset(config: DatasetGenerationConfig) -> DatasetGenerationResult
 
                 total_variation = abs(float(born_metrics.metrics["total_variation"].value))
                 born_zero_shift = total_variation <= config.born_zero_atol
+                identifiability = assess_identifiability(
+                    distortion_type=distortion.distortion_type,
+                    distortion_metadata=distortion.metadata,
+                    measurement_bases=primary_measurement.bases,
+                    born_zero_shift=born_zero_shift,
+                )
+                if config.strict_identifiability and not identifiability.diagnosis_supervision_mask:
+                    raise ValueError(f"Unidentifiable target rejected by strict_identifiability: {identifiability.reason}")
                 sample_metadata = {
                     "distortion_name": distortion_spec.name,
                     "distortion_kwargs": distortion_spec.kwargs,
@@ -355,6 +408,10 @@ def generate_dataset(config: DatasetGenerationConfig) -> DatasetGenerationResult
                     "born_observable_shift_absent": born_zero_shift,
                     "born_zero_atol": config.born_zero_atol,
                     "total_variation_exact": total_variation,
+                    "measurement_setting": primary_measurement.to_metadata(),
+                    "probability_domain": "p(y|M)",
+                    **backend_metadata,
+                    **identifiability.to_metadata(),
                 }
 
                 _add_unique_record(
@@ -368,6 +425,7 @@ def generate_dataset(config: DatasetGenerationConfig) -> DatasetGenerationResult
                             "source_clean_circuit_id": clean_circuit_id,
                             "distortion_id": distortion_id,
                             "parameter_bindings": parameter_bindings,
+                            **backend_metadata,
                         },
                     ),
                     distorted_circuit_id,
@@ -384,6 +442,9 @@ def generate_dataset(config: DatasetGenerationConfig) -> DatasetGenerationResult
                             "distortion_id": distortion_id,
                             "probabilities_ref": f"artifacts/probabilities/{distorted_run_id}.json",
                             "statevector_ref": f"artifacts/statevectors/{distorted_run_id}.npy" if config.store_statevectors else None,
+                            "measurement_setting": primary_measurement.to_metadata(),
+                            "probability_domain": "p(y|M)",
+                            **backend_metadata,
                         },
                     ),
                     distorted_run_id,
@@ -401,6 +462,7 @@ def generate_dataset(config: DatasetGenerationConfig) -> DatasetGenerationResult
                         distortion.distorted_circuit,
                         shots=config.ideal_shots,
                         seed=distorted_shot_seed,
+                        measurement_basis=primary_measurement,
                     )
                     distorted_shot_run_id = make_run_id(
                         {
@@ -410,6 +472,7 @@ def generate_dataset(config: DatasetGenerationConfig) -> DatasetGenerationResult
                             "seed": distorted_shot_seed,
                             "distortion_id": distortion_id,
                             "schema_version": config.schema_version,
+                            **primary_measurement.setting_id_payload,
                         }
                     )
                     _add_unique_record(
@@ -423,6 +486,8 @@ def generate_dataset(config: DatasetGenerationConfig) -> DatasetGenerationResult
                                 "source_run_id": distorted_run_id,
                                 "counts_ref": f"artifacts/counts/{distorted_shot_run_id}.json",
                                 "seed": distorted_shot_seed,
+                                "measurement_setting": primary_measurement.to_metadata(),
+                                "probability_domain": "p(y|M)",
                             },
                         ),
                         distorted_shot_run_id,
@@ -437,7 +502,7 @@ def generate_dataset(config: DatasetGenerationConfig) -> DatasetGenerationResult
                         strength=distortion.strength,
                         affected_qubits=distortion.affected_qubits,
                         affected_gates=distortion.affected_gates,
-                        metadata={**_json_copy(distortion.metadata), "distorted_circuit_id": distorted_circuit_id},
+                        metadata={**_json_copy(distortion.metadata), "distorted_circuit_id": distorted_circuit_id, **identifiability.to_metadata()},
                     ),
                     distortion_id,
                 )
@@ -462,6 +527,8 @@ def generate_dataset(config: DatasetGenerationConfig) -> DatasetGenerationResult
                         "applicability_warning": born_metrics.metadata.get("applicability_warning"),
                         "computed_metric_families": ["born"],
                         "deferred_metric_families": ["hilbert", "parameter", "topology"],
+                        "measurement_setting": primary_measurement.to_metadata(),
+                        **identifiability.to_metadata(),
                     },
                 )
                 _add_unique_record(metric_records, metric_record, metric_id)
@@ -516,6 +583,7 @@ def generate_dataset(config: DatasetGenerationConfig) -> DatasetGenerationResult
 
     family_counts = Counter(sample.family for sample in samples)
     distortion_counts = Counter(sample.metadata["distortion_name"] for sample in samples)
+    backend_counts = Counter(str(sample.metadata["backend_id"]) for sample in samples)
     summary = {
         "sample_count": len(samples),
         "unique_clean_circuit_count": len({sample.clean_circuit_id for sample in samples}),
@@ -525,9 +593,12 @@ def generate_dataset(config: DatasetGenerationConfig) -> DatasetGenerationResult
         "metric_record_count": len(metric_records),
         "family_counts": dict(sorted(family_counts.items())),
         "distortion_counts": dict(sorted(distortion_counts.items())),
+        "backend_counts": dict(sorted(backend_counts.items())),
+        "backend_assignment_level": "clean_circuit",
         "marker_only_sample_count": sum(sample.metadata["marker_only"] for sample in samples),
         "born_visible_sample_count": sum(not sample.metadata["born_zero_shift"] for sample in samples),
         "born_zero_shift_sample_count": sum(sample.metadata["born_zero_shift"] for sample in samples),
+        "identifiability": coverage_summary([sample.metadata for sample in samples]),
         "born_zero_atol": config.born_zero_atol,
         "base_seed": config.base_seed,
         "schema_version": config.schema_version,

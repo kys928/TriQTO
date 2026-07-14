@@ -1,2 +1,9 @@
+schema_version: triqto.eval.holdout.v1
 evaluation: heldout_backends
-split_strategy: future_manifest_defined
+split_strategy: axis_holdout
+axis: backend_id
+heldout_values: [fake_athens_v1]
+claim_label: ood_backend_id
+seed: 2026
+requires_phase15_audit: true
+backend_assignment_level: clean_circuit

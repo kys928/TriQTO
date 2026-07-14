@@ -134,6 +134,7 @@ def convert_completed_dataset_to_graphs(
                     "source_shot_run_id": source_shot_run_id,
                     "source_sample_ids": sorted(usage[key]),
                 }
+                measurement_setting = require_mapping(simulation_record.metadata.get("measurement_setting", {}), f"SimulationRecord {run_id}.measurement_setting")
                 graph = circuit_to_graph(
                     dataset.circuits_by_id[circuit_id],
                     circuit_id=circuit_id,
@@ -147,6 +148,8 @@ def convert_completed_dataset_to_graphs(
                     supplemental_shots=shots,
                     scientific_metadata={
                         "exact_probability_source": "ideal_statevector",
+                        "measurement_setting": measurement_setting,
+                        "probability_domain": simulation_record.metadata.get("probability_domain", "p(y|M)"),
                     },
                     provenance_metadata=provenance,
                     config=conversion_config,
@@ -202,6 +205,11 @@ def convert_completed_dataset_to_graphs(
             ),
             marker_only=_marker_only(sample_metadata, distortion_metadata),
             applicability_warning=warning,
+            identifiability_status=str(sample_metadata.get("identifiability_status", "identifiable")),
+            identifiability_reason=str(sample_metadata.get("identifiability_reason", "observable_born_shift")),
+            diagnosis_supervision_mask=bool(sample_metadata.get("diagnosis_supervision_mask", True)),
+            action_supervision_mask=bool(sample_metadata.get("action_supervision_mask", True)),
+            born_target_mask=bool(sample_metadata.get("born_target_mask", True)),
             metadata={
                 "distortion_type": distortion_record.distortion_type,
                 "phase": 8,
@@ -255,6 +263,11 @@ def convert_completed_dataset_to_graphs(
             metadata={
                 "marker_only": pair.marker_only,
                 "born_zero_shift": pair.born_zero_shift,
+                "identifiability_status": pair.identifiability_status,
+                "identifiability_reason": pair.identifiability_reason,
+                "diagnosis_supervision_mask": pair.diagnosis_supervision_mask,
+                "action_supervision_mask": pair.action_supervision_mask,
+                "born_target_mask": pair.born_target_mask,
                 "phase": 8,
             },
         )
@@ -297,6 +310,9 @@ def convert_completed_dataset_to_graphs(
         "distortion_counts": dict(sorted(distortion_counts.items())),
         "marker_only_pair_count": sum(pair.marker_only for pair in pairs),
         "born_zero_shift_pair_count": sum(pair.born_zero_shift for pair in pairs),
+        "identifiability_status_counts": dict(sorted(Counter(pair.identifiability_status for pair in pairs).items())),
+        "identifiability_reason_counts": dict(sorted(Counter(pair.identifiability_reason for pair in pairs).items())),
+        "diagnosis_supervised_pair_count": sum(pair.diagnosis_supervision_mask for pair in pairs),
         "variable_qubit_count_distribution": dict(sorted(qubit_counts.items())),
         "total_nodes": sum(graph.n_qubits for graph in graphs),
         "total_directed_edges": sum(graph.edge_index.shape[1] for graph in graphs),

@@ -1,2 +1,8 @@
+schema_version: triqto.eval.holdout.v1
 evaluation: heldout_distortions
-split_strategy: future_manifest_defined
+split_strategy: axis_holdout
+axis: distortion_type
+heldout_values: [phase_rz_drift]
+claim_label: ood_distortion_type
+seed: 2026
+requires_phase15_audit: true

@@ -41,6 +41,8 @@ from triqto.training_views import (
     validate_training_view_item,
     write_training_view_dataset,
 )
+from triqto.model import TriQTOModelConfig
+from triqto.training import TrainingConfig, build_training_data_spec, load_completed_training_view_dataset, load_training_examples
 
 
 def build_sources(
@@ -119,6 +121,39 @@ def small_config(**overrides) -> TrainingViewConfig:
     }
     values.update(overrides)
     return TrainingViewConfig(**values)
+
+
+def test_backend_evidence_reaches_phase12_and_training_adapter(tmp_path: Path) -> None:
+    roots = build_sources(tmp_path, store_statevectors=False)
+    phase12_root = tmp_path / "phase12_backend"
+    view_result = build_training_view_result(
+        *roots,
+        small_config(
+            tasks=("diagnosis",),
+            train_fraction=1.0,
+            validation_fraction=0.0,
+            test_fraction=0.0,
+            include_hilbert=False,
+            include_topology=False,
+        ),
+    )
+    item = next(value for value in view_result.items if value.task == "diagnosis")
+    assert item.metadata["backend_available"] is True
+    assert item.metadata["backend_assignment_level"] == "clean_circuit"
+    assert item.arrays["backend_available_mask"].tolist() == [True]
+    assert item.arrays["backend_features"].shape == (1, 16)
+    assert "gate_error_summary" in set(item.arrays["backend_missing_feature_names"].tolist())
+
+    write_training_view_dataset(view_result, phase12_root)
+    dataset = load_completed_training_view_dataset(phase12_root)
+    model_config = TriQTOModelConfig()
+    training_config = TrainingConfig(normalize_backend_features=True)
+    spec = build_training_data_spec(dataset, model_config, training_config)
+    examples = load_training_examples(dataset, tasks=("diagnosis",), split="train", spec=spec)
+    assert examples
+    assert examples[0].model_batch.backend is not None
+    assert examples[0].model_batch.backend.features.shape == (1, 16)
+    assert "calibration_timestamp_missing" in spec.backend_feature_names
 
 
 def test_full_training_view_pipeline_is_deterministic_and_leakage_safe(

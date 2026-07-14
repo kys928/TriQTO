@@ -101,3 +101,31 @@ The architecture exposes diagnosis, variable-candidate action ranking, variable-
 Phase 14 trains the Phase 13 graph model from completed Phase 12 views while preserving clean-circuit splits and per-head leakage masks. It provides train-only normalization, deterministic budget-aware batching, staged single-task/joint/hardware-masked curricula, AdamW or SGD, constant or warmup-cosine schedules, gradient accumulation and clipping, validation-based best-checkpoint selection, and exact resume.
 
 Checkpoints are pickle-free NPZ artifacts containing model, optimizer, scheduler, and Python/NumPy/Torch RNG state with logical content hashes. Training and checkpoint manifests are typed-read before atomic publication. Test records and `audit_only` topology records never enter optimization, and `lambda_top` remains exactly zero. Phase 14 makes no held-out, hardware, universal-correction, or quantum-advantage claim. See [`docs/TRAINING_ENGINE.md`](docs/TRAINING_ENGINE.md).
+
+## Current evidence level and claim boundaries
+
+TriQTO is currently an offline deterministic research scaffold. The executable default path supports CPU-safe ideal-simulator tests and deterministic artifact/provenance checks. It does **not** establish quantum advantage, hardware validation, OOD generalization, calibrated uncertainty, or causal topology impact. Hardware Runtime work remains credential-gated future work and is not executed by default.
+
+## Reproducible CPU installation
+
+Supported default matrix: Python 3.11, Qiskit 2.1.2, Qiskit Aer 0.17.1, IBM Runtime client 0.40.1, Torch 2.8.0, NumPy 2.3.2, SciPy 1.16.1, PyArrow 21.0.0, Ripser 0.6.12, and Gudhi 3.11.0. The default dependency path is CPU-safe and excludes `qiskit-aer-gpu`.
+
+```bash
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt -c constraints/cpu.txt
+python -m pip install -e .
+python scripts/verify_dependency_pins.py
+PYTHONPATH=src pytest -q
+```
+
+Optional GPU dependencies are isolated in `requirements-gpu.txt` plus `constraints/gpu.txt`; do not use them for default CI or CPU-only validation.
+
+## Config migration note
+
+Broad future configs that mention noisy Aer, fake-backend/transpilation, RunPod, hardware validation, or unsupported actions are explicitly marked `unsupported: true` with a reason. Active configs are validated by `triqto.config.validators` and must not imply unimplemented execution modes. Old artifacts/configs that relied on `monster_generation.yaml`, `runpod_generation.yaml`, `hardware_validation.yaml`, or `configs/eval/heldout_*.yaml` as executable should be treated as planning inputs until the corresponding mode has implementation and offline tests.
+
+See `docs/CAPABILITY_MATRIX.md` for the maintained capability matrix.
+
+### Current evidence boundary update
+
+The current branch includes offline fake-backend metadata propagation into Phase 7/12/14 artifacts, deterministic backend-holdout audits, standalone operational actions, and checkpoint-bound latent-topology diagnostics. These are not physical-hardware results: no IBM Runtime job is submitted by default or in tests, fake-backend evidence remains simulator/fixture evidence, latent topology requires a real checkpoint identity supplied by a reproducible run, and no OOD or calibration claim is made without corresponding empirical artifacts.

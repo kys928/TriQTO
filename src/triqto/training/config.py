@@ -235,6 +235,7 @@ class TrainingConfig:
     early_stopping_patience: int = 0
     normalize_action_features: bool = True
     normalize_topology_features: bool = True
+    normalize_backend_features: bool = True
     max_items: int = 1_000_000
     max_nodes_per_batch: int = 65_536
     max_edges_per_batch: int = 262_144
@@ -301,6 +302,7 @@ class TrainingConfig:
         patience = _int(self.early_stopping_patience, "early_stopping_patience")
         normalize_action = _bool(self.normalize_action_features, "normalize_action_features")
         normalize_topology = _bool(self.normalize_topology_features, "normalize_topology_features")
+        normalize_backend = _bool(self.normalize_backend_features, "normalize_backend_features")
         for name in (
             "max_items",
             "max_nodes_per_batch",
@@ -333,6 +335,7 @@ class TrainingConfig:
         object.__setattr__(self, "early_stopping_patience", patience)
         object.__setattr__(self, "normalize_action_features", normalize_action)
         object.__setattr__(self, "normalize_topology_features", normalize_topology)
+        object.__setattr__(self, "normalize_backend_features", normalize_backend)
         object.__setattr__(self, "topology_loss_weight", 0.0)
         json.dumps(training_config_to_dict(self), sort_keys=True, allow_nan=False)
 

@@ -1,3 +1,5 @@
+unsupported: true
+unsupported_reason: Broad Phase 0 audit config references noisy/fake-backend/action capabilities not implemented in the active offline scaffold.
 qubit_counts: [4, 6, 8, 10, 12, 14, 16]
 circuit_families: [bell, ghz, phase_interference, qft_like, hardware_efficient_ansatz, random_shallow, lattice_entangled, qaoa_like]
 distortions: [phase_rz_drift, rx_overrotation, ry_overrotation, entangling_overrotation, readout_noise, depolarizing_noise, amplitude_damping, phase_damping, thermal_relaxation, mixed_noise, transpilation_layout_distortion]

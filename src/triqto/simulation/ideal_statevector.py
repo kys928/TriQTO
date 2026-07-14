@@ -12,6 +12,7 @@ from .result_normalization import (
     extract_quantum_circuit,
     normalize_probabilities,
 )
+from .measurement import MeasurementSetting, default_measurement_context, measurement_setting_for
 from .results import IdealStatevectorResult
 
 
@@ -27,9 +28,22 @@ def statevector_probabilities(statevector: Any, n_qubits: int | None = None) -> 
     return normalize_probabilities(probabilities)
 
 
+def _basis_rotation_circuit(n_qubits: int, setting: MeasurementSetting):
+    from qiskit import QuantumCircuit
+    rotation = QuantumCircuit(n_qubits)
+    for qubit, basis in enumerate(setting.bases):
+        if basis == "X":
+            rotation.h(qubit)
+        elif basis == "Y":
+            rotation.sdg(qubit)
+            rotation.h(qubit)
+    return rotation
+
+
 def simulate_ideal_statevector(
     circuit_or_generated: Any,
     parameter_values: Mapping[str, float] | Mapping[Any, float] | None = None,
+    measurement_basis: str | tuple[str, ...] | MeasurementSetting | None = None,
 ) -> IdealStatevectorResult:
     """Simulate a circuit exactly with Qiskit's quantum_info Statevector."""
     original = extract_quantum_circuit(circuit_or_generated)
@@ -39,7 +53,11 @@ def simulate_ideal_statevector(
     bound = bind_parameter_values(original, parameter_values)
     prepared = copy_without_final_measurements(bound)
     statevector = Statevector.from_instruction(prepared)
-    probabilities = statevector_probabilities(statevector, prepared.num_qubits)
+    setting = measurement_basis if isinstance(measurement_basis, MeasurementSetting) else measurement_setting_for(prepared.num_qubits, measurement_basis)
+    if setting.n_qubits != prepared.num_qubits:
+        raise ValueError("measurement setting qubit count must match circuit")
+    measurement_state = statevector.evolve(_basis_rotation_circuit(prepared.num_qubits, setting))
+    probabilities = statevector_probabilities(measurement_state, prepared.num_qubits)
 
     metadata = {
         "original_circuit_name": original.name,
@@ -47,6 +65,8 @@ def simulate_ideal_statevector(
         "measurements_removed": had_measurements,
         "parameter_binding_requested": parameter_binding_requested,
         "simulation_mode": "ideal_statevector",
+        "measurement_setting": setting.to_metadata(),
+        "probability_domain": "p(y|M)",
     }
     return IdealStatevectorResult(
         simulation_mode="ideal_statevector",

@@ -106,9 +106,13 @@ def data_spec() -> TrainingDataSpec:
         topology_feature_names=(),
         topology_feature_mean=(),
         topology_feature_std=(),
+        backend_feature_names=tuple(f"backend_feature_{index}" for index in range(16)),
+        backend_feature_mean=tuple(0.0 for _ in range(16)),
+        backend_feature_std=tuple(1.0 for _ in range(16)),
         topology_input_dim=8,
         normalize_action_features=True,
         normalize_topology_features=True,
+        normalize_backend_features=True,
         adapter_version="test-adapter",
     )
     result.validate()

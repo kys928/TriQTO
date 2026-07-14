@@ -11,6 +11,7 @@ from typing import Any
 from triqto.circuits.families import get_circuit_family
 from triqto.core.ids import canonical_json, make_deterministic_id
 from triqto.distortions.distortion_registry import get_distortion
+from triqto.simulation.measurement import MeasurementSetting
 
 PHASE7_METRIC_SCHEMA_VERSION = "triqto.born.phase6"
 DEFAULT_BORN_ZERO_ATOL = 1e-12
@@ -100,6 +101,9 @@ class DatasetGenerationConfig:
     store_statevectors: bool = True
     max_samples: int = 1000
     born_zero_atol: float = DEFAULT_BORN_ZERO_ATOL
+    measurement_bases: tuple[str, ...] = ("Z",)
+    strict_identifiability: bool = False
+    backend_names: tuple[str, ...] = ("triqto_local_line_fake_v1",)
 
     def __post_init__(self) -> None:
         dataset_name = _require_nonblank(self.dataset_name, "dataset_name")
@@ -120,6 +124,23 @@ class DatasetGenerationConfig:
             ideal_shots = None
         if not isinstance(self.store_statevectors, bool):
             raise TypeError("store_statevectors must be exactly bool")
+        if not isinstance(self.strict_identifiability, bool):
+            raise TypeError("strict_identifiability must be exactly bool")
+        if isinstance(self.backend_names, str):
+            backend_names = (self.backend_names.strip(),)
+        else:
+            backend_names = tuple(str(value).strip() for value in self.backend_names)
+        if not backend_names or any(not value for value in backend_names):
+            raise ValueError("backend_names must contain at least one nonblank backend name")
+        if isinstance(self.measurement_bases, str):
+            measurement_bases = (self.measurement_bases.upper(),)
+        else:
+            measurement_bases = tuple(str(value).upper() for value in self.measurement_bases)
+        if not measurement_bases:
+            raise ValueError("measurement_bases must include at least one basis setting")
+        # Validate symbolic per-qubit basis names; length is resolved per circuit at generation time.
+        for basis in measurement_bases:
+            MeasurementSetting((basis,))
         max_samples = _require_int(self.max_samples, "max_samples")
         if max_samples <= 0:
             raise ValueError("max_samples must be positive")
@@ -137,6 +158,9 @@ class DatasetGenerationConfig:
         object.__setattr__(self, "ideal_shots", ideal_shots)
         object.__setattr__(self, "max_samples", max_samples)
         object.__setattr__(self, "born_zero_atol", born_zero_atol)
+        object.__setattr__(self, "measurement_bases", measurement_bases)
+        object.__setattr__(self, "strict_identifiability", self.strict_identifiability)
+        object.__setattr__(self, "backend_names", backend_names)
         object.__setattr__(self, "circuit_specs", circuit_specs)
         object.__setattr__(self, "distortion_specs", distortion_specs)
         if predicted_sample_count(self) > max_samples:

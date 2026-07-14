@@ -397,6 +397,13 @@ def circuit_to_graph(
         )
 
     scientific = json_copy(dict(scientific_metadata or {}))
+    setting = scientific.get("measurement_setting") or {}
+    basis_codes = setting.get("basis_codes") if isinstance(setting, Mapping) else None
+    if basis_codes is None:
+        basis_codes = [0] * n_qubits
+    if not isinstance(basis_codes, list) or len(basis_codes) != n_qubits or any(code not in (0, 1, 2) for code in basis_codes):
+        raise ValueError("measurement_setting.basis_codes must contain one Z/X/Y code per qubit")
+    measurement_basis_codes = np.asarray(basis_codes, dtype=np.int64)
     scientific.update(
         {
             "logical_layer_algorithm_version": LOGICAL_LAYER_ALGORITHM_VERSION,
@@ -459,6 +466,7 @@ def circuit_to_graph(
         parameter_sin=parameter_sin,
         parameter_cos=parameter_cos,
         outcome_bitstrings=outcome_bitstrings,
+        measurement_basis_codes=measurement_basis_codes,
         exact_probabilities=exact_probability_values,
         global_features=np.empty((0,), dtype=np.float64),
         count_outcome_bitstrings=count_outcomes,

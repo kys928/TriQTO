@@ -1,2 +1,4 @@
+unsupported: true
+unsupported_reason: Hardware validation requires credentials and adapter evidence; default tests must not imply executable hardware validation.
 # hardware_validation placeholder config for future TriQTO runs.
 extends: monster_generation.yaml

@@ -43,6 +43,7 @@ from .identities import (
     topology_operational_config_id,
     topology_schema_id,
 )
+from .latent import LatentTopologyConfig, compute_latent_topology
 from .models import (
     PersistenceSummary,
     TopologyAuditResult,
@@ -79,6 +80,7 @@ __all__ = [
     "TopologyGroupSpec",
     "TopologyPointCloudGroup",
     "TopologyWriteResult",
+    "LatentTopologyConfig",
     "betti_curve",
     "born_distance_matrix",
     "bottleneck_distance",
@@ -90,6 +92,7 @@ __all__ = [
     "circular_parameter_distance_matrix",
     "compute_manifold_distance_matrices",
     "compute_persistence_diagrams",
+    "compute_latent_topology",
     "diagram_statistics",
     "finite_diagram",
     "finite_lifetimes",

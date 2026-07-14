@@ -136,6 +136,110 @@ def born_arrays(
     }
 
 
+def backend_arrays_from_metadata(metadata: Mapping[str, Any], *, prefix: str = "backend") -> dict[str, np.ndarray]:
+    """Build a fixed-width backend stream from explicit Phase 7 backend metadata.
+
+    Only structural fake-backend fixture facts are embedded as numeric features. Unavailable
+    calibration quantities remain represented by availability/missing-reason arrays and are
+    not zero-filled as if they were observed values.
+    """
+    backend_id = metadata.get("backend_id")
+    if not isinstance(backend_id, str) or not backend_id:
+        return {
+            f"{prefix}_features": np.zeros((1, 16), dtype=np.float32),
+            f"{prefix}_available_mask": np.asarray([False], dtype=np.bool_),
+            f"{prefix}_feature_names": unicode_array(["unavailable"] * 16),
+            f"{prefix}_feature_available_mask": np.zeros(16, dtype=np.bool_),
+            f"{prefix}_missing_feature_names": unicode_array(["backend_metadata"]),
+            f"{prefix}_missing_reasons": unicode_array(["backend metadata absent"]),
+        }
+    values = metadata.get("backend_feature_values", {})
+    available = metadata.get("backend_feature_available", {})
+    missing = metadata.get("backend_missing_reasons", {})
+    if not isinstance(values, Mapping) or not isinstance(available, Mapping) or not isinstance(missing, Mapping):
+        raise TypeError("backend metadata values, availability, and missing reasons must be mappings")
+    coupling_summary = values.get("coupling_summary", {})
+    if not isinstance(coupling_summary, Mapping):
+        raise TypeError("backend coupling_summary must be a mapping")
+    diameter = coupling_summary.get("directed_diameter")
+    diameter_available = diameter is not None
+    basis_gates = metadata.get("backend_basis_gates", ())
+    if isinstance(basis_gates, str):
+        raise TypeError("backend_basis_gates must be a sequence, not a string")
+    basis_gate_names = tuple(str(value) for value in basis_gates)
+    backend_class = str(metadata.get("backend_class"))
+    feature_names = (
+        "n_qubits",
+        "directed_edge_count",
+        "degree_min",
+        "degree_max",
+        "degree_mean",
+        "directed_diameter",
+        "directed_diameter_available",
+        "basis_gate_count",
+        "has_cx",
+        "backend_class_fake",
+        "backend_class_simulator",
+        "backend_class_physical",
+        "coupling_map_available",
+        "basis_gates_available",
+        "calibration_timestamp_available",
+        "calibration_timestamp_missing",
+    )
+    feature_values = np.asarray(
+        [
+            float(metadata.get("backend_n_qubits", 0)),
+            float(coupling_summary.get("directed_edge_count", 0)),
+            float(coupling_summary.get("degree_min", 0)),
+            float(coupling_summary.get("degree_max", 0)),
+            float(coupling_summary.get("degree_mean", 0.0)),
+            float(diameter) if diameter_available else 0.0,
+            float(diameter_available),
+            float(len(basis_gate_names)),
+            float("cx" in basis_gate_names),
+            float(backend_class == "fake"),
+            float(backend_class == "simulator"),
+            float(backend_class == "physical"),
+            float(bool(available.get("coupling_map", False))),
+            float(bool(available.get("basis_gates", False))),
+            float(metadata.get("backend_calibration_timestamp") is not None),
+            float(metadata.get("backend_calibration_timestamp") is None),
+        ],
+        dtype=np.float32,
+    ).reshape(1, -1)
+    missing_names = sorted(str(name) for name, flag in available.items() if not bool(flag))
+    missing_reasons = [str(missing.get(name, "missing reason unavailable")) for name in missing_names]
+    return {
+        f"{prefix}_features": feature_values,
+        f"{prefix}_available_mask": np.asarray([True], dtype=np.bool_),
+        f"{prefix}_feature_names": unicode_array(feature_names),
+        f"{prefix}_feature_available_mask": np.asarray(
+            [
+                True,
+                bool(available.get("coupling_map", False)),
+                bool(available.get("coupling_map", False)),
+                bool(available.get("coupling_map", False)),
+                bool(available.get("coupling_map", False)),
+                diameter_available,
+                True,
+                bool(available.get("basis_gates", False)),
+                bool(available.get("basis_gates", False)),
+                True,
+                True,
+                True,
+                True,
+                True,
+                True,
+                True,
+            ],
+            dtype=np.bool_,
+        ),
+        f"{prefix}_id": unicode_array([backend_id]),
+        f"{prefix}_missing_feature_names": unicode_array(missing_names or ["none"]),
+        f"{prefix}_missing_reasons": unicode_array(missing_reasons or ["none"]),
+    }
+
+
 def make_training_item(
     *,
     dataset_id: str,
@@ -198,6 +302,7 @@ def make_training_item(
 
 __all__ = [
     "born_arrays",
+    "backend_arrays_from_metadata",
     "build_source_arrays",
     "graph_structure_arrays",
     "group_mask_arrays",

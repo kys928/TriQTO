@@ -4,6 +4,7 @@ from __future__ import annotations
 import numpy as np
 
 from .base_view import (
+    backend_arrays_from_metadata,
     born_arrays,
     graph_structure_arrays,
     make_training_item,
@@ -29,6 +30,7 @@ def build_diagnosis_items(context: ViewBuildContext) -> list[TrainingViewItem]:
         if distortion is None:
             raise ValueError(f"Sample {sample.sample_id} has no distortion record")
         arrays = graph_structure_arrays(distorted_graph)
+        arrays.update(backend_arrays_from_metadata(sample.metadata))
         arrays.update(
             born_arrays(
                 distorted_graph.outcome_bitstrings,
@@ -79,7 +81,7 @@ def build_diagnosis_items(context: ViewBuildContext) -> list[TrainingViewItem]:
             split=context.sample_splits[sample.sample_id],
             split_group_id=context.sample_split_groups[sample.sample_id],
             entity_id=sample.sample_id,
-            input_available=(True, True, False),
+            input_available=(True, True, True),
             target_available=(True, strength_available, True),
             arrays=arrays,
             source_refs=(
@@ -96,7 +98,9 @@ def build_diagnosis_items(context: ViewBuildContext) -> list[TrainingViewItem]:
                 "distortion_id": sample.distortion_id,
                 "family": sample.family,
                 "n_qubits": sample.n_qubits,
-                "backend_available": False,
+                "backend_available": True,
+                "backend_id": sample.metadata.get("backend_id"),
+                "backend_assignment_level": sample.metadata.get("backend_assignment_level"),
                 "hardware_data": False,
                 "input_label_separation": (
                     "distortion type, strength, and affected qubits exist only in "

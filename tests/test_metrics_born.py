@@ -3,7 +3,10 @@ from __future__ import annotations
 
 import json
 import math
+import os
+import subprocess
 import sys
+from pathlib import Path
 from dataclasses import asdict
 
 import pytest
@@ -23,6 +26,25 @@ from triqto.metrics import (
     total_variation_distance,
 )
 from triqto.simulation import simulate_ideal_shots, simulate_ideal_statevector
+
+
+def run_clean_import_check(source: str) -> None:
+    root = Path(__file__).resolve().parents[1]
+    env = os.environ.copy()
+    existing = env.get("PYTHONPATH")
+    env["PYTHONPATH"] = (
+        str(root / "src")
+        if not existing
+        else os.pathsep.join((str(root / "src"), existing))
+    )
+    subprocess.run(
+        [sys.executable, "-c", source],
+        cwd=root,
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
 
 def test_normalize_probability_distribution_normalizes_valid_non_normalized_input() -> None:
@@ -159,7 +181,16 @@ def test_not_transpiled_context_adds_applicability_warning() -> None:
 
 
 def test_no_qiskit_aer_import_is_required() -> None:
-    assert "qiskit_aer" not in sys.modules
+    source = """
+import sys
+from pathlib import Path
+assert "qiskit_aer" not in sys.modules
+from triqto.metrics import compare_born_distributions
+bundle = compare_born_distributions({"0": 1.0}, {"0": 1.0})
+assert bundle.metrics["total_variation"].value == 0.0
+assert "qiskit_aer" not in sys.modules
+"""
+    run_clean_import_check(source)
 
 
 def test_born_visible_rx_distortion_produces_nonzero_metric_shift() -> None:

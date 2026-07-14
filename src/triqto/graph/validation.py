@@ -169,6 +169,9 @@ def validate_graph_data(graph: CircuitGraphData) -> None:
     for array, name in ((values, "parameter_values"), (sine, "parameter_sin"), (cosine, "parameter_cos")):
         _finite(array, name)
 
+    basis_codes = _array(graph.measurement_basis_codes, "measurement_basis_codes", np.int64, 1)
+    if basis_codes.shape != (graph.n_qubits,) or np.any((basis_codes < 0) | (basis_codes > 2)):
+        raise ValueError("measurement_basis_codes must contain one Z/X/Y code per qubit")
     validate_probability_arrays(graph.outcome_bitstrings, graph.exact_probabilities, graph.n_qubits)
     global_features = _array(graph.global_features, "global_features", np.float64, 1)
     if global_features.shape != (0,):
@@ -214,9 +217,15 @@ def validate_pair_data(pair: GraphSamplePair) -> None:
     expected_id = graph_pair_id(pair.sample_id, pair.clean_graph_id, pair.distorted_graph_id)
     if pair.graph_pair_id != expected_id:
         raise ValueError(f"graph_pair_id mismatch: expected {expected_id}, got {pair.graph_pair_id}")
-    for name in ("born_zero_shift", "born_observable_shift_absent", "marker_only"):
+    for name in ("born_zero_shift", "born_observable_shift_absent", "marker_only", "diagnosis_supervision_mask", "action_supervision_mask", "born_target_mask"):
         if not isinstance(getattr(pair, name), bool):
             raise TypeError(f"{name} must be bool")
+    if pair.identifiability_status not in {"identifiable", "conditionally_identifiable", "unidentifiable"}:
+        raise ValueError("invalid identifiability_status")
+    if not isinstance(pair.identifiability_reason, str) or not pair.identifiability_reason:
+        raise ValueError("identifiability_reason must be nonblank")
+    if pair.identifiability_status == "unidentifiable" and (pair.diagnosis_supervision_mask or pair.action_supervision_mask):
+        raise ValueError("unidentifiable pairs must mask diagnosis/action supervision")
     if pair.applicability_warning is not None and not isinstance(pair.applicability_warning, str):
         raise TypeError("applicability_warning must be a string or None")
     if not isinstance(pair.metadata, Mapping):
