@@ -16,7 +16,12 @@ from triqto.graph.utils import (
     resolve_safe_file,
     strict_json_load,
 )
-from triqto.model import load_model_config, model_architecture_id, model_config_id
+from triqto.model import (
+    load_model_config,
+    model_architecture_id,
+    model_config_id,
+    model_config_to_dict,
+)
 from triqto.storage import BaselineResultRecord, ManifestReader
 from triqto.storage.training_schema import TrainingCheckpointRecordV1
 from triqto.training import (
@@ -25,6 +30,7 @@ from triqto.training import (
     load_training_checkpoint,
     load_training_config,
     snapshot_managed_files,
+    training_config_to_dict,
 )
 
 from .models import CompletedBaselineDataset, CompletedTrainingRun
@@ -117,7 +123,10 @@ def _strict_marker(
     managed_raw = marker.get("managed_files")
     if not isinstance(managed_raw, list):
         raise TypeError(f"{filename} managed_files must be a list")
-    managed = ensure_sorted_unique_strings(managed_raw, f"{filename} managed_files")
+    managed = ensure_sorted_unique_strings(
+        managed_raw,
+        f"{filename} managed_files",
+    )
     missing = required_files - set(managed)
     if missing:
         raise ValueError(f"{filename} misses required files: {sorted(missing)}")
@@ -180,7 +189,9 @@ def load_completed_training_run(
     training_config = load_training_config(root / "training_config.json")
     model_config = load_model_config(root / "model_config.json")
     data_spec_raw = strict_json_load(root / "training_data_spec.json")
-    data_spec = TrainingDataSpec.from_dict(dict(require_mapping(data_spec_raw, "training_data_spec.json")))
+    data_spec = TrainingDataSpec.from_dict(
+        dict(require_mapping(data_spec_raw, "training_data_spec.json"))
+    )
     if data_spec.training_view_dataset_id != view.training_view_dataset_id:
         raise ValueError("Phase 14 data spec references a different Phase 12 dataset")
     if data_spec.content_hash != marker["data_spec_hash"]:
@@ -190,25 +201,47 @@ def load_completed_training_run(
     if model_config_id(model_config) != marker["model_config_id"]:
         raise ValueError("Phase 14 model config ID mismatch")
 
-    summary = dict(require_mapping(strict_json_load(root / "training_summary.json"), "training_summary.json"))
+    summary = dict(
+        require_mapping(
+            strict_json_load(root / "training_summary.json"),
+            "training_summary.json",
+        )
+    )
     if summary.get("training_run_id") != marker["training_run_id"]:
         raise ValueError("training_summary.json training_run_id mismatch")
+    if summary.get("training_view_dataset_id") != marker["training_view_dataset_id"]:
+        raise ValueError("training_summary.json training_view_dataset_id mismatch")
+    if summary.get("model_architecture_id") != marker["model_architecture_id"]:
+        raise ValueError("training_summary.json model_architecture_id mismatch")
+    if summary.get("model_config_id") != marker["model_config_id"]:
+        raise ValueError("training_summary.json model_config_id mismatch")
     if summary.get("test_split_evaluated") is not False:
         raise ValueError("Phase 14 summary must not claim held-out test evaluation")
     if summary.get("heldout_evaluation_performed") is not False:
         raise ValueError("Phase 14 summary must not claim held-out evaluation")
+    if summary.get("test_split_used_for_optimization") is not False:
+        raise ValueError("Phase 14 summary says test data entered optimization")
+    if summary.get("audit_only_used_for_gradient") is not False:
+        raise ValueError("Phase 14 summary says audit_only data entered gradients")
 
     reader = ManifestReader(root / "manifests")
     records = reader.read_typed_records(
         "training_checkpoint_manifest",
         TrainingCheckpointRecordV1,
     )
-    if _strict_nonnegative_int(marker.get("checkpoint_count"), "checkpoint_count") != len(records):
+    if (
+        _strict_nonnegative_int(marker.get("checkpoint_count"), "checkpoint_count")
+        != len(records)
+    ):
         raise ValueError("Phase 14 checkpoint_count mismatch")
+    checkpoint_ids: set[str] = set()
     for record in records:
         record.validate()
         if record.training_run_id != marker["training_run_id"]:
             raise ValueError("Checkpoint manifest training_run_id mismatch")
+        if record.checkpoint_id in checkpoint_ids:
+            raise ValueError(f"Duplicate Phase 14 checkpoint {record.checkpoint_id}")
+        checkpoint_ids.add(record.checkpoint_id)
 
     if checkpoint_selection == "best":
         eligible = [record for record in records if record.kind == "best"]
@@ -216,7 +249,11 @@ def load_completed_training_run(
             raise ValueError("Phase 14 run has no best checkpoint")
         checkpoint_record = min(
             eligible,
-            key=lambda row: (row.validation_loss, row.epoch_completed, row.checkpoint_id),
+            key=lambda row: (
+                row.validation_loss,
+                row.epoch_completed,
+                row.checkpoint_id,
+            ),
         )
     elif checkpoint_selection == "final":
         eligible = [record for record in records if record.kind == "final"]
@@ -239,9 +276,18 @@ def load_completed_training_run(
         raise ValueError("Selected checkpoint ID mismatch")
     if checkpoint_metadata["content_hash"] != checkpoint_record.content_hash:
         raise ValueError("Selected checkpoint content hash mismatch")
-    if checkpoint_metadata["training_config"] != training_config.__class__(**checkpoint_metadata["training_config"]).__class__(**checkpoint_metadata["training_config"]).__dict__:
-        # The checkpoint is validated below by exact persisted payload comparisons.
-        pass
+    if (
+        checkpoint_metadata["training_view_dataset_id"]
+        != marker["training_view_dataset_id"]
+    ):
+        raise ValueError("Selected checkpoint training-view dataset mismatch")
+    if (
+        checkpoint_metadata["training_config"]
+        != training_config_to_dict(training_config)
+    ):
+        raise ValueError("Selected checkpoint training config mismatch")
+    if checkpoint_metadata["model_config"] != model_config_to_dict(model_config):
+        raise ValueError("Selected checkpoint model config mismatch")
     if checkpoint_metadata["data_spec"] != data_spec.to_dict():
         raise ValueError("Selected checkpoint data spec mismatch")
 
@@ -280,16 +326,49 @@ def load_completed_baseline_dataset(
     for name, expected in expected_source_ids.items():
         if marker.get(name) != expected:
             raise ValueError(f"Phase 10 baseline {name} mismatch")
+    for name in (
+        "baseline_suite_id",
+        "operational_config_id",
+        "baseline_schema_id",
+        "phase7_snapshot_hash",
+        "graph_snapshot_hash",
+        "action_snapshot_hash",
+    ):
+        require_nonblank(marker.get(name), f"baseline_complete.json {name}")
     config = load_baseline_config(root / "baseline_config.json")
+    summary = dict(
+        require_mapping(
+            strict_json_load(root / "baseline_summary.json"),
+            "baseline_summary.json",
+        )
+    )
+    if summary.get("baseline_suite_id") != marker["baseline_suite_id"]:
+        raise ValueError("Phase 10 summary baseline_suite_id mismatch")
     reader = ManifestReader(root / "manifests")
-    records = reader.read_typed_records("baseline_result_manifest", BaselineResultRecord)
-    if _strict_nonnegative_int(marker.get("result_count"), "result_count") != len(records):
+    records = reader.read_typed_records(
+        "baseline_result_manifest",
+        BaselineResultRecord,
+    )
+    if (
+        _strict_nonnegative_int(marker.get("result_count"), "result_count")
+        != len(records)
+    ):
         raise ValueError("Phase 10 result_count mismatch")
     results: dict[tuple[str, str], Any] = {}
+    result_ids: set[str] = set()
     for record in records:
         record.validate()
+        if record.baseline_result_id in result_ids:
+            raise ValueError(
+                f"Duplicate Phase 10 baseline result {record.baseline_result_id}"
+            )
+        result_ids.add(record.baseline_result_id)
         result = load_baseline_result_artifact(
-            resolve_safe_file(root, record.artifact_ref, "baseline result artifact"),
+            resolve_safe_file(
+                root,
+                record.artifact_ref,
+                "baseline result artifact",
+            ),
             config,
             record.content_hash,
         )
