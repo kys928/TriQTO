@@ -1,0 +1,14 @@
+run_name: phase15_cpu_smoke
+evaluation_kind: exact_fake_backend_axis_holdout
+split: test
+tasks:
+  - diagnosis
+evidence_tier: fake_backend_fixture
+baseline_ids:
+  - trained_triqto
+  - random_control
+  - privileged_rule_only_control
+stream_removals:
+  - backend
+backend_holdout_config: configs/eval/phase15_backend_holdout.yaml
+require_backend_holdout_audit: true

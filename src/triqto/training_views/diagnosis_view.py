@@ -101,6 +101,10 @@ def build_diagnosis_items(context: ViewBuildContext) -> list[TrainingViewItem]:
                 "backend_available": True,
                 "backend_id": sample.metadata.get("backend_id"),
                 "backend_assignment_level": sample.metadata.get("backend_assignment_level"),
+                "identifiability_status": sample.metadata.get("identifiability_status"),
+                "identifiability_reason": sample.metadata.get("identifiability_reason"),
+                "diagnosis_supervision_mask": sample.metadata.get("diagnosis_supervision_mask"),
+                "action_supervision_mask": sample.metadata.get("action_supervision_mask"),
                 "hardware_data": False,
                 "input_label_separation": (
                     "distortion type, strength, and affected qubits exist only in "

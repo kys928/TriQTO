@@ -594,9 +594,11 @@ def load_training_examples(
     split: str,
     spec: TrainingDataSpec,
     phase7_root: str | Path | None = None,
+    allow_evaluation_splits: bool = False,
 ) -> list[TrainingExample]:
-    if split not in {"train", "validation"}:
-        raise ValueError("Phase 14 optimization loader supports only train/validation")
+    allowed_splits = {"train", "validation"} | ({"test", "iid_test"} if allow_evaluation_splits else set())
+    if split not in allowed_splits:
+        raise ValueError("Phase 14 optimization loader supports only train/validation unless Phase 15 explicitly enables evaluation splits")
     phase7 = Path(phase7_root) if phase7_root is not None else None
     records = [
         record

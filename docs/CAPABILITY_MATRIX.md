@@ -21,7 +21,7 @@ Status categories used below are exact repository claim boundaries:
 | Fake-backend metadata stream | integrated into the primary pipeline | Stable local fake-backend evidence reaches Phase 7/12/14 model inputs with availability masks and train-only normalization. This is fixture/simulator evidence, not hardware validation. |
 | Backend-ID holdout utilities and audits | integrated into the primary pipeline | A strict fake-backend generation config, Phase 12 config, and Phase 15 audit config exercise an exact backend-ID axis holdout with clean-circuit assignment and train/validation-vs-test disjointness checks. Any result is limited to the recorded fake-backend fixture axis, not physical-hardware generalization. |
 | Phase 15 comparison identity utilities | standalone executable API | Baseline comparison IDs include task/view/ablation/execution/evidence discriminators; full empirical Phase 15 report publication remains unmerged. |
-| Phase 15 trained evaluation/reporting | planning-only/unsupported | No complete repository Phase 15 trained-result artifact is committed; IID must not be relabeled OOD. |
+| Phase 15 trained evaluation/reporting | integrated into the primary pipeline | A CPU smoke evaluator restores a Phase 14 checkpoint, scores untouched Phase 12 test rows, publishes immutable compact manifests/cards, and can re-audit exact fake-backend holdout disjointness. This is engineering validation only; no research checkpoint/result is committed. |
 | Noisy Aer shots / density simulation | standalone executable API | Seeded helpers are tested for small circuits, but noisy/density evidence does not enter the main Phase 7 data lake by default. |
 | Public Hilbert/QFI/QGT metrics | standalone executable API | Metric helpers are tested; physical hardware records must reject Hilbert-derived metrics. |
 | Global-phase continuity | integrated into the primary pipeline | Hilbert encoders avoid largest-amplitude argmax anchoring; global phase is provenance, not a supervised shortcut. |
@@ -37,14 +37,14 @@ Status categories used below are exact repository claim boundaries:
 
 ## Explicit current-state answers
 
-- **Trained checkpoint/result exists:** no committed research checkpoint or paper-level result is present; tests may create temporary smoke checkpoints only.
+- **Trained checkpoint/result exists:** temporary CPU smoke checkpoints/results are created by tests or user-selected workflow output directories; no research checkpoint, weights, or result artifacts are committed.
 - **Noisy/density evidence enters the main data lake:** no; it remains a standalone executable API.
 - **Fake-backend evidence reaches model training:** yes, as offline fixture evidence with masks through the Phase 7/12/14 path.
-- **Backend holdout has been executed:** yes for an executable deterministic fake-backend-axis smoke/audit path; no paper-level held-out performance claim is committed.
+- **Backend holdout has been executed:** yes as an executable deterministic fake-backend-axis smoke/audit evaluation path only; no paper-level held-out performance claim is committed.
 - **Physical hardware was used:** no.
 - **Latent topology was run on trained representations:** no committed trained-representation topology result exists.
 - **Uncertainty calibration was demonstrated:** no.
-- **Phase 15 is merged:** only identity/generalization utility pieces are present; full empirical Phase 15 reporting is not merged as a completed result path.
+- **Phase 15 is merged:** a compact CPU smoke evaluator/publisher is present for engineering validation; broad empirical reporting remains unvalidated.
 - **Placeholders remain:** credential-gated hardware execution, broad monster/RunPod/hardware configs, and full empirical Phase 15 publication remain unsupported/planning-only boundaries.
 - **Topology loss remains zero:** yes; nonzero topology loss is rejected.
 
