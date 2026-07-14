@@ -1,15 +1,25 @@
 """Leakage-safe operational-action adapter for Phase 12/14 candidate tensors."""
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Sequence
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Any, Mapping, Sequence
 import numpy as np
 import torch
 from torch import Tensor
+import yaml
 
 from triqto.model import ACTION_EDIT_TYPES, ActionCandidateTensorBatch
 from .operational import OperationalActionResult
 
+OPERATIONAL_VIEW_ADAPTER_SCHEMA = "triqto.operational_view_adapter.v1"
+OPERATIONAL_ACTION_FEATURE_NAMES = (
+    "depth_delta",
+    "size_delta",
+    "two_qubit_gate_delta",
+    "acquires_evidence",
+    "is_no_op",
+)
 OPERATIONAL_ACTION_FAMILIES = (
     "logical_correction",
     "diagnostic_evidence_acquisition",
@@ -17,6 +27,50 @@ OPERATIONAL_ACTION_FAMILIES = (
     "semantics_preserving_optimization",
 )
 _FAMILY_ID = {name: index for index, name in enumerate(OPERATIONAL_ACTION_FAMILIES)}
+
+
+@dataclass(frozen=True, slots=True)
+class OperationalViewAdapterConfig:
+    schema_version: str = OPERATIONAL_VIEW_ADAPTER_SCHEMA
+    feature_names: tuple[str, ...] = OPERATIONAL_ACTION_FEATURE_NAMES
+    family_order: tuple[str, ...] = OPERATIONAL_ACTION_FAMILIES
+    require_availability_mask: bool = True
+    require_zero_operational_targets: bool = True
+    require_no_privilege: bool = True
+
+    def __post_init__(self) -> None:
+        if self.schema_version != OPERATIONAL_VIEW_ADAPTER_SCHEMA:
+            raise ValueError("unsupported operational view adapter schema")
+        if tuple(self.feature_names) != OPERATIONAL_ACTION_FEATURE_NAMES:
+            raise ValueError("operational feature names/order are versioned and fixed")
+        if tuple(self.family_order) != OPERATIONAL_ACTION_FAMILIES:
+            raise ValueError("operational family order is versioned and fixed")
+        for name in ("require_availability_mask", "require_zero_operational_targets", "require_no_privilege"):
+            if getattr(self, name) is not True:
+                raise ValueError(f"{name} must remain true")
+        object.__setattr__(self, "feature_names", tuple(self.feature_names))
+        object.__setattr__(self, "family_order", tuple(self.family_order))
+
+
+def operational_view_adapter_config_to_dict(config: OperationalViewAdapterConfig) -> dict[str, Any]:
+    payload = asdict(config)
+    payload["feature_names"] = list(config.feature_names)
+    payload["family_order"] = list(config.family_order)
+    return payload
+
+
+def load_operational_view_adapter_config(path: str | Path) -> OperationalViewAdapterConfig:
+    payload = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(payload, Mapping):
+        raise TypeError("operational view adapter config must contain a mapping")
+    allowed = set(OperationalViewAdapterConfig.__dataclass_fields__)  # type: ignore[attr-defined]
+    if set(payload) - allowed:
+        raise ValueError(f"unknown operational view adapter fields: {sorted(set(payload) - allowed)}")
+    data = dict(payload)
+    for name in ("feature_names", "family_order"):
+        if name in data:
+            data[name] = tuple(data[name])
+    return OperationalViewAdapterConfig(**data)
 
 
 @dataclass(slots=True)
@@ -64,7 +118,18 @@ def _delta(result: OperationalActionResult, name: str) -> float:
     return float(result.after_metadata.get(name, before)) - before
 
 
-def operational_actions_to_phase12_arrays(results: Sequence[OperationalActionResult]) -> dict[str, np.ndarray]:
+def _text(values: Sequence[str]) -> np.ndarray:
+    width = max([1, *[len(value) for value in values]])
+    return np.asarray(values, dtype=f"<U{width}")
+
+
+def operational_actions_to_phase12_arrays(
+    results: Sequence[OperationalActionResult],
+    config: OperationalViewAdapterConfig | None = None,
+) -> dict[str, np.ndarray]:
+    adapter_config = config or OperationalViewAdapterConfig()
+    if not isinstance(adapter_config, OperationalViewAdapterConfig):
+        raise TypeError("config must be OperationalViewAdapterConfig or None")
     ordered = sorted(results, key=lambda value: value.action_id)
     if not ordered:
         raise ValueError("operational adapter requires at least one action")
@@ -77,8 +142,14 @@ def operational_actions_to_phase12_arrays(results: Sequence[OperationalActionRes
         available.append(row_available)
         family = _family(result)
         families.append(_FAMILY_ID[family])
-        row = [_delta(result, "depth"), _delta(result, "size"), _delta(result, "two_qubit_gate_count"), float(result.acquires_evidence), float(result.status == "no_op")]
-        features.append(row if row_available else [0.0] * 5)
+        row = [
+            _delta(result, "depth"),
+            _delta(result, "size"),
+            _delta(result, "two_qubit_gate_count"),
+            float(result.acquires_evidence),
+            float(result.status == "no_op"),
+        ]
+        features.append(row if row_available else [0.0] * len(adapter_config.feature_names))
         edit_type = edit_map[result.action_type]
         if row_available and edit_type is not None:
             if edit_type not in ACTION_EDIT_TYPES:
@@ -88,27 +159,30 @@ def operational_actions_to_phase12_arrays(results: Sequence[OperationalActionRes
             edit_qubit_ptr.append(len(edit_qubits))
         edit_ptr.append(len(edit_types))
     family_names = [_family(value) for value in ordered]
-    def text(values: Sequence[str]) -> np.ndarray:
-        return np.asarray(values, dtype=f"<U{max(1, *(len(value) for value in values))}")
     return {
-        "action_candidate_ids": text(ids),
-        "action_candidate_feature_names": text(("depth_delta", "size_delta", "two_qubit_gate_delta", "acquires_evidence", "is_no_op")),
+        "action_candidate_ids": _text(ids),
+        "action_candidate_feature_names": _text(adapter_config.feature_names),
         "action_candidate_features": np.asarray(features, dtype=np.float64),
         "action_candidate_available_mask": np.asarray(available, dtype=np.bool_),
         "action_candidate_family_ids": np.asarray(families, dtype=np.int64),
-        "action_candidate_family_names": text(family_names),
+        "action_candidate_family_names": _text(family_names),
         "action_candidate_target_mask": np.zeros(len(ordered), dtype=np.bool_),
         "action_privileged_oracle_mask": np.zeros(len(ordered), dtype=np.bool_),
         "action_edit_ptr": np.asarray(edit_ptr, dtype=np.int64),
-        "action_edit_types": text(edit_types),
+        "action_edit_types": _text(edit_types),
         "action_edit_magnitudes": np.zeros(len(edit_types), dtype=np.float64),
         "action_edit_qubit_ptr": np.asarray(edit_qubit_ptr, dtype=np.int64),
         "action_edit_qubits": np.asarray(edit_qubits, dtype=np.int64),
     }
 
 
-def build_operational_action_tensor_batch(results: Sequence[OperationalActionResult], *, graph_index: int = 0) -> OperationalActionTensorBatch:
-    arrays = operational_actions_to_phase12_arrays(results)
+def build_operational_action_tensor_batch(
+    results: Sequence[OperationalActionResult],
+    *,
+    graph_index: int = 0,
+    config: OperationalViewAdapterConfig | None = None,
+) -> OperationalActionTensorBatch:
+    arrays = operational_actions_to_phase12_arrays(results, config)
     count = len(arrays["action_candidate_ids"])
     names = [str(value) for value in arrays["action_edit_types"].tolist()]
     edit_positions = {name: index for index, name in enumerate(ACTION_EDIT_TYPES)}
@@ -162,4 +236,15 @@ def collate_operational_action_tensor_batches(batches: Sequence[OperationalActio
     return result
 
 
-__all__ = ["OPERATIONAL_ACTION_FAMILIES", "OperationalActionTensorBatch", "build_operational_action_tensor_batch", "collate_operational_action_tensor_batches", "operational_actions_to_phase12_arrays"]
+__all__ = [
+    "OPERATIONAL_ACTION_FAMILIES",
+    "OPERATIONAL_ACTION_FEATURE_NAMES",
+    "OPERATIONAL_VIEW_ADAPTER_SCHEMA",
+    "OperationalActionTensorBatch",
+    "OperationalViewAdapterConfig",
+    "build_operational_action_tensor_batch",
+    "collate_operational_action_tensor_batches",
+    "load_operational_view_adapter_config",
+    "operational_actions_to_phase12_arrays",
+    "operational_view_adapter_config_to_dict",
+]
