@@ -12,15 +12,20 @@ import numpy as np
 import torch
 from torch import Tensor
 
-from triqto.baselines import load_baseline_sources, weighted_objective
+from triqto.baselines import (
+    load_baseline_sources,
+    verify_baseline_source_snapshots,
+    weighted_objective,
+)
 from triqto.graph.utils import resolve_safe_file
 from triqto.model import TriQTOModel
-from triqto.model.constants import HEAD_ORDER, STREAM_ORDER
+from triqto.model.constants import STREAM_ORDER
 from triqto.training import (
     collate_training_examples,
     load_completed_training_view_dataset,
     load_training_checkpoint,
     load_training_examples,
+    snapshot_managed_files,
 )
 from triqto.training_views import load_training_view_item_artifact
 
@@ -41,7 +46,6 @@ from .models import (
     EvaluationRunResult,
 )
 from .source import load_completed_baseline_dataset, load_completed_training_run
-
 
 _PRIVILEGED_BASELINES = {
     "rule_only",
@@ -84,6 +88,7 @@ def _move_tree(value: Any, device: torch.device) -> Any:
 
 
 def _apply_ablation(supervised: Any, ablation: str) -> Any:
+    """Remove one optional stream without relaxing any hard model policy."""
     result = copy.deepcopy(supervised)
     if ablation == "full":
         return result
@@ -128,6 +133,37 @@ def _raw_item(dataset: Any, view_item_id: str) -> Any:
     )
 
 
+def _load_test_examples(
+    dataset: Any,
+    *,
+    task: str,
+    spec: Any,
+    phase7_root: str | Path | None,
+) -> list[Any]:
+    """Reuse the Phase 14 adapter without broadening its optimization API.
+
+    Phase 14 intentionally exposes only train/validation through
+    ``load_training_examples``. Phase 15 supplies a shallow read-only index proxy whose
+    validation slot points at the physically test-labelled records. The adapter still
+    reads each item's true ``split`` field, so every returned example must remain test.
+    """
+    proxy = copy.copy(dataset)
+    proxy.records_by_task_split = dict(dataset.records_by_task_split)
+    proxy.records_by_task_split[(task, "validation")] = tuple(
+        dataset.records_by_task_split.get((task, "test"), ())
+    )
+    examples = load_training_examples(
+        proxy,
+        tasks=(task,),
+        split="validation",
+        spec=spec,
+        phase7_root=phase7_root,
+    )
+    if any(example.split != "test" for example in examples):
+        raise ValueError("Phase 15 adapter proxy returned a non-test example")
+    return examples
+
+
 def _candidate_ids(item: Any) -> tuple[str, ...]:
     values = item.arrays.get("action_candidate_ids")
     if values is None:
@@ -136,7 +172,12 @@ def _candidate_ids(item: Any) -> tuple[str, ...]:
 
 
 def _safe_float(value: Any, name: str) -> float:
-    result = float(value)
+    if isinstance(value, Tensor):
+        if value.numel() != 1:
+            raise ValueError(f"{name} must be scalar")
+        result = float(value.detach().cpu().item())
+    else:
+        result = float(value)
     if not np.isfinite(result):
         raise ValueError(f"{name} must be finite")
     return result
@@ -148,6 +189,8 @@ def _item_metadata(example: Any) -> tuple[str | None, int, str | None]:
     raw_n_qubits = example.metadata.get("n_qubits", example.n_qubits)
     if isinstance(raw_n_qubits, bool) or not isinstance(raw_n_qubits, int):
         raise TypeError("Evaluation n_qubits metadata must be an integer")
+    if raw_n_qubits <= 0:
+        raise ValueError("Evaluation n_qubits metadata must be positive")
     distortion = example.metadata.get("distortion_id")
     distortion_value = (
         str(distortion)
@@ -172,29 +215,42 @@ def _evaluate_items_for_output(
     if graph_count != len(examples):
         raise ValueError("Collated graph count does not match evaluation examples")
 
-    diagnosis_probabilities = torch.softmax(output.distortion.class_logits, dim=-1)
-    born_metrics = distribution_metrics_by_graph(
-        output.born_prediction.probabilities,
-        supervised.targets.born_prediction.probabilities,
-        supervised.targets.born_prediction.row_mask,
-        supervised.targets.born_prediction.outcome_batch,
-        graph_count,
-        epsilon=config.distribution_epsilon,
-    ) if supervised.targets.born_prediction.probabilities.numel() else [{} for _ in examples]
-    hilbert_metrics = distribution_metrics_by_graph(
-        auxiliary.born_prediction.probabilities,
-        supervised.targets.hilbert_to_born.probabilities,
-        supervised.targets.hilbert_to_born.row_mask,
-        supervised.targets.hilbert_to_born.outcome_batch,
-        graph_count,
-        epsilon=config.distribution_epsilon,
-    ) if (
-        auxiliary is not None
-        and supervised.targets.hilbert_to_born.probabilities.numel()
-    ) else [{} for _ in examples]
+    diagnosis_probabilities = torch.softmax(
+        output.distortion.class_logits,
+        dim=-1,
+    )
+    born_metrics = (
+        distribution_metrics_by_graph(
+            output.born_prediction.probabilities,
+            supervised.targets.born_prediction.probabilities,
+            supervised.targets.born_prediction.row_mask,
+            supervised.targets.born_prediction.outcome_batch,
+            graph_count,
+            epsilon=config.distribution_epsilon,
+        )
+        if supervised.targets.born_prediction.probabilities.numel()
+        else [{} for _ in examples]
+    )
+    hilbert_metrics = (
+        distribution_metrics_by_graph(
+            auxiliary.born_prediction.probabilities,
+            supervised.targets.hilbert_to_born.probabilities,
+            supervised.targets.hilbert_to_born.row_mask,
+            supervised.targets.hilbert_to_born.outcome_batch,
+            graph_count,
+            epsilon=config.distribution_epsilon,
+        )
+        if (
+            auxiliary is not None
+            and supervised.targets.hilbert_to_born.probabilities.numel()
+        )
+        else [{} for _ in examples]
+    )
 
     item_results: list[EvaluationItemResult] = []
-    for graph_index, (example, raw) in enumerate(zip(examples, raw_items, strict=True)):
+    for graph_index, (example, raw) in enumerate(
+        zip(examples, raw_items, strict=True)
+    ):
         metrics: dict[str, float] = {}
         calibration: dict[str, float] = {}
         arrays: dict[str, np.ndarray] = {}
@@ -207,7 +263,10 @@ def _evaluate_items_for_output(
             target_index = int(diagnosis_target.class_index[graph_index])
             probabilities = diagnosis_probabilities[graph_index]
             predicted_index = int(torch.argmax(probabilities))
-            confidence = _safe_float(probabilities[predicted_index], "diagnosis confidence")
+            confidence = _safe_float(
+                probabilities[predicted_index],
+                "diagnosis confidence",
+            )
             correct = float(predicted_index == target_index)
             metrics["diagnosis_accuracy"] = correct
             metrics["diagnosis_nll"] = _safe_float(
@@ -215,48 +274,78 @@ def _evaluate_items_for_output(
                 "diagnosis nll",
             )
             calibration = {"confidence": confidence, "correct": correct}
-            arrays["diagnosis_probabilities"] = probabilities.detach().cpu().numpy()
-            arrays["diagnosis_target_index"] = np.asarray([target_index], dtype=np.int64)
+            arrays["diagnosis_probabilities"] = (
+                probabilities.detach().cpu().numpy()
+            )
+            arrays["diagnosis_target_index"] = np.asarray(
+                [target_index],
+                dtype=np.int64,
+            )
         if bool(diagnosis_target.strength_mask[graph_index]):
             metrics["diagnosis_strength_absolute_error"] = abs(
-                _safe_float(output.distortion.strength_mean[graph_index], "predicted strength")
-                - _safe_float(diagnosis_target.strength[graph_index], "target strength")
+                _safe_float(
+                    output.distortion.strength_mean[graph_index],
+                    "predicted strength",
+                )
+                - _safe_float(
+                    diagnosis_target.strength[graph_index],
+                    "target strength",
+                )
             )
         node_mask = supervised.model_batch.graph.node_batch == graph_index
-        if bool(node_mask.any()) and bool(diagnosis_target.affected_qubit_mask[node_mask].any()):
-            predicted_qubits = torch.sigmoid(
-                output.distortion.affected_qubit_logits[node_mask]
-            ) >= 0.5
+        if bool(node_mask.any()) and bool(
+            diagnosis_target.affected_qubit_mask[node_mask].any()
+        ):
+            predicted_qubits = (
+                torch.sigmoid(output.distortion.affected_qubit_logits[node_mask])
+                >= 0.5
+            )
             target_qubits = diagnosis_target.affected_qubit[node_mask] >= 0.5
             metrics["diagnosis_affected_qubit_accuracy"] = _safe_float(
                 (predicted_qubits == target_qubits).to(torch.float32).mean(),
                 "affected qubit accuracy",
             )
 
-        candidate_mask = supervised.targets.action.candidate_batch == graph_index
+        candidate_mask = (
+            supervised.targets.action.candidate_batch == graph_index
+        )
         candidate_ids = _candidate_ids(raw)
         if bool(candidate_mask.any()):
             local_scores = output.action_ranking.candidate_scores[candidate_mask]
-            local_probabilities = output.action_ranking.candidate_probabilities[candidate_mask]
-            local_selected = supervised.targets.action.selected_mask[candidate_mask]
+            local_probabilities = (
+                output.action_ranking.candidate_probabilities[candidate_mask]
+            )
+            local_selected = (
+                supervised.targets.action.selected_mask[candidate_mask]
+            )
             local_rank = supervised.targets.action.rank[candidate_mask]
             local_reward = supervised.targets.action.reward[candidate_mask]
-            local_oracle = supervised.targets.action.privileged_oracle_mask[candidate_mask]
+            local_oracle = (
+                supervised.targets.action.privileged_oracle_mask[candidate_mask]
+            )
             if len(candidate_ids) != local_scores.numel():
                 raise ValueError(
                     f"Action candidate ID count mismatch for {example.view_item_id}"
                 )
             predicted_local = int(torch.argmax(local_scores))
-            selected_indices = torch.nonzero(local_selected, as_tuple=False).reshape(-1)
+            selected_indices = torch.nonzero(
+                local_selected,
+                as_tuple=False,
+            ).reshape(-1)
             if selected_indices.numel() != 1:
-                raise ValueError("Held-out action target must select exactly one candidate")
+                raise ValueError(
+                    "Held-out action target must select exactly one candidate"
+                )
             target_local = int(selected_indices[0])
             predicted_action_id = candidate_ids[predicted_local]
             target_action_id = candidate_ids[target_local]
             target_action_rank = int(local_rank[predicted_local])
             predicted_order = torch.argsort(local_scores, descending=True)
             target_position = int(
-                torch.nonzero(predicted_order == target_local, as_tuple=False).reshape(-1)[0]
+                torch.nonzero(
+                    predicted_order == target_local,
+                    as_tuple=False,
+                ).reshape(-1)[0]
             )
             correct = float(predicted_local == target_local)
             confidence = _safe_float(
@@ -266,7 +355,8 @@ def _evaluate_items_for_output(
             metrics.update(
                 {
                     "action_top1_accuracy": correct,
-                    "action_target_reciprocal_rank": 1.0 / (target_position + 1),
+                    "action_target_reciprocal_rank": 1.0
+                    / (target_position + 1),
                     "action_selected_target_reward": _safe_float(
                         local_reward[predicted_local],
                         "selected target reward",
@@ -278,14 +368,23 @@ def _evaluate_items_for_output(
                 }
             )
             if not calibration:
-                calibration = {"confidence": confidence, "correct": correct}
+                calibration = {
+                    "confidence": confidence,
+                    "correct": correct,
+                }
             arrays["action_candidate_probabilities"] = (
                 local_probabilities.detach().cpu().numpy()
             )
-            arrays["action_candidate_scores"] = local_scores.detach().cpu().numpy()
-            arrays["action_target_selected_mask"] = local_selected.detach().cpu().numpy()
+            arrays["action_candidate_scores"] = (
+                local_scores.detach().cpu().numpy()
+            )
+            arrays["action_target_selected_mask"] = (
+                local_selected.detach().cpu().numpy()
+            )
             arrays["action_target_rank"] = local_rank.detach().cpu().numpy()
-            arrays["action_target_reward"] = local_reward.detach().cpu().numpy()
+            arrays["action_target_reward"] = (
+                local_reward.detach().cpu().numpy()
+            )
 
         metrics.update(born_metrics[graph_index])
         if hilbert_metrics[graph_index]:
@@ -312,7 +411,10 @@ def _evaluate_items_for_output(
                     .cpu()
                     .numpy()
                 )
-        if auxiliary is not None and supervised.targets.hilbert_to_born.probabilities.numel():
+        if (
+            auxiliary is not None
+            and supervised.targets.hilbert_to_born.probabilities.numel()
+        ):
             outcome_mask = (
                 supervised.targets.hilbert_to_born.outcome_batch == graph_index
             ) & supervised.targets.hilbert_to_born.row_mask
@@ -400,15 +502,21 @@ def _build_baseline_comparisons(
         item
         for item in item_results
         if item.ablation == "full"
-        and item.task in {"action_ranking", "joint_multitask", "hardware_masked"}
+        and item.task
+        in {"action_ranking", "joint_multitask", "hardware_masked"}
         and item.predicted_action_id is not None
     ]
     for item in full_action_items:
         sample_id = item.entity_id
         rollouts = action_sources.action.rollouts_by_sample_id.get(sample_id)
         if rollouts is None:
-            raise ValueError(f"No Phase 9 rollouts for held-out sample {sample_id}")
-        rollout_by_action = {rollout.action_id: rollout for rollout in rollouts}
+            raise ValueError(
+                f"No Phase 9 rollouts for held-out sample {sample_id}"
+            )
+        rollout_by_action = {
+            rollout.action_id: rollout
+            for rollout in rollouts
+        }
         learned_rollout = rollout_by_action.get(item.predicted_action_id)
         if learned_rollout is None:
             raise ValueError(
@@ -428,7 +536,8 @@ def _build_baseline_comparisons(
                 )
             learned_success = (
                 learned_after
-                < baseline.objective_before - baseline_dataset.config.improvement_atol
+                < baseline.objective_before
+                - baseline_dataset.config.improvement_atol
             )
             comparisons.append(
                 BaselineComparison(
@@ -450,9 +559,13 @@ def _build_baseline_comparisons(
                     ),
                     learned_success=bool(learned_success),
                     baseline_success=bool(baseline.success),
-                    baseline_privileged=baseline_name in _PRIVILEGED_BASELINES,
+                    baseline_privileged=(
+                        baseline_name in _PRIVILEGED_BASELINES
+                    ),
                     metadata={
-                        "comparison_objective": "phase10_weighted_exact_born_objective",
+                        "comparison_objective": (
+                            "phase10_weighted_exact_born_objective"
+                        ),
                         "lower_is_better": True,
                         "learned_policy_uses_clean_target_during_selection": False,
                         "baseline_access_privilege_preserved": True,
@@ -460,6 +573,36 @@ def _build_baseline_comparisons(
                 )
             )
     return comparisons
+
+
+def _verify_source_snapshots(
+    *,
+    dataset: Any,
+    training_run: Any,
+    action_sources: Any,
+    baseline_dataset: Any,
+) -> None:
+    actual_phase12 = snapshot_managed_files(
+        dataset.root,
+        dataset.managed_files,
+    )
+    if actual_phase12 != dataset.snapshot:
+        raise RuntimeError("Managed Phase 12 files changed during Phase 15")
+    actual_phase14 = snapshot_managed_files(
+        training_run.root,
+        training_run.managed_files,
+    )
+    if actual_phase14.aggregate_sha256 != training_run.snapshot_hash:
+        raise RuntimeError("Managed Phase 14 files changed during Phase 15")
+    if action_sources is not None:
+        verify_baseline_source_snapshots(action_sources)
+    if baseline_dataset is not None:
+        actual_phase10 = snapshot_managed_files(
+            baseline_dataset.root,
+            baseline_dataset.managed_files,
+        )
+        if actual_phase10.aggregate_sha256 != baseline_dataset.snapshot_hash:
+            raise RuntimeError("Managed Phase 10 files changed during Phase 15")
 
 
 def run_evaluation(
@@ -506,7 +649,10 @@ def run_evaluation(
     baseline_dataset = None
     baseline_suite_id = None
     if evaluation_config.include_baseline_comparison:
-        if None in (phase7_root, graph_root, action_root, baseline_root):
+        if any(
+            value is None
+            for value in (phase7_root, graph_root, action_root, baseline_root)
+        ):
             raise ValueError(
                 "Baseline comparison requires phase7_root, graph_root, "
                 "action_root, and baseline_root"
@@ -531,7 +677,9 @@ def run_evaluation(
             baseline_root,
             expected_source_ids=expected_source_ids,
         )
-        baseline_suite_id = baseline_dataset.completion_marker["baseline_suite_id"]
+        baseline_suite_id = (
+            baseline_dataset.completion_marker["baseline_suite_id"]
+        )
 
     schema_identifier = evaluation_schema_id()
     recipe_identifier = evaluation_recipe_id(
@@ -541,7 +689,9 @@ def run_evaluation(
         evaluation_config,
         baseline_suite_id=baseline_suite_id,
     )
-    operational_identifier = evaluation_operational_config_id(evaluation_config)
+    operational_identifier = evaluation_operational_config_id(
+        evaluation_config
+    )
     run_identifier = evaluation_run_id(
         recipe_identifier,
         operational_identifier,
@@ -561,10 +711,9 @@ def run_evaluation(
     examples: list[Any] = []
     task_counts: Counter[str] = Counter()
     for task in evaluation_config.tasks:
-        task_examples = load_training_examples(
+        task_examples = _load_test_examples(
             dataset,
-            tasks=(task,),
-            split="test",
+            task=task,
             spec=training_run.data_spec,
             phase7_root=phase7_root,
         )
@@ -633,6 +782,13 @@ def run_evaluation(
         else []
     )
 
+    _verify_source_snapshots(
+        dataset=dataset,
+        training_run=training_run,
+        action_sources=action_sources,
+        baseline_dataset=baseline_dataset,
+    )
+
     summary = {
         "evaluation_schema_id": schema_identifier,
         "evaluation_recipe_id": recipe_identifier,
@@ -642,6 +798,13 @@ def run_evaluation(
         "training_run_id": training_run.training_run_id,
         "checkpoint_id": training_run.checkpoint_record.checkpoint_id,
         "checkpoint_kind": training_run.checkpoint_record.kind,
+        "phase12_snapshot_hash": dataset.snapshot.aggregate_sha256,
+        "phase14_snapshot_hash": training_run.snapshot_hash,
+        "phase10_snapshot_hash": (
+            baseline_dataset.snapshot_hash
+            if baseline_dataset is not None
+            else None
+        ),
         "heldout_split": "test",
         "heldout_evaluation_performed": True,
         "test_split_item_count": len(examples),
@@ -662,10 +825,26 @@ def run_evaluation(
     return EvaluationRunResult(
         training_view_root=dataset.root,
         training_run_root=training_run.root,
-        phase7_root=(Path(phase7_root) if phase7_root is not None else None),
-        graph_root=(Path(graph_root) if graph_root is not None else None),
-        action_root=(Path(action_root) if action_root is not None else None),
-        baseline_root=(Path(baseline_root) if baseline_root is not None else None),
+        phase7_root=(
+            Path(phase7_root).expanduser().resolve(strict=False)
+            if phase7_root is not None
+            else None
+        ),
+        graph_root=(
+            Path(graph_root).expanduser().resolve(strict=False)
+            if graph_root is not None
+            else None
+        ),
+        action_root=(
+            Path(action_root).expanduser().resolve(strict=False)
+            if action_root is not None
+            else None
+        ),
+        baseline_root=(
+            Path(baseline_root).expanduser().resolve(strict=False)
+            if baseline_root is not None
+            else None
+        ),
         config=evaluation_config,
         evaluation_schema_id=schema_identifier,
         evaluation_recipe_id=recipe_identifier,
