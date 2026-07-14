@@ -1,11 +1,11 @@
 """Versioned Phase 13 model-architecture constants."""
 from __future__ import annotations
 
-MODEL_SCHEMA_VERSION = "triqto.model.phase13.v2"
-MODEL_INPUT_CONTRACT_VERSION = "triqto.model.tensor_contract.v2"
+MODEL_SCHEMA_VERSION = "triqto.model.phase13.v3"
+MODEL_INPUT_CONTRACT_VERSION = "triqto.model.tensor_contract.v3"
 PHASE_COUPLED_LAYER_VERSION = "triqto.phase_coupled_message_passing.v1"
 MASK_FUSION_VERSION = "triqto.mask_aware_stream_fusion.v1"
-MODEL_OUTPUT_CONTRACT_VERSION = "triqto.model.output_contract.v1"
+MODEL_OUTPUT_CONTRACT_VERSION = "triqto.model.output_contract.v2"
 
 STREAM_ORDER = (
     "circuit_graph",
@@ -59,7 +59,7 @@ HEAD_STREAM_POLICY = {
     "diagnosis": (True, True, True, True, True, True, True),
     "action_ranking": (True, True, True, True, True, True, True),
     "born_prediction": (True, True, True, True, False, True, False),
-    "hilbert_deformation": (True, True, True, False,True, True, True),
+    "hilbert_deformation": (True, True, True, False, True, True, True),
     "uncertainty": (True, True, True, True, True, True, True),
     "topology": (True, True, True, True, True, True, False),
 }

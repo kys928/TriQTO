@@ -10,7 +10,7 @@ from .entangling import apply_entangling_rzz_drift
 from .layout import apply_layout_permutation_marker
 from .mixed import apply_mixed_unitary_drift
 from .phase import apply_phase_rz_drift
-from .readout import apply_readout_bitflip_marker
+from .readout import apply_readout_bitflip
 
 DistortionFunction = Callable[..., DistortedCircuit]
 
@@ -19,7 +19,7 @@ DISTORTION_REGISTRY: dict[str, DistortionFunction] = {
     "rx_overrotation": apply_rx_overrotation,
     "ry_overrotation": apply_ry_overrotation,
     "entangling_rzz_drift": apply_entangling_rzz_drift,
-    "readout_bitflip_marker": apply_readout_bitflip_marker,
+    "readout_bitflip": apply_readout_bitflip,
     "layout_permutation_marker": apply_layout_permutation_marker,
     "mixed_unitary_drift": apply_mixed_unitary_drift,
 }

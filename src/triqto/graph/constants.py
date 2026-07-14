@@ -3,7 +3,7 @@ from __future__ import annotations
 
 GRAPH_SCHEMA_VERSION = "triqto.graph.phase8.v1"
 GRAPH_ARTIFACT_SCHEMA_VERSION = "triqto.graph.artifact.v1"
-PAIR_ARTIFACT_SCHEMA_VERSION = "triqto.graph.pair_artifact.v1"
+PAIR_ARTIFACT_SCHEMA_VERSION = "triqto.graph.pair_artifact.v2"
 GATE_VOCAB_VERSION = "triqto.graph.gate_vocab.v1"
 ANGLE_SLOT_MAPPING_VERSION = "triqto.graph.angle_slots.v1"
 EDGE_REPRESENTATION_VERSION = "triqto.graph.directed_multiedge.v1"
@@ -161,6 +161,12 @@ PAIR_ARRAY_NAMES = (
     "born_metric_names",
     "born_metric_values",
     "born_metric_positive_infinity_mask",
+    "measurement_setting_ids",
+    "measurement_basis_codes",
+    "measurement_outcome_bitstrings",
+    "measurement_setting_index",
+    "clean_measurement_probabilities",
+    "distorted_measurement_probabilities",
 )
 PAIR_METADATA_ARRAY_NAME = "__metadata_json__"
 

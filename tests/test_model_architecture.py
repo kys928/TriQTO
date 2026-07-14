@@ -101,6 +101,8 @@ def build_batch(*, born_probabilities=(0.5, 0.5, 0.25, 0.75), hardware_second=Tr
         probabilities=torch.tensor(born_probabilities, dtype=torch.float32),
         batch_index=torch.tensor([0, 0, 1, 1], dtype=torch.long),
         available_mask=torch.tensor([True, True]),
+        measurement_basis_codes=torch.zeros_like(bits, dtype=torch.long),
+        measurement_setting_index=torch.tensor([0, 0, 1, 1], dtype=torch.long),
     )
     inv_sqrt_two = 2.0 ** -0.5
     hilbert = HilbertTensorBatch(
@@ -144,6 +146,8 @@ def build_batch(*, born_probabilities=(0.5, 0.5, 0.25, 0.75), hardware_second=Tr
         outcome_bit_mask=bit_mask,
         batch_index=torch.tensor([0, 0, 1, 1], dtype=torch.long),
         available_mask=torch.tensor([True, True]),
+        measurement_basis_codes=torch.zeros_like(bits, dtype=torch.long),
+        measurement_setting_index=torch.tensor([0, 0, 1, 1], dtype=torch.long),
     )
     hardware = torch.tensor([False, hardware_second])
     return TriQTOBatch(
@@ -200,7 +204,7 @@ def test_variable_size_forward_and_segment_probabilities() -> None:
     assert torch.allclose(action_sums, torch.ones(2), atol=1e-6)
     born_sums = segment_sum(
         output.born_prediction.probabilities,
-        output.born_prediction.outcome_batch,
+        output.born_prediction.measurement_setting_index,
         2,
     )
     assert torch.allclose(born_sums, torch.ones(2), atol=1e-6)
@@ -369,7 +373,15 @@ def test_masked_basis_bits_and_duplicate_rows_are_rejected() -> None:
     assert batch.born_queries is not None
     batch.born_queries.outcome_bits[1] = batch.born_queries.outcome_bits[0]
     batch.born_queries.outcome_bit_mask[1] = batch.born_queries.outcome_bit_mask[0]
-    with pytest.raises(ValueError, match="unique within each graph"):
+    with pytest.raises(ValueError, match="unique within each measurement setting"):
+        batch.validate(config())
+
+
+def test_measurement_setting_groups_cannot_span_graphs() -> None:
+    batch = build_batch()
+    assert batch.born_queries is not None
+    batch.born_queries.measurement_setting_index[2:] = 0
+    with pytest.raises(ValueError, match="must not span graphs"):
         batch.validate(config())
 
 

@@ -118,6 +118,35 @@ class BackendRecord(ManifestRecordMixin):
 
 
 @dataclass(slots=True)
+class MeasurementSettingRecord(ManifestRecordMixin):
+    """First-class provenance for one Pauli-product measurement setting."""
+
+    required_fields: ClassVar[tuple[str, ...]] = (
+        "measurement_setting_id",
+        "schema_version",
+    )
+
+    measurement_setting_id: str
+    schema_version: str
+    n_qubits: int
+    bases: list[str]
+    metadata: JsonMap = field(default_factory=dict)
+
+    def validate(self) -> None:
+        ManifestRecordMixin.validate(self)
+        if isinstance(self.n_qubits, bool) or not isinstance(self.n_qubits, int):
+            raise TypeError("MeasurementSettingRecord.n_qubits must be int and not bool")
+        if self.n_qubits <= 0:
+            raise ValueError("MeasurementSettingRecord.n_qubits must be positive")
+        if not isinstance(self.bases, list) or len(self.bases) != self.n_qubits:
+            raise ValueError("MeasurementSettingRecord.bases must match n_qubits")
+        if any(basis not in {"X", "Y", "Z"} for basis in self.bases):
+            raise ValueError("MeasurementSettingRecord.bases must contain only X, Y, Z")
+        if not isinstance(self.metadata, Mapping):
+            raise TypeError("MeasurementSettingRecord.metadata must be a mapping")
+
+
+@dataclass(slots=True)
 class SimulationRecord(ManifestRecordMixin):
     """Manifest row describing simulation or hardware measurement outputs."""
 
@@ -132,6 +161,7 @@ class SimulationRecord(ManifestRecordMixin):
     counts_ref: str | None = None
     probabilities_ref: str | None = None
     metadata: JsonMap = field(default_factory=dict)
+    measurement_setting_id: str | None = None
 
 
 @dataclass(slots=True)
@@ -229,6 +259,13 @@ class DatasetSampleRecord(ManifestRecordMixin):
     parameter_bindings: JsonMap = field(default_factory=dict)
     base_seed: int = 0
     metadata: JsonMap = field(default_factory=dict)
+    measurement_setting_ids: list[str] = field(default_factory=list)
+    clean_measurement_run_ids: list[str] = field(default_factory=list)
+    distorted_measurement_run_ids: list[str] = field(default_factory=list)
+    identifiability_status: str = "unidentifiable"
+    identifiability_reason: str | None = "insufficient_measurement_settings"
+    diagnosis_supervision_mask: bool = False
+    observable_evidence_fingerprint: str = ""
 
     def validate(self) -> None:
         ManifestRecordMixin.validate(self)
@@ -236,6 +273,37 @@ class DatasetSampleRecord(ManifestRecordMixin):
             raise ValueError("n_qubits must be positive")
         if self.repetition_index < 0:
             raise ValueError("repetition_index must be non-negative")
+        if not (
+            len(self.measurement_setting_ids)
+            == len(self.clean_measurement_run_ids)
+            == len(self.distorted_measurement_run_ids)
+        ):
+            raise ValueError("measurement setting/run ID lists must have equal lengths")
+        if len(set(self.measurement_setting_ids)) != len(self.measurement_setting_ids):
+            raise ValueError("measurement_setting_ids must be unique")
+        if self.identifiability_status not in {
+            "identifiable",
+            "conditionally_identifiable",
+            "unidentifiable",
+        }:
+            raise ValueError("invalid identifiability_status")
+        if self.identifiability_status == "identifiable":
+            if self.identifiability_reason is not None:
+                raise ValueError("identifiable samples must not have an identifiability_reason")
+        elif not isinstance(self.identifiability_reason, str) or not self.identifiability_reason:
+            raise ValueError("non-identifiable samples require identifiability_reason")
+        if not isinstance(self.diagnosis_supervision_mask, bool):
+            raise TypeError("diagnosis_supervision_mask must be bool")
+        if self.identifiability_status == "unidentifiable" and self.diagnosis_supervision_mask:
+            override = self.metadata.get("unidentifiable_supervision_override")
+            if override is not True:
+                raise ValueError(
+                    "unidentifiable diagnosis supervision requires an explicit override"
+                )
+        if not isinstance(self.observable_evidence_fingerprint, str):
+            raise TypeError("observable_evidence_fingerprint must be a string")
+        if self.measurement_setting_ids and not self.observable_evidence_fingerprint:
+            raise ValueError("measurement-conditioned samples require an evidence fingerprint")
 
 
 @dataclass(slots=True)

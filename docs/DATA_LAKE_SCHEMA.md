@@ -4,6 +4,7 @@ The data lake supports the whole research program from day one while allowing ta
 
 ## Record families
 - Circuit records
+- Measurement-setting records
 - Backend records
 - Simulation records
 - Distortion records
@@ -16,6 +17,7 @@ The data lake supports the whole research program from day one while allowing ta
 Future manifests are expected at `data/manifests/`:
 - `circuit_manifest.parquet`
 - `simulation_manifest.parquet`
+- `measurement_setting_manifest.parquet`
 - `distortion_manifest.parquet`
 - `metric_manifest.parquet`
 - `action_manifest.parquet`
@@ -29,9 +31,9 @@ Large tensors should be referenced by path or URI rather than embedded in manife
 
 Phase 7 implements a deterministic raw research-data lifecycle:
 
-`CircuitGenerationSpec -> circuit family generator -> deterministic parameter binding -> clean ideal statevector simulation -> controlled distortion -> distorted ideal statevector simulation -> Born metric comparison -> deterministic IDs -> artifacts -> linked manifests`.
+`CircuitGenerationSpec -> circuit family generator -> deterministic parameter binding -> clean ideal statevector simulation -> explicit measurement settings M -> controlled distortion -> distorted p(y | M) -> setting-conditioned Born metric comparison -> identifiability assessment -> deterministic IDs -> artifacts -> linked manifests`.
 
-The generated data is synthetic, simulator-derived raw research data. It is not real hardware data. Unitary distortions are controlled circuit-level interventions rather than calibrated hardware noise. Marker-only readout/layout records do not simulate physical effects and must not fabricate Born-probability changes. A `born_zero_shift` label means no computational-basis Born shift was observed; it does not prove Hilbert-state equality. Statevectors are simulation-only artifacts. No correction ability has been learned, no training has occurred, and no quantum advantage is claimed.
+The generated data is synthetic, simulator-derived raw research data. It is not real hardware data. Unitary distortions are controlled circuit-level interventions rather than calibrated hardware noise. Readout bit flips are implemented as an observable classical measurement channel. Layout markers remain audit-only and unidentifiable because backend/layout evidence is unavailable. A setting-specific `born_zero_shift` means no selected measurement distribution changed beyond tolerance; it does not prove Hilbert-state equality. Statevectors and exact probabilities are simulation-only artifacts. No correction ability has been learned, no training has occurred, and no quantum advantage is claimed.
 
 ### Sample manifest and joins
 
@@ -39,8 +41,11 @@ The generated data is synthetic, simulator-derived raw research data. It is not 
 
 - `clean_circuit_id` and `distorted_circuit_id` in `circuit_manifest.parquet`
 - `clean_run_id` and `distorted_run_id` in `simulation_manifest.parquet`
+- ordered `measurement_setting_ids`, clean measurement run IDs, and distorted measurement run IDs in `measurement_setting_manifest.parquet` and `simulation_manifest.parquet`
 - `distortion_id` in `distortion_manifest.parquet`
 - `metric_id` in `metric_manifest.parquet`
+
+Each sample also stores identifiability status/reason, a default diagnosis supervision mask, and an observable-evidence fingerprint that excludes labels and provenance.
 
 This join layer is a raw-sample manifest only. It is not a `TrainingViewRecord`, does not contain train/validation/test allocations, and does not create final training views. Training-view allocation remains Phase 12.
 
@@ -54,6 +59,7 @@ dataset_summary.json
 manifests/sample_manifest.parquet
 manifests/circuit_manifest.parquet
 manifests/simulation_manifest.parquet
+manifests/measurement_setting_manifest.parquet
 manifests/distortion_manifest.parquet
 manifests/metric_manifest.parquet
 artifacts/circuits/<circuit_id>.qpy
@@ -62,7 +68,7 @@ artifacts/probabilities/<run_id>.json
 artifacts/counts/<run_id>.json
 ```
 
-Manifests store references to artifacts, not large statevectors inline. Exact Born probabilities come from ideal statevector simulation and are the target for Phase 7 Born metrics. Optional ideal-shot counts are supplemental and never replace exact probabilities.
+Manifests store references to artifacts, not large statevectors inline. Exact Born probabilities come from ideal statevector simulation and are compared separately for every declared measurement setting. Optional ideal-shot counts are setting-conditioned, supplemental, and never replace exact probabilities.
 
 ### Non-finite Born metric serialization
 

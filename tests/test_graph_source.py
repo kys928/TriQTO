@@ -47,7 +47,7 @@ def make_phase7_source(
                 kwargs={"strength": 0.3, "qubits": [0]},
             ),
             DistortionSpec(
-                name="readout_bitflip_marker",
+                name="readout_bitflip",
                 kwargs={"probability": 0.1, "qubits": [0]},
             ),
         ],
@@ -115,12 +115,18 @@ def test_supplemental_count_toggle_does_not_change_ids_or_hashes(tmp_path):
     assert not any(graph.supplemental_counts_available_mask for graph in excluded.graphs)
 
 
-def test_marker_only_pair_uses_metric_applicability_warning(tmp_path):
+def test_readout_pair_carries_observable_measurement_evidence(tmp_path):
     root = make_phase7_source(tmp_path / "source")
     result = convert_completed_dataset_to_graphs(root)
-    marker_pair = next(pair for pair in result.pairs if pair.marker_only)
-    assert marker_pair.born_zero_shift is True
-    assert marker_pair.applicability_warning
+    readout_pair = next(
+        pair
+        for pair in result.pairs
+        if pair.metadata["distortion_type"] == "readout_bitflip"
+    )
+    assert readout_pair.marker_only is False
+    assert readout_pair.born_zero_shift is False
+    assert readout_pair.identifiability_status == "identifiable"
+    assert readout_pair.diagnosis_supervision_mask is True
 
 
 def test_source_loader_rejects_completion_identity_mismatch(tmp_path):

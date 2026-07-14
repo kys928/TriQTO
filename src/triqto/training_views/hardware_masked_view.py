@@ -99,6 +99,14 @@ def build_hardware_masked_items(
         privileged = bool(
             np.any(arrays.get("action_privileged_oracle_mask", np.zeros(0, dtype=np.bool_)))
         )
+        diagnosis_supervised = bool(
+            arrays["diagnosis_supervision_mask"].reshape(-1)[0]
+        )
+        action_supervised = bool(arrays["action_supervision_mask"].reshape(-1)[0])
+        arrays["hardware_head_target_available_mask"] = np.asarray(
+            [diagnosis_supervised, action_supervised, True, False],
+            dtype=np.bool_,
+        )
         result = make_training_item(
             dataset_id=context.dataset_id,
             view_id=view_id,
@@ -116,7 +124,12 @@ def build_hardware_masked_items(
                 topology_safe,
                 False,
             ),
-            target_available=(True, True, True, False),
+            target_available=(
+                diagnosis_supervised,
+                action_supervised,
+                True,
+                False,
+            ),
             arrays=arrays,
             source_refs=source_refs,
             hilbert_available=False,

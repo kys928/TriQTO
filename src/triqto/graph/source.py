@@ -23,6 +23,7 @@ from triqto.storage.schema import (
     DatasetSampleRecord,
     DistortionRecord,
     MetricRecord,
+    MeasurementSettingRecord,
     SimulationRecord,
 )
 
@@ -40,6 +41,7 @@ _PHASE7_MANIFEST_NAMES = (
     "sample_manifest",
     "circuit_manifest",
     "simulation_manifest",
+    "measurement_setting_manifest",
     "distortion_manifest",
     "metric_manifest",
 )
@@ -91,6 +93,7 @@ def _typed_manifests(
     list[DatasetSampleRecord],
     list[CircuitRecord],
     list[SimulationRecord],
+    list[MeasurementSettingRecord],
     list[DistortionRecord],
     list[MetricRecord],
 ]:
@@ -99,6 +102,7 @@ def _typed_manifests(
         reader.read_typed_records("sample_manifest", DatasetSampleRecord),
         reader.read_typed_records("circuit_manifest", CircuitRecord),
         reader.read_typed_records("simulation_manifest", SimulationRecord),
+        reader.read_typed_records("measurement_setting_manifest", MeasurementSettingRecord),
         reader.read_typed_records("distortion_manifest", DistortionRecord),
         reader.read_typed_records("metric_manifest", MetricRecord),
     )
@@ -177,7 +181,7 @@ def load_completed_phase7_dataset(
     summary = strict_json_load(root / "dataset_summary.json")
     require_mapping(summary, "dataset_summary.json")
 
-    samples, circuits, simulations, distortions, metrics = _typed_manifests(root)
+    samples, circuits, simulations, measurement_settings, distortions, metrics = _typed_manifests(root)
     if _require_marker_int(marker, "sample_count") != len(samples):
         raise ValueError("dataset_complete.json sample_count mismatch")
     validate_dataset_joins(
@@ -186,6 +190,7 @@ def load_completed_phase7_dataset(
         simulations,
         distortions,
         metrics,
+        measurement_settings,
     )
     verify_dataset_references(
         root,
@@ -202,6 +207,14 @@ def load_completed_phase7_dataset(
     }
     if not exact_runs:
         raise ValueError("Phase 7 dataset has no ideal_statevector simulation records")
+    probability_runs = {
+        record.run_id: record
+        for record in simulations
+        if record.simulation_mode in {
+            "ideal_statevector",
+            "ideal_measurement_probabilities",
+        }
+    }
 
     required_artifact_refs: set[str] = set()
     circuits_by_id: dict[str, QuantumCircuit] = {}
@@ -221,7 +234,7 @@ def load_completed_phase7_dataset(
         circuits_by_id[record.circuit_id] = _load_one_qpy(path, record.circuit_id)
 
     probabilities_by_run_id: dict[str, dict[str, float]] = {}
-    for run_id, record in exact_runs.items():
+    for run_id, record in probability_runs.items():
         if record.probabilities_ref is None:
             raise ValueError(f"SimulationRecord {run_id} probabilities_ref is required")
         required_artifact_refs.add(record.probabilities_ref)
@@ -252,10 +265,10 @@ def load_completed_phase7_dataset(
             metadata.get("source_run_id"),
             f"SimulationRecord {record.run_id}.metadata.source_run_id",
         )
-        if source_run_id not in exact_runs:
+        if source_run_id not in probability_runs:
             raise ValueError(
                 f"SimulationRecord {record.run_id} source_run_id references missing "
-                f"exact run {source_run_id}"
+                f"probability run {source_run_id}"
             )
         if source_run_id in shot_records_by_exact_run_id:
             raise ValueError(
@@ -292,7 +305,7 @@ def load_completed_phase7_dataset(
         )
         payload_raw = strict_json_load(path)
         payload = require_mapping(payload_raw, f"count artifact for run {record.run_id}")
-        exact_record = exact_runs[source_run_id]
+        exact_record = probability_runs[source_run_id]
         circuit_record = circuit_records_by_id[exact_record.circuit_id]
         validate_count_mapping(payload, circuit_record.n_qubits, shots)
         shot_records_by_exact_run_id[source_run_id] = record
@@ -317,6 +330,7 @@ def load_completed_phase7_dataset(
         simulations=simulations,
         distortions=distortions,
         metrics=metrics,
+        measurement_settings=measurement_settings,
         circuits_by_id=circuits_by_id,
         probabilities_by_run_id=probabilities_by_run_id,
         counts_by_exact_run_id=counts_by_exact_run_id,

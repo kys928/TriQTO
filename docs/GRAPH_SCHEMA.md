@@ -59,12 +59,15 @@ Circuit global phase is retained only as provenance. It is excluded from node, e
 
 ## Born evidence and supplemental counts
 
-Exact Born probabilities are required and stored as a sorted variable-length outcome table:
+Each graph keeps its legacy computational-basis exact table for structural provenance. Each graph-pair artifact additionally stores the diagnosis evidence as a basis-conditioned variable-length table:
 
-- `outcome_bitstrings`: fixed-width Unicode
-- `exact_probabilities`: float64
+- `measurement_setting_ids`: content-derived setting IDs;
+- `measurement_basis_codes`: per-setting, per-qubit `Z/X/Y` codes;
+- `measurement_setting_index`: row-to-setting join;
+- `measurement_outcome_bitstrings`: fixed-width Unicode;
+- `clean_measurement_probabilities` and `distorted_measurement_probabilities`: float64.
 
-Bitstrings must be unique binary strings of width `n_qubits`. Values must be finite int/float values and cannot be booleans or numeric strings. Meaningfully negative values are rejected. Tiny negative numerical noise inside the declared tolerance may be clipped to zero and is recorded; no renormalization, thresholding, or truncation occurs. Tiny positive mass is preserved.
+Bitstrings must be unique within each setting and have width `n_qubits`. Values must be finite and nonnegative, and each clean/distorted setting distribution must sum to one independently. Pair artifact schema v2 hashes the full measurement context and both probability tables.
 
 Ideal-shot counts are separate supplemental arrays. They are linked through the ideal-shot `SimulationRecord.metadata["source_run_id"]`, strictly validated against shot totals, and never replace exact probabilities. Disabling supplemental counts does not change graph IDs, pair IDs, graph schema IDs, exact evidence, or structural content hashes.
 

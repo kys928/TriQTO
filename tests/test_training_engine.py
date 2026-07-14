@@ -145,6 +145,8 @@ def example(index: int, probabilities: tuple[float, float]) -> TrainingExample:
         outcome_bit_mask=torch.ones((2, 2), dtype=torch.bool),
         batch_index=torch.tensor([0, 0], dtype=torch.long),
         available_mask=torch.tensor([True]),
+        measurement_basis_codes=torch.zeros((2, 2), dtype=torch.long),
+        measurement_setting_index=torch.zeros(2, dtype=torch.long),
     )
     head_active = torch.zeros((1, len(HEAD_ORDER)), dtype=torch.bool)
     head_stream = torch.zeros((1, len(HEAD_ORDER), len(STREAM_ORDER)), dtype=torch.bool)
@@ -351,20 +353,20 @@ def test_repository_phase14_configs_load() -> None:
 
 
 
-def test_distribution_losses_average_complete_graph_distances() -> None:
+def test_distribution_losses_average_complete_measurement_setting_distances() -> None:
     predicted = torch.tensor(
         [0.5, 0.5, 0.5, 1.0 / 6.0, 1.0 / 6.0, 1.0 / 6.0],
         dtype=torch.float64,
     )
     target = torch.tensor([1.0, 0.0, 1.0, 0.0, 0.0, 0.0], dtype=torch.float64)
-    outcome_batch = torch.tensor([0, 0, 1, 1, 1, 1], dtype=torch.long)
+    measurement_setting_index = torch.tensor([0, 0, 1, 1, 1, 1], dtype=torch.long)
     row_mask = torch.ones(6, dtype=torch.bool)
     kl, hellinger = _distribution_losses(
         predicted,
         target,
         row_mask,
-        outcome_batch,
-        graph_count=2,
+        measurement_setting_index,
+        distribution_count=2,
     )
     assert torch.allclose(kl, torch.log(torch.tensor(2.0, dtype=torch.float64)))
     expected_hellinger = torch.sqrt(

@@ -84,7 +84,7 @@ The phasor encoder emphasizes periodic coordinates, including sine, cosine, raw 
 
 ### Born stream
 
-Born evidence is represented as a variable-support table of basis strings and probabilities. Basis strings use shared bit-position encoding with per-row active-qubit normalization, so representation does not depend on the widest item in a mixed batch. Outcome embeddings are pooled with probability-weighted, mean, and maximum summaries.
+Born evidence is represented as a variable-support table of outcome strings, probabilities, per-qubit `Z/X/Y` basis codes, and measurement-setting indices. Outcome and measurement-basis values are encoded jointly with shared bit-position encoding and per-row active-qubit normalization, so representation does not depend on the widest item in a mixed batch. Outcome embeddings are pooled with probability-weighted, mean, and maximum summaries.
 
 The Born-prediction head is hard-forbidden from consuming the Born input stream. Phase 12 also physically excludes target Born evidence from Born-prediction inputs.
 
@@ -165,7 +165,7 @@ Privileged oracle labels are not observable model inputs. Their masks remain tar
 
 ### Born prediction
 
-Scores an arbitrary queried support of basis strings and applies segment softmax per graph. It does not assume a fixed `2^n` output tensor, although a caller may query the full support for small circuits.
+Scores an arbitrary queried support of basis strings conditioned on `M` and applies segment softmax independently per measurement setting. It does not assume a fixed `2^n` output tensor, although a caller may query the full support for small circuits.
 
 ### Hilbert deformation
 

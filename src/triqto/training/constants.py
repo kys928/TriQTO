@@ -3,7 +3,7 @@ from __future__ import annotations
 
 TRAINING_SCHEMA_VERSION = "triqto.training.phase14.v1"
 TRAINING_SOURCE_CONTRACT_VERSION = "triqto.training.phase12_source.v1"
-TRAINING_ADAPTER_VERSION = "triqto.training.phase12_tensor_adapter.v1"
+TRAINING_ADAPTER_VERSION = "triqto.training.phase12_tensor_adapter.v2"
 TRAINING_BATCHING_VERSION = "triqto.training.deterministic_budget_batching.v1"
 TRAINING_LOSS_VERSION = "triqto.training.multitask_loss.v1"
 TRAINING_CURRICULUM_VERSION = "triqto.training.curriculum.v1"
@@ -36,6 +36,7 @@ DISTORTION_TO_COARSE_LABEL = {
     "entangling_rzz_drift": "entanglement_like",
     "layout_permutation_marker": "lattice_layout_like",
     "readout_bitflip_marker": "noise_readout_like",
+    "readout_bitflip": "noise_readout_like",
     "depolarizing": "noise_readout_like",
     "depolarizing_noise": "noise_readout_like",
     "amplitude_damping": "noise_readout_like",

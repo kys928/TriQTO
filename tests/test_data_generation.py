@@ -43,7 +43,7 @@ def base_config(**overrides: Any) -> DatasetGenerationConfig:
         ],
         "distortion_specs": [
             DistortionSpec(name="rx_overrotation", kwargs={"strength": 0.3, "qubits": [0]}),
-            DistortionSpec(name="readout_bitflip_marker", kwargs={"probability": 0.1, "qubits": [0]}),
+            DistortionSpec(name="readout_bitflip", kwargs={"probability": 0.1, "qubits": [0]}),
         ],
         "max_samples": 10,
     }
@@ -64,6 +64,12 @@ def sample_signature(result):
             "parameter_bindings": sample.parameter_bindings,
             "clean_probabilities": sample.clean_result.probabilities,
             "distorted_probabilities": sample.distorted_result.probabilities,
+            "measurement_probabilities": {
+                setting_id: measurement.probabilities
+                for setting_id, measurement in sorted(
+                    sample.distorted_measurement_results.items()
+                )
+            },
         }
         for sample in sorted(result.samples, key=lambda item: item.metadata["distortion_name"])
     ]
@@ -186,7 +192,7 @@ def test_seed_derivation_deterministic_namespaced_and_validated() -> None:
         derive_child_seed(1, " ", {})
 
 
-def test_generation_ids_parameters_counts_metric_metadata_and_marker_honesty() -> None:
+def test_generation_ids_parameters_counts_metrics_and_observable_readout() -> None:
     first = generate_dataset(base_config())
     second = generate_dataset(base_config())
     different_seed = generate_dataset(base_config(base_seed=12))
@@ -200,12 +206,20 @@ def test_generation_ids_parameters_counts_metric_metadata_and_marker_honesty() -
         assert sample.clean_result.probabilities
         assert sample.distorted_result.probabilities
         assert isinstance(sample.born_metrics, BornMetricBundle)
+        assert sample.measurement_settings
+        assert sample.clean_measurement_results
+        assert sample.distorted_measurement_results
     visible = next(sample for sample in first.samples if sample.metadata["distortion_name"] == "rx_overrotation")
     assert visible.born_metrics.metrics["total_variation"].value > 0
-    marker = next(sample for sample in first.samples if sample.metadata["marker_only"])
-    assert marker.clean_result.probabilities == marker.distorted_result.probabilities
-    assert marker.born_metrics.metadata.get("applicability_warning")
-    assert marker.metadata["born_zero_shift"] is True
+    readout = next(
+        sample
+        for sample in first.samples
+        if sample.metadata["distortion_name"] == "readout_bitflip"
+    )
+    assert readout.clean_result.probabilities == readout.distorted_result.probabilities
+    assert readout.metadata["marker_only"] is False
+    assert readout.metadata["born_zero_shift"] is False
+    assert readout.metadata["identifiability_status"] == "identifiable"
     for record in first.metric_records:
         assert record.born_metrics
         assert record.hilbert_metrics == {}
@@ -218,19 +232,26 @@ def test_generation_ids_parameters_counts_metric_metadata_and_marker_honesty() -
 def test_simulation_backend_metadata_for_exact_and_shot_records() -> None:
     result = generate_dataset(base_config(ideal_shots=8))
     exact = [record for record in result.simulation_records if record.simulation_mode == "ideal_statevector"]
+    measurement = [record for record in result.simulation_records if record.simulation_mode == "ideal_measurement_probabilities"]
     shots = [record for record in result.simulation_records if record.simulation_mode == "ideal_shot"]
-    assert exact and shots
+    assert exact and measurement and shots
     assert {record.backend_name for record in exact} == {"qiskit.quantum_info.Statevector"}
     assert {record.metadata["sampling_source"] for record in exact} == {"exact_statevector"}
+    assert {record.metadata["sampling_source"] for record in measurement} == {"basis_conditioned_exact_probabilities"}
+    assert all(record.measurement_setting_id for record in measurement)
     assert {record.backend_name for record in shots} == {"triqto.ideal_probability_sampler"}
     assert {record.metadata["sampling_source"] for record in shots} == {"sampled_from_exact_born_probabilities"}
     assert all(record.metadata.get("source_run_id") for record in shots)
+    assert all(record.measurement_setting_id for record in shots)
     assert all(record.metadata.get("seed") is not None for record in shots)
 
 
 def test_born_zero_tolerance_labels_without_changing_identities() -> None:
     exact_zero = generate_dataset(
-        base_config(distortion_specs=[DistortionSpec("phase_rz_drift", {"strength": 0.4, "qubits": [0]})])
+        base_config(
+            distortion_specs=[DistortionSpec("phase_rz_drift", {"strength": 0.4, "qubits": [0]})],
+            measurement_settings=("Z",),
+        )
     )
     assert exact_zero.samples[0].metadata["born_zero_shift"] is True
     tiny_config = base_config(
@@ -328,8 +349,14 @@ def test_write_dataset_artifact_paths_contract_and_readback(tmp_path: Path) -> N
     write_result = write_dataset(result, tmp_path / "dataset")
     assert set(write_result.artifact_paths) == {"circuits", "probabilities", "statevectors", "counts"}
     assert len(write_result.artifact_paths["circuits"]) == len(result.circuit_records)
-    assert len(write_result.artifact_paths["probabilities"]) == len({sample.clean_run_id for sample in result.samples} | {sample.distorted_run_id for sample in result.samples})
-    assert len(write_result.artifact_paths["statevectors"]) == len(write_result.artifact_paths["probabilities"])
+    assert len(write_result.artifact_paths["probabilities"]) == len([
+        record
+        for record in result.simulation_records
+        if record.simulation_mode in {"ideal_statevector", "ideal_measurement_probabilities"}
+    ])
+    assert len(write_result.artifact_paths["statevectors"]) == len([
+        record for record in result.simulation_records if record.simulation_mode == "ideal_statevector"
+    ])
     assert len(write_result.artifact_paths["counts"]) == len([record for record in result.simulation_records if record.simulation_mode == "ideal_shot"])
     assert len(write_result.written_paths) == len(set(write_result.written_paths))
     assert all(path.exists() for path in write_result.written_paths)
@@ -352,12 +379,14 @@ def _assert_artifact_readback(result, root: Path) -> None:
     sample_rows = normalize_rows(reader.read_records("sample_manifest"))
     circuit_rows = normalize_rows(reader.read_records("circuit_manifest"))
     simulation_rows = normalize_rows(reader.read_records("simulation_manifest"))
+    measurement_rows = normalize_rows(reader.read_records("measurement_setting_manifest"))
     distortion_rows = normalize_rows(reader.read_records("distortion_manifest"))
     metric_rows = normalize_rows(reader.read_records("metric_manifest"))
     circuit_ids = {row["circuit_id"] for row in circuit_rows}
     run_ids = {row["run_id"] for row in simulation_rows}
     distortion_ids = {row["distortion_id"] for row in distortion_rows}
     metric_ids = {row["metric_id"] for row in metric_rows}
+    measurement_ids = {row["measurement_setting_id"] for row in measurement_rows}
     for row in sample_rows:
         assert row["clean_circuit_id"] in circuit_ids
         assert row["distorted_circuit_id"] in circuit_ids
@@ -365,11 +394,26 @@ def _assert_artifact_readback(result, root: Path) -> None:
         assert row["distorted_run_id"] in run_ids
         assert row["distortion_id"] in distortion_ids
         assert row["metric_id"] in metric_ids
+        assert set(row["measurement_setting_ids"]) <= measurement_ids
     samples_by_run = {}
     expected_counts_by_run = {}
     for sample in result.samples:
         samples_by_run[sample.clean_run_id] = (sample.clean_result.probabilities, sample.clean_result.statevector.data)
         samples_by_run[sample.distorted_run_id] = (sample.distorted_result.probabilities, sample.distorted_result.statevector.data)
+        for setting_id, measurement in sample.clean_measurement_results.items():
+            samples_by_run[sample.clean_measurement_run_ids[setting_id]] = (
+                measurement.probabilities,
+                None,
+            )
+        for setting_id, measurement in sample.distorted_measurement_results.items():
+            samples_by_run[sample.distorted_measurement_run_ids[setting_id]] = (
+                measurement.probabilities,
+                None,
+            )
+        for setting_id, shot in sample.clean_measurement_shot_results.items():
+            expected_counts_by_run[sample.clean_measurement_shot_run_ids[setting_id]] = shot.counts
+        for setting_id, shot in sample.distorted_measurement_shot_results.items():
+            expected_counts_by_run[sample.distorted_measurement_shot_run_ids[setting_id]] = shot.counts
         if sample.clean_shot_run_id and sample.clean_shot_result is not None:
             expected_counts_by_run[sample.clean_shot_run_id] = sample.clean_shot_result.counts
         if sample.distorted_shot_run_id and sample.distorted_shot_result is not None:
@@ -384,6 +428,10 @@ def _assert_artifact_readback(result, root: Path) -> None:
             assert probabilities == samples_by_run[row["run_id"]][0]
             if row.get("statevector_ref") is not None:
                 np.testing.assert_allclose(np.load(root / row["statevector_ref"]), samples_by_run[row["run_id"]][1])
+        elif row["simulation_mode"] == "ideal_measurement_probabilities":
+            probabilities = json.loads((root / row["probabilities_ref"]).read_text())
+            assert probabilities == samples_by_run[row["run_id"]][0]
+            assert row["measurement_setting_id"] in measurement_ids
         elif row["simulation_mode"] == "ideal_shot":
             counts = json.loads((root / row["counts_ref"]).read_text())
             assert counts == expected_counts_by_run[row["run_id"]]
@@ -616,9 +664,9 @@ def test_strict_config_validation_and_json_loading(tmp_path: Path) -> None:
         base_config(ideal_shots=4.0)
     with pytest.raises(TypeError):
         CircuitGenerationSpec(" bell ", 2.0, {})
-    config = base_config(dataset_name=" tiny ", schema_version=" triqto.phase7.v1 ")
+    config = base_config(dataset_name=" tiny ", schema_version=" triqto.phase7.v2 ")
     assert config.dataset_name == "tiny"
-    assert config.schema_version == "triqto.phase7.v1"
+    assert config.schema_version == "triqto.phase7.v2"
     original_circuit_specs = [CircuitGenerationSpec("bell", 2, {}, 1)]
     original_distortion_specs = [DistortionSpec("rx_overrotation", {"strength": 0.1})]
     config = DatasetGenerationConfig("copy", 1, original_circuit_specs, original_distortion_specs)
@@ -636,7 +684,7 @@ def test_strict_config_validation_and_json_loading(tmp_path: Path) -> None:
 
 def test_typed_manifest_roundtrips_and_semantic_joins(tmp_path: Path) -> None:
     pytest.importorskip("pyarrow")
-    from triqto.storage import DistortionRecord, MetricRecord, SimulationRecord
+    from triqto.storage import DistortionRecord, MeasurementSettingRecord, MetricRecord, SimulationRecord
     from triqto.data_generation import validate_dataset_joins
 
     result = generate_dataset(base_config(ideal_shots=8))
@@ -645,12 +693,23 @@ def test_typed_manifest_roundtrips_and_semantic_joins(tmp_path: Path) -> None:
     sample_records = reader.read_typed_records("sample_manifest", DatasetSampleRecord)
     circuit_records = reader.read_typed_records("circuit_manifest", CircuitRecord)
     simulation_records = reader.read_typed_records("simulation_manifest", SimulationRecord)
+    measurement_records = reader.read_typed_records(
+        "measurement_setting_manifest",
+        MeasurementSettingRecord,
+    )
     distortion_records = reader.read_typed_records("distortion_manifest", DistortionRecord)
     metric_records = reader.read_typed_records("metric_manifest", MetricRecord)
-    for records in [sample_records, circuit_records, simulation_records, distortion_records, metric_records]:
+    for records in [sample_records, circuit_records, simulation_records, measurement_records, distortion_records, metric_records]:
         for record in records:
             record.validate()
-    validate_dataset_joins(sample_records, circuit_records, simulation_records, distortion_records, metric_records)
+    validate_dataset_joins(
+        sample_records,
+        circuit_records,
+        simulation_records,
+        distortion_records,
+        metric_records,
+        measurement_records,
+    )
     original_samples = {record.sample_id: normalize_rows([record.to_dict()])[0] for record in result.sample_records}
     for record in sample_records:
         typed_dict = normalize_rows([record.to_dict()])[0]
@@ -905,6 +964,7 @@ def test_validate_dataset_joins_rejects_duplicates_and_missing_records() -> None
     simulations = list(result.simulation_records)
     distortions = list(result.distortion_records)
     metrics = list(result.metric_records)
+    measurements = list(result.measurement_setting_records)
     samples = list(result.sample_records)
     # Use in-memory records without artifact refs only after adding expected refs to satisfy parameter/role joins.
     from triqto.data_generation.artifacts import validate_dataset_joins
@@ -918,7 +978,14 @@ def test_validate_dataset_joins_rejects_duplicates_and_missing_records() -> None
     ]
     for sample_records, circuit_records, simulation_records, distortion_records, metric_records, record_type, field in duplicate_cases:
         with pytest.raises(ValueError, match=f"Duplicate {record_type}.*{field}"):
-            validate_dataset_joins(sample_records, circuit_records, simulation_records, distortion_records, metric_records)
+            validate_dataset_joins(
+                sample_records,
+                circuit_records,
+                simulation_records,
+                distortion_records,
+                metric_records,
+                measurements,
+            )
 
     first_sample = samples[0]
     missing_cases = [
@@ -931,4 +998,11 @@ def test_validate_dataset_joins_rejects_duplicates_and_missing_records() -> None
     ]
     for circuit_records, simulation_records, distortion_records, metric_records, field, record_type in missing_cases:
         with pytest.raises(ValueError, match=f"Sample .*{field} references missing {record_type}"):
-            validate_dataset_joins(samples, circuit_records, simulation_records, distortion_records, metric_records)
+            validate_dataset_joins(
+                samples,
+                circuit_records,
+                simulation_records,
+                distortion_records,
+                metric_records,
+                measurements,
+            )

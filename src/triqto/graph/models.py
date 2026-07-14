@@ -14,6 +14,7 @@ from triqto.storage.schema import (
     DatasetSampleRecord,
     DistortionRecord,
     MetricRecord,
+    MeasurementSettingRecord,
     SimulationRecord,
 )
 
@@ -98,10 +99,20 @@ class GraphSamplePair:
     born_metric_names: np.ndarray
     born_metric_values: np.ndarray
     born_metric_positive_infinity_mask: np.ndarray
+    measurement_setting_ids: np.ndarray
+    measurement_basis_codes: np.ndarray
+    measurement_outcome_bitstrings: np.ndarray
+    measurement_setting_index: np.ndarray
+    clean_measurement_probabilities: np.ndarray
+    distorted_measurement_probabilities: np.ndarray
     born_zero_shift: bool
     born_observable_shift_absent: bool
     marker_only: bool
     applicability_warning: str | None
+    identifiability_status: str
+    identifiability_reason: str | None
+    diagnosis_supervision_mask: bool
+    observable_evidence_fingerprint: str
     metadata: dict[str, Any] = field(default_factory=dict)
     content_hash: str = ""
 
@@ -118,6 +129,7 @@ class CompletedPhase7Dataset:
     simulations: list[SimulationRecord]
     distortions: list[DistortionRecord]
     metrics: list[MetricRecord]
+    measurement_settings: list[MeasurementSettingRecord]
     circuits_by_id: dict[str, QuantumCircuit]
     probabilities_by_run_id: dict[str, dict[str, float]]
     counts_by_exact_run_id: dict[str, dict[str, int]]

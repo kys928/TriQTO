@@ -1,4 +1,4 @@
-schema_version: triqto.training_views.phase12.v1
+schema_version: triqto.training_views.phase12.v2
 tasks:
   - diagnosis
   - action_ranking

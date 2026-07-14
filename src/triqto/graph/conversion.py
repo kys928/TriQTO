@@ -6,6 +6,8 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 from triqto.storage.graph_schema import GraphPairRecord, GraphRecord
 
 from .circuit_graph import circuit_to_graph
@@ -64,6 +66,56 @@ def _required_bool(metadata: Mapping[str, Any], name: str, record_id: str) -> bo
     return value
 
 
+def _measurement_pair_arrays(
+    sample: Any,
+    dataset: Any,
+    measurement_records: Mapping[str, Any],
+) -> dict[str, np.ndarray]:
+    setting_ids = list(sample.measurement_setting_ids)
+    if not setting_ids:
+        raise ValueError(f"Sample {sample.sample_id} has no measurement settings")
+    if not (
+        len(setting_ids)
+        == len(sample.clean_measurement_run_ids)
+        == len(sample.distorted_measurement_run_ids)
+    ):
+        raise ValueError(f"Sample {sample.sample_id} measurement run lists are misaligned")
+    basis_rows: list[list[int]] = []
+    outcomes: list[str] = []
+    setting_indices: list[int] = []
+    clean_values: list[float] = []
+    distorted_values: list[float] = []
+    code = {"Z": 0, "X": 1, "Y": 2}
+    for setting_index, (setting_id, clean_run_id, distorted_run_id) in enumerate(
+        zip(
+            setting_ids,
+            sample.clean_measurement_run_ids,
+            sample.distorted_measurement_run_ids,
+            strict=True,
+        )
+    ):
+        setting = measurement_records[setting_id]
+        basis_rows.append([code[value] for value in setting.bases])
+        clean = dataset.probabilities_by_run_id[clean_run_id]
+        distorted = dataset.probabilities_by_run_id[distorted_run_id]
+        support = sorted(set(clean) | set(distorted))
+        for outcome in support:
+            outcomes.append(outcome)
+            setting_indices.append(setting_index)
+            clean_values.append(float(clean.get(outcome, 0.0)))
+            distorted_values.append(float(distorted.get(outcome, 0.0)))
+    setting_width = max(len(value) for value in setting_ids)
+    outcome_width = max([1, *[len(value) for value in outcomes]])
+    return {
+        "measurement_setting_ids": np.asarray(setting_ids, dtype=f"<U{setting_width}"),
+        "measurement_basis_codes": np.asarray(basis_rows, dtype=np.int8),
+        "measurement_outcome_bitstrings": np.asarray(outcomes, dtype=f"<U{outcome_width}"),
+        "measurement_setting_index": np.asarray(setting_indices, dtype=np.int64),
+        "clean_measurement_probabilities": np.asarray(clean_values, dtype=np.float64),
+        "distorted_measurement_probabilities": np.asarray(distorted_values, dtype=np.float64),
+    }
+
+
 def convert_completed_dataset_to_graphs(
     source_root: str | Path,
     config: GraphConversionConfig | None = None,
@@ -80,6 +132,11 @@ def convert_completed_dataset_to_graphs(
         "DistortionRecord",
     )
     metric_records = _index_unique(dataset.metrics, "metric_id", "MetricRecord")
+    measurement_records = _index_unique(
+        dataset.measurement_settings,
+        "measurement_setting_id",
+        "MeasurementSettingRecord",
+    )
 
     usage: dict[tuple[str, str, str], set[str]] = defaultdict(set)
     for sample in dataset.samples:
@@ -115,13 +172,20 @@ def convert_completed_dataset_to_graphs(
                     raise ValueError(
                         f"Graph source run {run_id} circuit_id mismatch"
                     )
-                shot_record = dataset.shot_records_by_exact_run_id.get(run_id)
+                measurement_run_id = (
+                    sample.clean_measurement_run_ids[0]
+                    if role == "clean"
+                    else sample.distorted_measurement_run_ids[0]
+                )
+                shot_record = dataset.shot_records_by_exact_run_id.get(
+                    measurement_run_id
+                )
                 counts = None
                 shots = None
                 source_counts_ref = None
                 source_shot_run_id = None
                 if conversion_config.include_supplemental_counts and shot_record is not None:
-                    counts = dataset.counts_by_exact_run_id[run_id]
+                    counts = dataset.counts_by_exact_run_id[measurement_run_id]
                     shots = shot_record.shots
                     source_counts_ref = shot_record.counts_ref
                     source_shot_run_id = shot_record.run_id
@@ -132,6 +196,7 @@ def convert_completed_dataset_to_graphs(
                     "source_statevector_ref": simulation_record.statevector_ref,
                     "source_counts_ref": source_counts_ref,
                     "source_shot_run_id": source_shot_run_id,
+                    "source_measurement_run_id": measurement_run_id,
                     "source_sample_ids": sorted(usage[key]),
                 }
                 graph = circuit_to_graph(
@@ -176,6 +241,11 @@ def convert_completed_dataset_to_graphs(
                 f"MetricRecord {metric_record.metric_id} applicability_warning "
                 "must be string or None"
             )
+        measurement_arrays = _measurement_pair_arrays(
+            sample,
+            dataset,
+            measurement_records,
+        )
         pair = GraphSamplePair(
             graph_pair_id=graph_pair_id(
                 sample.sample_id,
@@ -190,6 +260,12 @@ def convert_completed_dataset_to_graphs(
             born_metric_names=metric_names,
             born_metric_values=metric_values,
             born_metric_positive_infinity_mask=infinity_mask,
+            measurement_setting_ids=measurement_arrays["measurement_setting_ids"],
+            measurement_basis_codes=measurement_arrays["measurement_basis_codes"],
+            measurement_outcome_bitstrings=measurement_arrays["measurement_outcome_bitstrings"],
+            measurement_setting_index=measurement_arrays["measurement_setting_index"],
+            clean_measurement_probabilities=measurement_arrays["clean_measurement_probabilities"],
+            distorted_measurement_probabilities=measurement_arrays["distorted_measurement_probabilities"],
             born_zero_shift=_required_bool(
                 sample_metadata,
                 "born_zero_shift",
@@ -202,8 +278,17 @@ def convert_completed_dataset_to_graphs(
             ),
             marker_only=_marker_only(sample_metadata, distortion_metadata),
             applicability_warning=warning,
+            identifiability_status=sample.identifiability_status,
+            identifiability_reason=sample.identifiability_reason,
+            diagnosis_supervision_mask=sample.diagnosis_supervision_mask,
+            observable_evidence_fingerprint=sample.observable_evidence_fingerprint,
             metadata={
                 "distortion_type": distortion_record.distortion_type,
+                "measurement_setting_count": len(sample.measurement_setting_ids),
+                "unidentifiable_supervision_override": sample.metadata.get(
+                    "unidentifiable_supervision_override",
+                    False,
+                ),
                 "phase": 8,
             },
         )
@@ -255,6 +340,9 @@ def convert_completed_dataset_to_graphs(
             metadata={
                 "marker_only": pair.marker_only,
                 "born_zero_shift": pair.born_zero_shift,
+                "identifiability_status": pair.identifiability_status,
+                "identifiability_reason": pair.identifiability_reason,
+                "diagnosis_supervision_mask": pair.diagnosis_supervision_mask,
                 "phase": 8,
             },
         )

@@ -1,4 +1,4 @@
-schema_version: triqto.model.phase13.v2
+schema_version: triqto.model.phase13.v3
 model_name: triqto_base
 hidden_dim: 128
 graph_message_passing_layers: 4

@@ -4,9 +4,9 @@ from __future__ import annotations
 import numpy as np
 
 from .base_view import (
-    born_arrays,
     graph_structure_arrays,
     make_training_item,
+    measurement_born_arrays,
     strict_float,
     unicode_array,
 )
@@ -23,20 +23,21 @@ def build_diagnosis_items(context: ViewBuildContext) -> list[TrainingViewItem]:
         if pair_record is None:
             raise ValueError(f"Sample {sample.sample_id} has no Phase 8 graph pair")
         pair = context.sources.graph.pairs_by_id[pair_record.graph_pair_id]
-        distorted_graph = context.sources.graph.graphs_by_id[pair_record.distorted_graph_id]
-        graph_record = context.graph_records_by_id[pair_record.distorted_graph_id]
+        clean_graph = context.sources.graph.graphs_by_id[pair_record.clean_graph_id]
+        graph_record = context.graph_records_by_id[pair_record.clean_graph_id]
         distortion = context.distortions_by_id.get(sample.distortion_id)
         if distortion is None:
             raise ValueError(f"Sample {sample.sample_id} has no distortion record")
-        arrays = graph_structure_arrays(distorted_graph)
+        arrays = graph_structure_arrays(clean_graph)
         arrays.update(
-            born_arrays(
-                distorted_graph.outcome_bitstrings,
-                distorted_graph.exact_probabilities,
+            measurement_born_arrays(
+                pair,
+                pair.distorted_measurement_probabilities,
                 prefix="born_input",
             )
         )
-        strength_available = distortion.strength is not None
+        diagnosis_supervised = bool(sample.diagnosis_supervision_mask)
+        strength_available = distortion.strength is not None and diagnosis_supervised
         strength = (
             strict_float(
                 distortion.strength,
@@ -65,6 +66,16 @@ def build_diagnosis_items(context: ViewBuildContext) -> list[TrainingViewItem]:
                     dtype=np.bool_,
                 ),
                 "diagnosis_affected_qubit_mask": affected,
+                "diagnosis_supervision_mask": np.asarray(
+                    [diagnosis_supervised],
+                    dtype=np.bool_,
+                ),
+                "diagnosis_identifiability_status": unicode_array(
+                    [sample.identifiability_status]
+                ),
+                "diagnosis_identifiability_reason": unicode_array(
+                    [sample.identifiability_reason or ""]
+                ),
                 "diagnosis_born_metric_names": pair.born_metric_names.copy(),
                 "diagnosis_born_metric_values": pair.born_metric_values.copy(),
                 "diagnosis_born_metric_positive_infinity_mask": (
@@ -80,7 +91,7 @@ def build_diagnosis_items(context: ViewBuildContext) -> list[TrainingViewItem]:
             split_group_id=context.sample_split_groups[sample.sample_id],
             entity_id=sample.sample_id,
             input_available=(True, True, False),
-            target_available=(True, strength_available, True),
+            target_available=(diagnosis_supervised, strength_available, diagnosis_supervised),
             arrays=arrays,
             source_refs=(
                 ("phase8", "provenance", graph_record.graph_ref),
@@ -88,16 +99,24 @@ def build_diagnosis_items(context: ViewBuildContext) -> list[TrainingViewItem]:
             ),
             hilbert_available=False,
             topology_available=False,
-            privileged_target_available=True,
+            privileged_target_available=diagnosis_supervised,
             metadata={
                 "sample_id": sample.sample_id,
                 "graph_pair_id": pair_record.graph_pair_id,
-                "distorted_graph_id": pair_record.distorted_graph_id,
+                "clean_graph_id": pair_record.clean_graph_id,
                 "distortion_id": sample.distortion_id,
                 "family": sample.family,
                 "n_qubits": sample.n_qubits,
                 "backend_available": False,
                 "hardware_data": False,
+                "identifiability_status": sample.identifiability_status,
+                "identifiability_reason": sample.identifiability_reason,
+                "diagnosis_supervision_mask": diagnosis_supervised,
+                "unidentifiable_supervision_override": sample.metadata.get(
+                    "unidentifiable_supervision_override",
+                    False,
+                ),
+                "programmed_clean_graph_used_for_diagnosis": True,
                 "input_label_separation": (
                     "distortion type, strength, and affected qubits exist only in "
                     "diagnosis_* target arrays"

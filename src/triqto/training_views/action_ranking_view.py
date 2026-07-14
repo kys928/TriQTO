@@ -13,11 +13,12 @@ def build_action_ranking_items(context: ViewBuildContext) -> list[TrainingViewIt
     view_id = context.view_ids[task]
     items: list[TrainingViewItem] = []
     for sample in sorted(context.sources.phase7.samples, key=lambda value: value.sample_id):
+        action_supervised = bool(sample.diagnosis_supervision_mask)
         pair_record = context.pair_records_by_sample_id.get(sample.sample_id)
         if pair_record is None:
             raise ValueError(f"Sample {sample.sample_id} has no Phase 8 graph pair")
-        distorted_graph = context.sources.graph.graphs_by_id[pair_record.distorted_graph_id]
-        graph_record = context.graph_records_by_id[pair_record.distorted_graph_id]
+        programmed_graph = context.sources.graph.graphs_by_id[pair_record.clean_graph_id]
+        graph_record = context.graph_records_by_id[pair_record.clean_graph_id]
         rollouts = list(context.sources.action.rollouts_by_sample_id[sample.sample_id])
         rollouts.sort(key=lambda value: value.action_id)
         if len(rollouts) > context.config.max_candidates_per_item:
@@ -82,7 +83,7 @@ def build_action_ranking_items(context: ViewBuildContext) -> list[TrainingViewIt
             raise ValueError(
                 f"Sample {sample.sample_id} must have exactly one selected action target"
             )
-        arrays = graph_structure_arrays(distorted_graph)
+        arrays = graph_structure_arrays(programmed_graph)
         arrays.update(
             {
                 "action_candidate_ids": unicode_array(candidate_ids),
@@ -119,6 +120,10 @@ def build_action_ranking_items(context: ViewBuildContext) -> list[TrainingViewIt
                     privileged,
                     dtype=np.bool_,
                 ),
+                "action_supervision_mask": np.asarray(
+                    [action_supervised],
+                    dtype=np.bool_,
+                ),
             }
         )
         item = make_training_item(
@@ -129,12 +134,12 @@ def build_action_ranking_items(context: ViewBuildContext) -> list[TrainingViewIt
             split_group_id=context.sample_split_groups[sample.sample_id],
             entity_id=sample.sample_id,
             input_available=(True, True, False),
-            target_available=(True, True, True),
+            target_available=(action_supervised, action_supervised, action_supervised),
             arrays=arrays,
             source_refs=source_refs,
             hilbert_available=False,
             topology_available=False,
-            privileged_target_available=any(privileged),
+            privileged_target_available=action_supervised and any(privileged),
             metadata={
                 "sample_id": sample.sample_id,
                 "graph_pair_id": pair_record.graph_pair_id,
@@ -146,6 +151,10 @@ def build_action_ranking_items(context: ViewBuildContext) -> list[TrainingViewIt
                 "generation_sources_excluded_from_candidate_inputs": True,
                 "privileged_oracle_candidates_retained_with_explicit_mask": True,
                 "hardware_data": False,
+                "programmed_clean_graph_used_for_action_ranking": True,
+                "identifiability_status": sample.identifiability_status,
+                "identifiability_reason": sample.identifiability_reason,
+                "action_supervision_mask": action_supervised,
             },
             max_source_refs=context.config.max_source_refs_per_item,
         )

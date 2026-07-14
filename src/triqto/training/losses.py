@@ -30,20 +30,25 @@ def _distribution_losses(
     predicted: Tensor,
     target: Tensor,
     row_mask: Tensor,
-    outcome_batch: Tensor,
-    graph_count: int,
+    distribution_index: Tensor,
+    distribution_count: int,
 ) -> tuple[Tensor, Tensor]:
-    """Average complete KL and Hellinger distances across active graphs."""
+    """Average complete KL and Hellinger distances across active distributions."""
     if predicted.shape != target.shape or row_mask.shape != target.shape:
         raise ValueError("Born prediction, target, and mask shapes must match")
-    if outcome_batch.shape != target.shape or outcome_batch.dtype != torch.long:
-        raise ValueError("outcome_batch must be int64 with the distribution shape")
-    if isinstance(graph_count, bool) or not isinstance(graph_count, int) or graph_count <= 0:
-        raise ValueError("graph_count must be a positive integer")
-    if outcome_batch.numel() and (
-        int(outcome_batch.min()) < 0 or int(outcome_batch.max()) >= graph_count
+    if distribution_index.shape != target.shape or distribution_index.dtype != torch.long:
+        raise ValueError("distribution_index must be int64 with the distribution shape")
+    if (
+        isinstance(distribution_count, bool)
+        or not isinstance(distribution_count, int)
+        or distribution_count <= 0
     ):
-        raise ValueError("outcome_batch contains a graph index out of range")
+        raise ValueError("distribution_count must be a positive integer")
+    if distribution_index.numel() and (
+        int(distribution_index.min()) < 0
+        or int(distribution_index.max()) >= distribution_count
+    ):
+        raise ValueError("distribution_index contains an index out of range")
     if not bool(row_mask.any()):
         zero = _zero(predicted)
         return zero, zero
@@ -61,21 +66,25 @@ def _distribution_losses(
         0.5 * (torch.sqrt(p) - torch.sqrt(q)).square(),
         torch.zeros_like(q),
     )
-    per_graph_kl = segment_sum(kl_terms, outcome_batch, graph_count)
-    per_graph_hellinger_sq = segment_sum(
-        hellinger_sq_terms,
-        outcome_batch,
-        graph_count,
+    per_distribution_kl = segment_sum(
+        kl_terms,
+        distribution_index,
+        distribution_count,
     )
-    active_graphs = segment_sum(
+    per_distribution_hellinger_sq = segment_sum(
+        hellinger_sq_terms,
+        distribution_index,
+        distribution_count,
+    )
+    active_distributions = segment_sum(
         row_mask.to(predicted.dtype),
-        outcome_batch,
-        graph_count,
+        distribution_index,
+        distribution_count,
     ) > 0
     return (
-        per_graph_kl[active_graphs].mean(),
+        per_distribution_kl[active_distributions].mean(),
         torch.sqrt(
-            per_graph_hellinger_sq[active_graphs].clamp_min(0.0)
+            per_distribution_hellinger_sq[active_distributions].clamp_min(0.0)
         ).mean(),
     )
 
@@ -176,12 +185,14 @@ def compute_supervised_losses(
 
     born_target = batch.targets.born_prediction
     if born_target.probabilities.numel():
+        setting_index = output.born_prediction.measurement_setting_index
+        setting_count = int(setting_index.max()) + 1
         born_kl, born_hellinger = _distribution_losses(
             output.born_prediction.probabilities,
             born_target.probabilities,
             born_target.row_mask,
-            born_target.outcome_batch,
-            batch.graph_count,
+            setting_index,
+            setting_count,
         )
     else:
         born_kl = born_hellinger = _zero(reference)
@@ -191,12 +202,14 @@ def compute_supervised_losses(
     if bool(hilbert_target.row_mask.any()):
         if auxiliary_hilbert_output is None:
             raise ValueError("Hilbert-to-Born targets require an auxiliary forward output")
+        setting_index = auxiliary_hilbert_output.born_prediction.measurement_setting_index
+        setting_count = int(setting_index.max()) + 1
         hilbert_kl, hilbert_hellinger = _distribution_losses(
             auxiliary_hilbert_output.born_prediction.probabilities,
             hilbert_target.probabilities,
             hilbert_target.row_mask,
-            hilbert_target.outcome_batch,
-            batch.graph_count,
+            setting_index,
+            setting_count,
         )
         hilbert_to_born = config.hilbert_to_born_weight * (hilbert_kl + hilbert_hellinger)
     else:

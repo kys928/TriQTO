@@ -11,8 +11,11 @@ from typing import Any
 from triqto.circuits.families import get_circuit_family
 from triqto.core.ids import canonical_json, make_deterministic_id
 from triqto.distortions.distortion_registry import get_distortion
+from triqto.simulation import PAULI_MEASUREMENT_BASES
 
-PHASE7_METRIC_SCHEMA_VERSION = "triqto.born.phase6"
+from .identifiability import validate_unidentifiable_policy
+
+PHASE7_METRIC_SCHEMA_VERSION = "triqto.born.measurement_conditioned.v2"
 DEFAULT_BORN_ZERO_ATOL = 1e-12
 
 
@@ -93,13 +96,15 @@ class DatasetGenerationConfig:
     base_seed: int
     circuit_specs: list[CircuitGenerationSpec]
     distortion_specs: list[DistortionSpec]
-    schema_version: str = "triqto.phase7.v1"
+    schema_version: str = "triqto.phase7.v2"
     parameter_low: float = -math.pi
     parameter_high: float = math.pi
     ideal_shots: int | None = None
     store_statevectors: bool = True
     max_samples: int = 1000
     born_zero_atol: float = DEFAULT_BORN_ZERO_ATOL
+    measurement_settings: tuple[str, ...] = ("Z", "X", "Y")
+    unidentifiable_policy: str = "mask"
 
     def __post_init__(self) -> None:
         dataset_name = _require_nonblank(self.dataset_name, "dataset_name")
@@ -120,6 +125,25 @@ class DatasetGenerationConfig:
             ideal_shots = None
         if not isinstance(self.store_statevectors, bool):
             raise TypeError("store_statevectors must be exactly bool")
+        if isinstance(self.measurement_settings, (str, bytes)) or not isinstance(
+            self.measurement_settings, (list, tuple)
+        ):
+            raise TypeError("measurement_settings must be a list or tuple of basis strings")
+        measurement_settings: list[str] = []
+        for index, raw_setting in enumerate(self.measurement_settings):
+            setting = _require_nonblank(raw_setting, f"measurement_settings[{index}]").upper()
+            if any(basis not in PAULI_MEASUREMENT_BASES for basis in setting):
+                raise ValueError(
+                    f"measurement_settings[{index}] must contain only X, Y, and Z"
+                )
+            measurement_settings.append(setting)
+        if not measurement_settings:
+            raise ValueError("at least one measurement setting is required")
+        if len(set(measurement_settings)) != len(measurement_settings):
+            raise ValueError("measurement_settings must not contain duplicates")
+        unidentifiable_policy = validate_unidentifiable_policy(
+            self.unidentifiable_policy
+        )
         max_samples = _require_int(self.max_samples, "max_samples")
         if max_samples <= 0:
             raise ValueError("max_samples must be positive")
@@ -129,6 +153,17 @@ class DatasetGenerationConfig:
             raise ValueError("at least one circuit spec is required")
         if not distortion_specs:
             raise ValueError("at least one distortion spec is required")
+        for setting in measurement_settings:
+            if len(setting) == 1:
+                continue
+            incompatible = sorted(
+                {spec.n_qubits for spec in circuit_specs if spec.n_qubits != len(setting)}
+            )
+            if incompatible:
+                raise ValueError(
+                    "non-uniform measurement settings must match every circuit width; "
+                    f"setting {setting!r} is incompatible with n_qubits={incompatible}"
+                )
         object.__setattr__(self, "dataset_name", dataset_name)
         object.__setattr__(self, "schema_version", schema_version)
         object.__setattr__(self, "base_seed", base_seed)
@@ -137,6 +172,8 @@ class DatasetGenerationConfig:
         object.__setattr__(self, "ideal_shots", ideal_shots)
         object.__setattr__(self, "max_samples", max_samples)
         object.__setattr__(self, "born_zero_atol", born_zero_atol)
+        object.__setattr__(self, "measurement_settings", tuple(measurement_settings))
+        object.__setattr__(self, "unidentifiable_policy", unidentifiable_policy)
         object.__setattr__(self, "circuit_specs", circuit_specs)
         object.__setattr__(self, "distortion_specs", distortion_specs)
         if predicted_sample_count(self) > max_samples:
@@ -196,6 +233,7 @@ def scientific_generation_payload(config: DatasetGenerationConfig) -> dict[str, 
         "parameter_low": config.parameter_low,
         "parameter_high": config.parameter_high,
         "metric_schema_version": PHASE7_METRIC_SCHEMA_VERSION,
+        "measurement_settings": list(config.measurement_settings),
     }
 
 

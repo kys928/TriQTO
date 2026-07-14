@@ -1,7 +1,7 @@
 """Born-prediction view with target probabilities physically excluded from graph inputs."""
 from __future__ import annotations
 
-from .base_view import born_arrays, graph_structure_arrays, make_training_item
+from .base_view import graph_structure_arrays, make_training_item, measurement_born_arrays
 from .context import ViewBuildContext
 from .models import TrainingViewItem
 
@@ -14,18 +14,14 @@ def build_born_prediction_items(context: ViewBuildContext) -> list[TrainingViewI
         pair_record = context.pair_records_by_sample_id.get(sample.sample_id)
         if pair_record is None:
             raise ValueError(f"Sample {sample.sample_id} has no Phase 8 graph pair")
-        graph = context.sources.graph.graphs_by_id[pair_record.distorted_graph_id]
-        graph_record = context.graph_records_by_id[pair_record.distorted_graph_id]
-        simulation = context.simulations_by_id.get(sample.distorted_run_id)
-        if simulation is None or not simulation.probabilities_ref:
-            raise ValueError(
-                f"Sample {sample.sample_id} distorted exact run has no probability artifact"
-            )
+        graph = context.sources.graph.graphs_by_id[pair_record.clean_graph_id]
+        pair = context.sources.graph.pairs_by_id[pair_record.graph_pair_id]
+        graph_record = context.graph_records_by_id[pair_record.clean_graph_id]
         arrays = graph_structure_arrays(graph)
         arrays.update(
-            born_arrays(
-                graph.outcome_bitstrings,
-                graph.exact_probabilities,
+            measurement_born_arrays(
+                pair,
+                pair.clean_measurement_probabilities,
                 prefix="born_target",
             )
         )
@@ -43,7 +39,7 @@ def build_born_prediction_items(context: ViewBuildContext) -> list[TrainingViewI
             source_refs=(
                 ("phase8", "provenance", graph_record.graph_ref),
                 ("phase8", "provenance", pair_record.pair_ref),
-                ("phase7", "target_provenance", simulation.probabilities_ref),
+                ("phase8", "target_provenance", pair_record.pair_ref),
             ),
             hilbert_available=False,
             topology_available=False,
@@ -51,8 +47,8 @@ def build_born_prediction_items(context: ViewBuildContext) -> list[TrainingViewI
             metadata={
                 "sample_id": sample.sample_id,
                 "graph_pair_id": pair_record.graph_pair_id,
-                "distorted_graph_id": pair_record.distorted_graph_id,
-                "distorted_run_id": sample.distorted_run_id,
+                "clean_graph_id": pair_record.clean_graph_id,
+                "clean_run_id": sample.clean_run_id,
                 "graph_input_is_materialized_without_born_fields": True,
                 "excluded_input_fields": [
                     "outcome_bitstrings",
@@ -60,8 +56,11 @@ def build_born_prediction_items(context: ViewBuildContext) -> list[TrainingViewI
                     "count_outcome_bitstrings",
                     "supplemental_counts",
                     "born_metric_values",
+                    "measurement_setting_ids",
+                    "measurement_basis_codes",
                 ],
                 "target_source_is_not_an_input_reference": True,
+                "target_is_programmed_clean_measurement_distribution": True,
                 "hardware_data": False,
             },
             max_source_refs=context.config.max_source_refs_per_item,

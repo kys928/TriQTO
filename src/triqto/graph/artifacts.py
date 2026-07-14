@@ -231,6 +231,10 @@ def _pair_metadata(pair: GraphSamplePair) -> dict[str, Any]:
         "born_observable_shift_absent": pair.born_observable_shift_absent,
         "marker_only": pair.marker_only,
         "applicability_warning": pair.applicability_warning,
+        "identifiability_status": pair.identifiability_status,
+        "identifiability_reason": pair.identifiability_reason,
+        "diagnosis_supervision_mask": pair.diagnosis_supervision_mask,
+        "observable_evidence_fingerprint": pair.observable_evidence_fingerprint,
         "metadata": pair.metadata,
         "content_hash": pair_content_hash(pair),
     }
@@ -242,15 +246,9 @@ def save_pair_artifact(pair: GraphSamplePair, path: str | Path) -> Path:
     validate_pair_data(pair)
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(
-        target,
-        **{
-            PAIR_METADATA_ARRAY_NAME: _json_bytes_array(_pair_metadata(pair)),
-            "born_metric_names": pair.born_metric_names,
-            "born_metric_values": pair.born_metric_values,
-            "born_metric_positive_infinity_mask": pair.born_metric_positive_infinity_mask,
-        },
-    )
+    arrays = {name: getattr(pair, name) for name in PAIR_ARRAY_NAMES}
+    arrays[PAIR_METADATA_ARRAY_NAME] = _json_bytes_array(_pair_metadata(pair))
+    np.savez_compressed(target, **arrays)
     return target
 
 
@@ -279,6 +277,10 @@ def load_pair_artifact(
         "born_observable_shift_absent",
         "marker_only",
         "applicability_warning",
+        "identifiability_status",
+        "identifiability_reason",
+        "diagnosis_supervision_mask",
+        "observable_evidence_fingerprint",
         "metadata",
         "content_hash",
     }
@@ -297,10 +299,20 @@ def load_pair_artifact(
         born_metric_names=arrays["born_metric_names"],
         born_metric_values=arrays["born_metric_values"],
         born_metric_positive_infinity_mask=arrays["born_metric_positive_infinity_mask"],
+        measurement_setting_ids=arrays["measurement_setting_ids"],
+        measurement_basis_codes=arrays["measurement_basis_codes"],
+        measurement_outcome_bitstrings=arrays["measurement_outcome_bitstrings"],
+        measurement_setting_index=arrays["measurement_setting_index"],
+        clean_measurement_probabilities=arrays["clean_measurement_probabilities"],
+        distorted_measurement_probabilities=arrays["distorted_measurement_probabilities"],
         born_zero_shift=metadata["born_zero_shift"],
         born_observable_shift_absent=metadata["born_observable_shift_absent"],
         marker_only=metadata["marker_only"],
         applicability_warning=metadata.get("applicability_warning"),
+        identifiability_status=metadata["identifiability_status"],
+        identifiability_reason=metadata.get("identifiability_reason"),
+        diagnosis_supervision_mask=metadata["diagnosis_supervision_mask"],
+        observable_evidence_fingerprint=metadata["observable_evidence_fingerprint"],
         metadata=dict(metadata["metadata"]),
         content_hash=metadata.get("content_hash", ""),
     )

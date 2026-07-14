@@ -89,6 +89,8 @@ def build_joint_multitask_items(
         )
         topology_available = topology is not None
         hilbert_available = hilbert is not None
+        diagnosis_supervised = bool(arrays["diagnosis_supervision_mask"].reshape(-1)[0])
+        action_supervised = bool(arrays["action_supervision_mask"].reshape(-1)[0])
         head_input_mask = np.asarray(
             [
                 [True, True, False, False, False, False, False, False],
@@ -109,7 +111,7 @@ def build_joint_multitask_items(
             dtype=np.bool_,
         )
         head_target_mask = np.asarray(
-            [True, True, True, hilbert_available, False],
+            [diagnosis_supervised, action_supervised, True, hilbert_available, False],
             dtype=np.bool_,
         )
         arrays.update(
@@ -141,7 +143,13 @@ def build_joint_multitask_items(
                 topology_available,
                 False,
             ),
-            target_available=(True, True, True, hilbert_available, False),
+            target_available=(
+                diagnosis_supervised,
+                action_supervised,
+                True,
+                hilbert_available,
+                False,
+            ),
             arrays=arrays,
             source_refs=source_refs,
             hilbert_available=hilbert_available,
@@ -158,6 +166,8 @@ def build_joint_multitask_items(
                 "topology_supervised_target_present": False,
                 "backend_available": False,
                 "hardware_data": False,
+                "identifiability_status": sample.identifiability_status,
+                "identifiability_reason": sample.identifiability_reason,
             },
             max_source_refs=context.config.max_source_refs_per_item,
         )

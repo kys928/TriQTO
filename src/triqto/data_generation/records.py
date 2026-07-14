@@ -9,8 +9,15 @@ from qiskit import QuantumCircuit
 
 from triqto.distortions import DistortedCircuit
 from triqto.metrics import BornMetricBundle
+from triqto.simulation import MeasurementProbabilityResult, MeasurementShotResult
 from triqto.simulation.results import IdealShotResult, IdealStatevectorResult
-from triqto.storage import CircuitRecord, DistortionRecord, MetricRecord, SimulationRecord
+from triqto.storage import (
+    CircuitRecord,
+    DistortionRecord,
+    MeasurementSettingRecord,
+    MetricRecord,
+    SimulationRecord,
+)
 from triqto.storage.schema import DatasetSampleRecord
 
 
@@ -37,10 +44,20 @@ class GeneratedDatasetSample:
     distorted_result: IdealStatevectorResult
     distortion_result: DistortedCircuit
     born_metrics: BornMetricBundle
-    clean_shot_result: IdealShotResult | None = None
-    distorted_shot_result: IdealShotResult | None = None
+    clean_shot_result: IdealShotResult | MeasurementShotResult | None = None
+    distorted_shot_result: IdealShotResult | MeasurementShotResult | None = None
     clean_shot_run_id: str | None = None
     distorted_shot_run_id: str | None = None
+    measurement_settings: dict[str, Any] = field(default_factory=dict)
+    clean_measurement_results: dict[str, MeasurementProbabilityResult] = field(default_factory=dict)
+    distorted_measurement_results: dict[str, MeasurementProbabilityResult] = field(default_factory=dict)
+    clean_measurement_run_ids: dict[str, str] = field(default_factory=dict)
+    distorted_measurement_run_ids: dict[str, str] = field(default_factory=dict)
+    clean_measurement_shot_results: dict[str, MeasurementShotResult] = field(default_factory=dict)
+    distorted_measurement_shot_results: dict[str, MeasurementShotResult] = field(default_factory=dict)
+    clean_measurement_shot_run_ids: dict[str, str] = field(default_factory=dict)
+    distorted_measurement_shot_run_ids: dict[str, str] = field(default_factory=dict)
+    measurement_born_metrics: dict[str, BornMetricBundle] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -56,6 +73,7 @@ class DatasetGenerationResult:
     samples: list[GeneratedDatasetSample]
     circuit_records: list[CircuitRecord]
     simulation_records: list[SimulationRecord]
+    measurement_setting_records: list[MeasurementSettingRecord]
     distortion_records: list[DistortionRecord]
     metric_records: list[MetricRecord]
     sample_records: list[DatasetSampleRecord]

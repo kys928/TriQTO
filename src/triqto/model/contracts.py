@@ -70,7 +70,27 @@ def _availability(index: Tensor, available: Tensor, name: str) -> None:
         raise ValueError(f"{name} availability mask does not match supplied graph rows")
 
 
-def _basis(bits: Tensor, mask: Tensor, index: Tensor, count: int, name: str) -> None:
+def _measurement_setting_ownership(
+    setting_index: Tensor,
+    batch_index: Tensor,
+    name: str,
+) -> None:
+    """Require every softmax/normalization group to belong to one graph."""
+    for setting in setting_index.unique():
+        owners = batch_index[setting_index == setting].unique()
+        if owners.numel() != 1:
+            raise ValueError(f"{name} measurement setting indices must not span graphs")
+
+
+def _basis(
+    bits: Tensor,
+    mask: Tensor,
+    index: Tensor,
+    count: int,
+    name: str,
+    *,
+    unique_within_graph: bool = True,
+) -> None:
     if bits.shape != mask.shape:
         raise ValueError(f"{name} bits and mask must have equal shape")
     if bits.shape[0] == 0:
@@ -90,7 +110,7 @@ def _basis(bits: Tensor, mask: Tensor, index: Tensor, count: int, name: str) -> 
         if not torch.equal(local_mask, local_mask[0].expand_as(local_mask)):
             raise ValueError(f"{name} basis masks must be identical within each graph")
         local_bits = bits.index_select(0, rows)
-        if torch.unique(local_bits, dim=0).shape[0] != local_bits.shape[0]:
+        if unique_within_graph and torch.unique(local_bits, dim=0).shape[0] != local_bits.shape[0]:
             raise ValueError(f"{name} basis rows must be unique within each graph")
 
 
@@ -190,6 +210,8 @@ class BornTensorBatch:
     probabilities: Tensor
     batch_index: Tensor
     available_mask: Tensor
+    measurement_basis_codes: Tensor
+    measurement_setting_index: Tensor
 
     def validate(self, count: int, atol: float = 1e-6) -> None:
         bits = _float(self.outcome_bits, "born.outcome_bits", 2)
@@ -197,20 +219,56 @@ class BornTensorBatch:
         prob = _float(self.probabilities, "born.probabilities", 1)
         index = _long(self.batch_index, "born.batch_index", 1)
         available = _bool(self.available_mask, "born.available_mask", 1)
+        basis_codes = _long(
+            self.measurement_basis_codes,
+            "born.measurement_basis_codes",
+            2,
+        )
+        setting_index = _long(
+            self.measurement_setting_index,
+            "born.measurement_setting_index",
+            1,
+        )
         _same_device([("bits", bits), ("mask", mask), ("prob", prob),
-                      ("index", index), ("available", available)])
+                      ("index", index), ("available", available),
+                      ("basis_codes", basis_codes), ("setting_index", setting_index)])
         if prob.shape != (bits.shape[0],) or index.shape != prob.shape or available.shape != (count,):
             raise ValueError("born row shapes are inconsistent")
+        if basis_codes.shape != bits.shape or setting_index.shape != prob.shape:
+            raise ValueError("born measurement context shapes are inconsistent")
         _batch_index(index, count, "born.batch_index", True)
         _availability(index, available, "born")
-        _basis(bits, mask, index, count, "born")
+        _basis(bits, mask, index, count, "born", unique_within_graph=False)
+        if bool(((basis_codes < 0) | (basis_codes > 2)).any()):
+            raise ValueError("born measurement_basis_codes must use Z/X/Y codes 0/1/2")
+        if bool((basis_codes[~mask] != 0).any()):
+            raise ValueError("born inactive basis-code positions must be zero")
+        if setting_index.numel() and int(setting_index.min()) < 0:
+            raise ValueError("born measurement_setting_index must be nonnegative")
+        _measurement_setting_ownership(setting_index, index, "born")
         if bool((prob < 0).any()):
             raise ValueError("born probabilities must be nonnegative")
-        sums = torch.zeros(count, dtype=prob.dtype, device=prob.device)
-        if prob.numel():
-            sums.index_add_(0, index, prob)
-        if not torch.allclose(sums[available], torch.ones_like(sums[available]), atol=atol, rtol=0):
-            raise ValueError("born probabilities must sum to one for every available graph")
+        for graph_index in range(count):
+            if not bool(available[graph_index]):
+                continue
+            graph_rows = index == graph_index
+            for setting in setting_index[graph_rows].unique():
+                rows = graph_rows & (setting_index == setting)
+                if not torch.allclose(
+                    prob[rows].sum(),
+                    torch.ones((), dtype=prob.dtype, device=prob.device),
+                    atol=atol,
+                    rtol=0,
+                ):
+                    raise ValueError(
+                        "born probabilities must sum to one for every graph/measurement setting"
+                    )
+                setting_bases = basis_codes[rows]
+                if not bool((setting_bases == setting_bases[0]).all()):
+                    raise ValueError("one measurement setting must have one consistent basis row")
+                setting_bits = bits[rows]
+                if torch.unique(setting_bits, dim=0).shape[0] != setting_bits.shape[0]:
+                    raise ValueError("born outcome rows must be unique within each measurement setting")
 
 
 @dataclass(slots=True)
@@ -307,19 +365,51 @@ class OutcomeQueryTensorBatch:
     outcome_bit_mask: Tensor
     batch_index: Tensor
     available_mask: Tensor
+    measurement_basis_codes: Tensor
+    measurement_setting_index: Tensor
 
     def validate(self, count: int) -> None:
         bits = _float(self.outcome_bits, "born_queries.outcome_bits", 2)
         mask = _bool(self.outcome_bit_mask, "born_queries.outcome_bit_mask", 2)
         index = _long(self.batch_index, "born_queries.batch_index", 1)
         available = _bool(self.available_mask, "born_queries.available_mask", 1)
+        basis_codes = _long(
+            self.measurement_basis_codes,
+            "born_queries.measurement_basis_codes",
+            2,
+        )
+        setting_index = _long(
+            self.measurement_setting_index,
+            "born_queries.measurement_setting_index",
+            1,
+        )
         _same_device([("bits", bits), ("mask", mask), ("index", index),
-                      ("available", available)])
+                      ("available", available), ("basis_codes", basis_codes),
+                      ("setting_index", setting_index)])
         if index.shape != (bits.shape[0],) or available.shape != (count,):
             raise ValueError("Born query row shapes are inconsistent")
         _batch_index(index, count, "born_queries.batch_index", True)
         _availability(index, available, "born_queries")
-        _basis(bits, mask, index, count, "born_queries")
+        _basis(bits, mask, index, count, "born_queries", unique_within_graph=False)
+        if basis_codes.shape != bits.shape or setting_index.shape != index.shape:
+            raise ValueError("Born query measurement context shapes are inconsistent")
+        if bool(((basis_codes < 0) | (basis_codes > 2)).any()):
+            raise ValueError("Born query basis codes must use Z/X/Y codes 0/1/2")
+        if bool((basis_codes[~mask] != 0).any()):
+            raise ValueError("Born query inactive basis-code positions must be zero")
+        if setting_index.numel() and int(setting_index.min()) < 0:
+            raise ValueError("Born query measurement_setting_index must be nonnegative")
+        _measurement_setting_ownership(setting_index, index, "Born query")
+        for graph_index in range(count):
+            graph_rows = index == graph_index
+            for setting in setting_index[graph_rows].unique():
+                rows = graph_rows & (setting_index == setting)
+                setting_bases = basis_codes[rows]
+                if not bool((setting_bases == setting_bases[0]).all()):
+                    raise ValueError("one Born query setting must have one consistent basis row")
+                setting_bits = bits[rows]
+                if torch.unique(setting_bits, dim=0).shape[0] != setting_bits.shape[0]:
+                    raise ValueError("Born query outcomes must be unique within each measurement setting")
 
 
 @dataclass(slots=True)

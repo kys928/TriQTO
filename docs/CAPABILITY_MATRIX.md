@@ -4,8 +4,10 @@ TriQTO currently provides an offline, deterministic research scaffold. It must n
 
 | Capability | Status | Notes |
 | --- | --- | --- |
-| Ideal statevector / Born simulation | Implemented, offline-tested | Simulator-only evidence tier. |
-| Sampled ideal shots | Implemented where existing tests cover it | Offline only. |
+| Basis-conditioned ideal `p(y \| M)` | Implemented, offline-tested | Explicit Pauli-product `X/Y/Z` settings; exact probabilities are simulator privilege. |
+| Identifiability masking and reporting | Implemented, offline-tested | Unidentifiable diagnosis/action labels are masked by default; strict rejection and explicit audited override are supported. |
+| Observable readout bit-flip channel | Implemented, offline-tested | Exact independent symmetric classical readout channel; not a noisy circuit simulator. |
+| Sampled ideal shots conditioned on `M` | Implemented, offline-tested | Offline only; setting-specific provenance is mandatory. |
 | Noisy Aer shots / density simulation | Intentionally unsupported in active configs | Future work; configs must be marked unsupported until implemented and tested. |
 | Fake-backend / transpilation evidence | Intentionally unsupported in active configs | Future work; no fabricated backend features. |
 | IBM Runtime ingestion | Credential-gated placeholder only | Not run by default; no credentials in tests. |
@@ -31,3 +33,5 @@ The optional CUDA profile is independent from the CPU profile so `qiskit-aer` an
 ## Configuration boundary
 
 Repository capability YAMLs are planning/claim-boundary documents. Unsupported YAMLs are rejected by the generic loader unless explicitly opened for planning inspection. Executable scientific phases continue to use their strict typed JSON/YAML loaders and real registries; the generic capability loader does not replace those schemas.
+
+The legacy executable distortion name `readout_bitflip_marker` is no longer registered. Use `readout_bitflip`; layout markers remain audit-only and unidentifiable until real backend/layout evidence exists. See [`MEASUREMENT_IDENTIFIABILITY.md`](MEASUREMENT_IDENTIFIABILITY.md).

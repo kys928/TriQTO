@@ -30,6 +30,7 @@ class BornPredictionHeadOutput:
     outcome_logits: Tensor
     probabilities: Tensor
     outcome_batch: Tensor
+    measurement_setting_index: Tensor
     graph_available_mask: Tensor
 
 

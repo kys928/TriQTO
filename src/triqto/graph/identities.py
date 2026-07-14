@@ -155,6 +155,12 @@ def pair_content_hash(pair: GraphSamplePair) -> str:
         "born_metric_positive_infinity_mask": (
             pair.born_metric_positive_infinity_mask
         ),
+        "measurement_setting_ids": pair.measurement_setting_ids,
+        "measurement_basis_codes": pair.measurement_basis_codes,
+        "measurement_outcome_bitstrings": pair.measurement_outcome_bitstrings,
+        "measurement_setting_index": pair.measurement_setting_index,
+        "clean_measurement_probabilities": pair.clean_measurement_probabilities,
+        "distorted_measurement_probabilities": pair.distorted_measurement_probabilities,
     }
     metadata = {
         "pair_artifact_schema_version": PAIR_ARTIFACT_SCHEMA_VERSION,
@@ -167,6 +173,10 @@ def pair_content_hash(pair: GraphSamplePair) -> str:
         "born_observable_shift_absent": pair.born_observable_shift_absent,
         "marker_only": pair.marker_only,
         "applicability_warning": pair.applicability_warning,
+        "identifiability_status": pair.identifiability_status,
+        "identifiability_reason": pair.identifiability_reason,
+        "diagnosis_supervision_mask": pair.diagnosis_supervision_mask,
+        "observable_evidence_fingerprint": pair.observable_evidence_fingerprint,
         "metadata": pair.metadata,
     }
     return hash_logical_content(arrays, metadata)

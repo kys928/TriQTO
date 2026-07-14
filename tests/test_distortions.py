@@ -16,6 +16,7 @@ from triqto.distortions import (
     apply_layout_permutation_marker,
     apply_mixed_unitary_drift,
     apply_phase_rz_drift,
+    apply_readout_bitflip,
     apply_readout_bitflip_marker,
     apply_rx_overrotation,
     apply_ry_overrotation,
@@ -29,7 +30,7 @@ EXPECTED_DISTORTIONS = {
     "rx_overrotation",
     "ry_overrotation",
     "entangling_rzz_drift",
-    "readout_bitflip_marker",
+    "readout_bitflip",
     "layout_permutation_marker",
     "mixed_unitary_drift",
 }
@@ -119,15 +120,23 @@ def test_entangling_rzz_drift_records_edges_in_metadata() -> None:
     assert result.metadata["rzz_decomposition"] in {"native_rzz", "cx_rz_cx"}
 
 
-def test_readout_bitflip_marker_does_not_modify_operations_but_records_metadata() -> None:
+def test_readout_bitflip_is_an_observable_measurement_channel() -> None:
     circuit = QuantumCircuit(2, 2)
     circuit.h(0)
     circuit.measure(0, 0)
-    result = apply_readout_bitflip_marker(circuit, probability=0.25)
+    result = apply_readout_bitflip(circuit, probability=0.25)
     assert circuit_signature(result.distorted_circuit) == circuit_signature(circuit)
-    assert result.metadata["marker_only"] is True
-    assert result.metadata["not_a_noisy_simulator"] is True
+    assert result.distortion_type == "readout_bitflip"
+    assert result.metadata["marker_only"] is False
+    assert result.metadata["observable_measurement_channel"] is True
+    assert result.metadata["measurement_channel"] == "independent_symmetric_readout_bitflip"
     assert result.metadata["probability"] == 0.25
+
+
+def test_legacy_readout_function_name_no_longer_creates_a_marker() -> None:
+    result = apply_readout_bitflip_marker(QuantumCircuit(1), probability=0.1)
+    assert result.distortion_type == "readout_bitflip"
+    assert result.metadata["marker_only"] is False
 
 
 def test_layout_permutation_marker_validates_and_records_permutation() -> None:

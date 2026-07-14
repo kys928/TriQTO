@@ -18,6 +18,7 @@ from triqto.storage import (
     DistortionRecord,
     ManifestReader,
     ManifestWriter,
+    MeasurementSettingRecord,
     MetricRecord,
     SimulationRecord,
 )
@@ -30,6 +31,7 @@ MANIFEST_NAMES = {
     "sample_manifest": "sample_manifest",
     "circuit_manifest": "circuit_manifest",
     "simulation_manifest": "simulation_manifest",
+    "measurement_setting_manifest": "measurement_setting_manifest",
     "distortion_manifest": "distortion_manifest",
     "metric_manifest": "metric_manifest",
 }
@@ -91,6 +93,14 @@ def _records_with_artifact_refs(
                     metadata=metadata,
                 )
             )
+        elif record.simulation_mode == "ideal_measurement_probabilities":
+            simulation_records.append(
+                replace(
+                    record,
+                    probabilities_ref=metadata.pop("probabilities_ref", None),
+                    metadata=metadata,
+                )
+            )
         else:
             simulation_records.append(record)
     return circuit_records, simulation_records
@@ -105,22 +115,19 @@ def _planned_paths(result: DatasetGenerationResult, root: Path) -> dict[str, lis
         root / "artifacts" / "circuits" / f"{record.circuit_id}.qpy"
         for record in result.circuit_records
     ]
-    probabilities: list[Path] = []
-    statevectors: list[Path] = []
-    for sample in result.samples:
-        probabilities.extend(
-            [
-                root / "artifacts" / "probabilities" / f"{sample.clean_run_id}.json",
-                root / "artifacts" / "probabilities" / f"{sample.distorted_run_id}.json",
-            ]
-        )
-        if result.config.store_statevectors:
-            statevectors.extend(
-                [
-                    root / "artifacts" / "statevectors" / f"{sample.clean_run_id}.npy",
-                    root / "artifacts" / "statevectors" / f"{sample.distorted_run_id}.npy",
-                ]
-            )
+    probabilities = [
+        root / "artifacts" / "probabilities" / f"{record.run_id}.json"
+        for record in result.simulation_records
+        if record.simulation_mode in {
+            "ideal_statevector",
+            "ideal_measurement_probabilities",
+        }
+    ]
+    statevectors = [
+        root / "artifacts" / "statevectors" / f"{record.run_id}.npy"
+        for record in result.simulation_records
+        if record.simulation_mode == "ideal_statevector" and result.config.store_statevectors
+    ]
     counts = [
         root / "artifacts" / "counts" / f"{record.run_id}.json"
         for record in result.simulation_records
@@ -219,6 +226,8 @@ def _validate_record_shape(record: Any) -> None:
         _require_nonblank_string_field(record, "family")
     elif isinstance(record, SimulationRecord):
         _require_nonblank_string_field(record, "simulation_mode")
+    elif isinstance(record, MeasurementSettingRecord):
+        _require_nonblank_string_field(record, "schema_version")
     elif isinstance(record, DistortionRecord):
         _require_nonblank_string_field(record, "distortion_type")
 
@@ -248,6 +257,10 @@ def verify_dataset_references(
             raise TypeError(f"Expected SimulationRecord, got {type(record).__name__}")
         metadata = _require_mapping_field(record, "metadata")
         if record.simulation_mode == "ideal_statevector":
+            if record.measurement_setting_id is not None:
+                raise ValueError(
+                    f"Record {record.run_id} ideal_statevector must not declare measurement_setting_id"
+                )
             _require_file(root_path, record.run_id, "probabilities_ref", record.probabilities_ref)
             _require_absent(record.run_id, "counts_ref", record.counts_ref)
             if require_statevectors:
@@ -265,6 +278,22 @@ def verify_dataset_references(
             if metadata.get("sampling_source") != "sampled_from_exact_born_probabilities":
                 raise ValueError(
                     f"Record {record.run_id} field metadata.sampling_source is invalid for ideal_shot"
+                )
+            if not isinstance(record.measurement_setting_id, str) or not record.measurement_setting_id:
+                raise ValueError(
+                    f"Record {record.run_id} ideal_shot requires measurement_setting_id"
+                )
+        elif record.simulation_mode == "ideal_measurement_probabilities":
+            _require_file(root_path, record.run_id, "probabilities_ref", record.probabilities_ref)
+            _require_absent(record.run_id, "counts_ref", record.counts_ref)
+            _require_absent(record.run_id, "statevector_ref", record.statevector_ref)
+            if not isinstance(record.measurement_setting_id, str) or not record.measurement_setting_id:
+                raise ValueError(
+                    f"Record {record.run_id} basis-conditioned probabilities require measurement_setting_id"
+                )
+            if metadata.get("sampling_source") != "basis_conditioned_exact_probabilities":
+                raise ValueError(
+                    f"Record {record.run_id} has invalid basis-conditioned sampling source"
                 )
         else:
             raise ValueError(
@@ -337,9 +366,12 @@ def _validate_phase7_metric_record(record: MetricRecord) -> None:
         raise ValueError(
             f"MetricRecord {record.metric_id} hilbert_available_mask must be False for Phase 7"
         )
-    if record.metadata.get("metric_family") != "born":
+    if record.metadata.get("metric_family") not in {
+        "born",
+        "measurement_conditioned_born",
+    }:
         raise ValueError(
-            f"MetricRecord {record.metric_id} metadata.metric_family must be 'born'"
+            f"MetricRecord {record.metric_id} metadata.metric_family is unsupported"
         )
     support_size = record.metadata.get("support_size")
     if (
@@ -358,6 +390,7 @@ def validate_dataset_joins(
     simulation_records: list[Any],
     distortion_records: list[Any],
     metric_records: list[Any],
+    measurement_setting_records: list[Any] | None = None,
 ) -> None:
     """Validate uniqueness and semantic joins among Phase 7 manifest records."""
     samples = _index_unique(sample_records, "sample_id", DatasetSampleRecord)
@@ -365,11 +398,29 @@ def validate_dataset_joins(
     simulations = _index_unique(simulation_records, "run_id", SimulationRecord)
     distortions = _index_unique(distortion_records, "distortion_id", DistortionRecord)
     metrics = _index_unique(metric_records, "metric_id", MetricRecord)
+    measurements = _index_unique(
+        [] if measurement_setting_records is None else measurement_setting_records,
+        "measurement_setting_id",
+        MeasurementSettingRecord,
+    )
 
     for metric in metrics.values():
         _validate_phase7_metric_record(metric)
 
     for sample in samples.values():
+        if sample.measurement_setting_ids:
+            if not measurements:
+                raise ValueError(
+                    f"Sample {sample.sample_id} declares measurement settings without a manifest"
+                )
+            for setting_id in sample.measurement_setting_ids:
+                _lookup(
+                    measurements,
+                    sample.sample_id,
+                    "measurement_setting_ids",
+                    "MeasurementSettingRecord",
+                    setting_id,
+                )
         clean_circuit = _lookup(
             circuits,
             sample.sample_id,
@@ -486,6 +537,39 @@ def validate_dataset_joins(
             raise ValueError(f"Sample {sample.sample_id} metric run metadata mismatch")
         if metric.metadata.get("sample_id") != sample.sample_id:
             raise ValueError(f"Sample {sample.sample_id} metric sample_id mismatch")
+        for setting_id, clean_measurement_run_id, distorted_measurement_run_id in zip(
+            sample.measurement_setting_ids,
+            sample.clean_measurement_run_ids,
+            sample.distorted_measurement_run_ids,
+            strict=True,
+        ):
+            clean_measurement_run = _lookup(
+                simulations,
+                sample.sample_id,
+                "clean_measurement_run_ids",
+                "SimulationRecord",
+                clean_measurement_run_id,
+            )
+            distorted_measurement_run = _lookup(
+                simulations,
+                sample.sample_id,
+                "distorted_measurement_run_ids",
+                "SimulationRecord",
+                distorted_measurement_run_id,
+            )
+            for run, expected_circuit_id, role in (
+                (clean_measurement_run, sample.clean_circuit_id, "clean"),
+                (distorted_measurement_run, sample.distorted_circuit_id, "distorted"),
+            ):
+                if (
+                    run.simulation_mode != "ideal_measurement_probabilities"
+                    or run.circuit_id != expected_circuit_id
+                    or run.measurement_setting_id != setting_id
+                    or run.metadata.get("role") != role
+                ):
+                    raise ValueError(
+                        f"Sample {sample.sample_id} has an invalid {role} measurement run"
+                    )
 
 
 def _write_circuits(
@@ -528,6 +612,14 @@ def _write_probabilities(
         for run_id, probabilities in (
             (sample.clean_run_id, sample.clean_result.probabilities),
             (sample.distorted_run_id, sample.distorted_result.probabilities),
+            *tuple(
+                (sample.clean_measurement_run_ids[setting_id], measurement.probabilities)
+                for setting_id, measurement in sample.clean_measurement_results.items()
+            ),
+            *tuple(
+                (sample.distorted_measurement_run_ids[setting_id], measurement.probabilities)
+                for setting_id, measurement in sample.distorted_measurement_results.items()
+            ),
         ):
             if run_id in seen:
                 continue
@@ -573,6 +665,10 @@ def _write_statevectors(
 def _shot_counts_by_run(result: DatasetGenerationResult) -> dict[str, dict[str, int]]:
     counts: dict[str, dict[str, int]] = {}
     for sample in result.samples:
+        for setting_id, shot in sample.clean_measurement_shot_results.items():
+            counts[sample.clean_measurement_shot_run_ids[setting_id]] = shot.counts
+        for setting_id, shot in sample.distorted_measurement_shot_results.items():
+            counts[sample.distorted_measurement_shot_run_ids[setting_id]] = shot.counts
         if sample.clean_shot_run_id and sample.clean_shot_result is not None:
             counts[sample.clean_shot_run_id] = sample.clean_shot_result.counts
         if sample.distorted_shot_run_id and sample.distorted_shot_result is not None:
@@ -665,6 +761,7 @@ def _read_typed_records(
     list[DatasetSampleRecord],
     list[CircuitRecord],
     list[SimulationRecord],
+    list[MeasurementSettingRecord],
     list[DistortionRecord],
     list[MetricRecord],
 ]:
@@ -673,6 +770,7 @@ def _read_typed_records(
         reader.read_typed_records("sample_manifest", DatasetSampleRecord),
         reader.read_typed_records("circuit_manifest", CircuitRecord),
         reader.read_typed_records("simulation_manifest", SimulationRecord),
+        reader.read_typed_records("measurement_setting_manifest", MeasurementSettingRecord),
         reader.read_typed_records("distortion_manifest", DistortionRecord),
         reader.read_typed_records("metric_manifest", MetricRecord),
     )
@@ -699,6 +797,7 @@ def _validate_persisted_dataset(
         sample_records,
         circuit_records,
         simulation_records,
+        measurement_setting_records,
         distortion_records,
         metric_records,
     ) = _read_typed_records(root)
@@ -708,6 +807,7 @@ def _validate_persisted_dataset(
         simulation_records,
         distortion_records,
         metric_records,
+        measurement_setting_records,
     )
     verify_dataset_references(
         root,
@@ -991,6 +1091,11 @@ def write_dataset(
         )
         manifest_writer.write_records(
             "simulation_manifest", simulation_records, overwrite=False
+        )
+        manifest_writer.write_records(
+            "measurement_setting_manifest",
+            result.measurement_setting_records,
+            overwrite=False,
         )
         manifest_writer.write_records(
             "distortion_manifest", result.distortion_records, overwrite=False

@@ -226,13 +226,41 @@ def validate_training_view_item(
             raise ValueError("Diagnosis item must contain Born input evidence")
         if "diagnosis_distortion_type" not in item.arrays:
             raise ValueError("Diagnosis item must contain distortion targets")
+        for name in (
+            "born_input_measurement_setting_ids",
+            "born_input_measurement_basis_codes",
+            "born_input_measurement_setting_index",
+            "diagnosis_supervision_mask",
+            "diagnosis_identifiability_status",
+            "diagnosis_identifiability_reason",
+        ):
+            if name not in item.arrays:
+                raise ValueError(f"Diagnosis item is missing {name}")
+        supervision = _bool_array(
+            item.arrays["diagnosis_supervision_mask"],
+            "diagnosis_supervision_mask",
+        )
+        if supervision.shape != (1,):
+            raise ValueError("diagnosis_supervision_mask must have shape [1]")
+        status = str(item.arrays["diagnosis_identifiability_status"].reshape(-1)[0])
+        if status == "unidentifiable" and bool(supervision[0]):
+            if item.metadata.get("unidentifiable_supervision_override") is not True:
+                raise ValueError("unidentifiable diagnosis target cannot be supervised")
     elif item.task == "action_ranking":
         _validate_action_arrays(item, config)
+        supervision = _bool_array(
+            item.arrays.get("action_supervision_mask"),
+            "action_supervision_mask",
+        )
+        if supervision.shape != (1,):
+            raise ValueError("action_supervision_mask must have shape [1]")
     elif item.task == "born_prediction":
         if any(name.startswith("born_input_") for name in item.arrays):
             raise ValueError("Born-prediction item must not contain Born inputs")
         if "born_target_probabilities" not in item.arrays:
             raise ValueError("Born-prediction item must contain Born targets")
+        if "born_target_measurement_basis_codes" not in item.arrays:
+            raise ValueError("Born-prediction targets require measurement context")
     elif item.task == "hilbert_to_born":
         if not item.hilbert_available_mask:
             raise ValueError("Hilbert-to-Born items require Hilbert availability")

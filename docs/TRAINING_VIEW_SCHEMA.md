@@ -54,8 +54,8 @@ The view item hash covers all arrays, IDs, split information, masks, and metadat
 
 Inputs:
 
-- distorted circuit graph structure;
-- distorted exact Born distribution;
+- programmed clean circuit graph structure;
+- distorted exact basis-conditioned `p(y | M)` evidence;
 - backend group marked unavailable for current simulator data.
 
 Targets:
@@ -64,7 +64,7 @@ Targets:
 - optional distortion strength with an availability mask;
 - affected-qubit mask.
 
-Distortion labels exist only in `diagnosis_*` target arrays. They are not copied into graph inputs.
+Distortion labels exist only in `diagnosis_*` target arrays. Synthetically injected gates are not copied into graph inputs. Identifiability status, reason, and diagnosis supervision mask are explicit; unidentifiable class, strength, and affected-qubit targets are inactive by default.
 
 ### Action ranking
 
@@ -95,7 +95,7 @@ Inputs:
 
 Target:
 
-- exact distorted Born distribution.
+- exact programmed-clean basis-conditioned Born distribution.
 
 Phase 8 graph files contain exact Born evidence, so Phase 12 does not expose the raw graph artifact as a direct model input. It physically copies only structural and parameter arrays into the view item and excludes outcome probabilities and supplemental counts. The probability artifact is target provenance only.
 
@@ -103,11 +103,11 @@ Phase 8 graph files contain exact Born evidence, so Phase 12 does not expose the
 
 Input:
 
-- a Phase 7 distorted statevector reference, only when persisted simulation state is available.
+- a Phase 7 programmed-clean statevector reference, only when persisted simulation state is available.
 
 Target:
 
-- exact distorted Born distribution.
+- the matching exact programmed-clean basis-conditioned Born distribution.
 
 The statevector is not duplicated into the view artifact. This view is simulation-only and cannot be used in hardware mode. When the source dataset intentionally did not store statevectors, the view definition can be valid with zero items and the joint view masks the Hilbert head.
 
@@ -128,6 +128,8 @@ Target:
 One item combines diagnosis, action ranking, Born prediction, optional Hilbert-to-Born, and optional action-neighborhood topology evidence for the same sample.
 
 A joint artifact may contain Born evidence for diagnosis and the same distribution as the Born-prediction target. It therefore carries a mandatory per-head input-mask matrix. The Born-prediction head masks the Born input; the action head masks rollout target provenance; the Hilbert head is active only when a statevector reference exists. Phase 13 must enforce these masks before shared or head-specific computation.
+
+All Born input/target arrays include measurement-setting IDs, per-qubit `Z/X/Y` basis codes, and a row-to-setting index. Each setting distribution is normalized separately.
 
 ### Hardware-masked simulation
 

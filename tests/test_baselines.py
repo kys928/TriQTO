@@ -58,7 +58,7 @@ def build_sources(tmp_path: Path) -> tuple[Path, Path, Path]:
                 kwargs={"strength": 0.2, "qubits": [0]},
             ),
             DistortionSpec(
-                name="readout_bitflip_marker",
+                name="readout_bitflip",
                 kwargs={"probability": 0.1, "qubits": [0]},
             ),
         ],

@@ -136,6 +136,44 @@ def born_arrays(
     }
 
 
+def measurement_born_arrays(
+    pair: Any,
+    probabilities: Sequence[float] | np.ndarray,
+    *,
+    prefix: str,
+) -> dict[str, np.ndarray]:
+    """Copy a basis-conditioned Born table with explicit setting provenance."""
+    values = np.asarray(probabilities, dtype=np.float64)
+    outcomes = np.asarray(pair.measurement_outcome_bitstrings)
+    setting_index = np.asarray(pair.measurement_setting_index)
+    setting_ids = np.asarray(pair.measurement_setting_ids)
+    basis_codes = np.asarray(pair.measurement_basis_codes)
+    if values.ndim != 1 or values.shape != outcomes.shape or values.shape != setting_index.shape:
+        raise ValueError("measurement Born row arrays must have equal vector length")
+    if setting_ids.ndim != 1 or basis_codes.ndim != 2:
+        raise ValueError("measurement setting arrays have invalid rank")
+    if basis_codes.shape[0] != len(setting_ids):
+        raise ValueError("measurement basis row count must match setting IDs")
+    if not np.isfinite(values).all() or np.any(values < 0.0):
+        raise ValueError("measurement Born probabilities must be finite and nonnegative")
+    for index in range(len(setting_ids)):
+        mask = setting_index == index
+        if not np.any(mask) or not math.isclose(
+            float(values[mask].sum()),
+            1.0,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        ):
+            raise ValueError("measurement Born probabilities must sum to one per setting")
+    return {
+        f"{prefix}_outcome_bitstrings": outcomes.copy(),
+        f"{prefix}_probabilities": values.copy(),
+        f"{prefix}_measurement_setting_ids": setting_ids.copy(),
+        f"{prefix}_measurement_basis_codes": basis_codes.copy(),
+        f"{prefix}_measurement_setting_index": setting_index.copy(),
+    }
+
+
 def make_training_item(
     *,
     dataset_id: str,
@@ -202,6 +240,7 @@ __all__ = [
     "graph_structure_arrays",
     "group_mask_arrays",
     "make_training_item",
+    "measurement_born_arrays",
     "strict_float",
     "unicode_array",
 ]

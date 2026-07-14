@@ -145,6 +145,7 @@ def test_join_validation_rejects_malformed_record_shapes_cleanly() -> None:
             result.simulation_records,
             result.distortion_records,
             result.metric_records,
+            result.measurement_setting_records,
         )
 
     bad_simulation = copy.deepcopy(result.simulation_records[0])
@@ -157,6 +158,7 @@ def test_join_validation_rejects_malformed_record_shapes_cleanly() -> None:
             simulations,
             result.distortion_records,
             result.metric_records,
+            result.measurement_setting_records,
         )
 
     bad_distortion = copy.deepcopy(result.distortion_records[0])
@@ -169,6 +171,7 @@ def test_join_validation_rejects_malformed_record_shapes_cleanly() -> None:
             result.simulation_records,
             distortions,
             result.metric_records,
+            result.measurement_setting_records,
         )
 
     bad_sample = replace(result.sample_records[0], schema_version=7)  # type: ignore[arg-type]
@@ -180,6 +183,7 @@ def test_join_validation_rejects_malformed_record_shapes_cleanly() -> None:
             result.simulation_records,
             result.distortion_records,
             result.metric_records,
+            result.measurement_setting_records,
         )
 
 

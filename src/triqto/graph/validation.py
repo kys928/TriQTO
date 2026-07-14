@@ -17,6 +17,7 @@ from .constants import (
     GLOBAL_FEATURE_NAMES,
     GRAPH_SCHEMA_VERSION,
     NODE_FEATURE_NAMES,
+    PROBABILITY_ATOL,
 )
 from .evidence import (
     validate_born_metric_arrays,
@@ -226,6 +227,87 @@ def validate_pair_data(pair: GraphSamplePair) -> None:
         pair.born_metric_values,
         pair.born_metric_positive_infinity_mask,
     )
+    setting_ids = _unicode(pair.measurement_setting_ids, "measurement_setting_ids")
+    normalized_setting_ids = [str(value) for value in setting_ids.tolist()]
+    if not normalized_setting_ids or any(not value for value in normalized_setting_ids):
+        raise ValueError("measurement_setting_ids must be nonempty and nonblank")
+    if len(set(normalized_setting_ids)) != len(normalized_setting_ids):
+        raise ValueError("measurement_setting_ids must be unique")
+    bases = _array(
+        pair.measurement_basis_codes,
+        "measurement_basis_codes",
+        np.int8,
+        2,
+    )
+    if bases.shape[0] != len(setting_ids) or bases.shape[1] <= 0:
+        raise ValueError("measurement_basis_codes shape must be [settings, qubits]")
+    if np.any((bases < 0) | (bases > 2)):
+        raise ValueError("measurement_basis_codes must use Z/X/Y codes 0/1/2")
+    outcomes = _unicode(
+        pair.measurement_outcome_bitstrings,
+        "measurement_outcome_bitstrings",
+    )
+    setting_index = _array(
+        pair.measurement_setting_index,
+        "measurement_setting_index",
+        np.int64,
+        1,
+    )
+    clean = _array(
+        pair.clean_measurement_probabilities,
+        "clean_measurement_probabilities",
+        np.float64,
+        1,
+    )
+    distorted = _array(
+        pair.distorted_measurement_probabilities,
+        "distorted_measurement_probabilities",
+        np.float64,
+        1,
+    )
+    if not (len(outcomes) == len(setting_index) == len(clean) == len(distorted)):
+        raise ValueError("measurement evidence arrays must have equal row counts")
+    if not len(outcomes):
+        raise ValueError("measurement evidence must contain outcomes")
+    if int(setting_index.min()) < 0 or int(setting_index.max()) >= len(setting_ids):
+        raise ValueError("measurement_setting_index is out of range")
+    if np.any(~np.isfinite(clean)) or np.any(~np.isfinite(distorted)):
+        raise ValueError("measurement probabilities must be finite")
+    if np.any(clean < 0.0) or np.any(distorted < 0.0):
+        raise ValueError("measurement probabilities must be nonnegative")
+    for index in range(len(setting_ids)):
+        mask = setting_index == index
+        if not np.any(mask):
+            raise ValueError("every measurement setting must own at least one outcome")
+        setting_outcomes = [str(value) for value in outcomes[mask].tolist()]
+        if setting_outcomes != sorted(setting_outcomes) or len(set(setting_outcomes)) != len(setting_outcomes):
+            raise ValueError("measurement outcomes must be sorted and unique per setting")
+        if any(len(value) != bases.shape[1] or set(value) - {"0", "1"} for value in setting_outcomes):
+            raise ValueError("measurement outcomes must be binary strings matching basis width")
+        if not np.isclose(clean[mask].sum(), 1.0, atol=PROBABILITY_ATOL, rtol=0.0):
+            raise ValueError("clean measurement probabilities must sum to one per setting")
+        if not np.isclose(distorted[mask].sum(), 1.0, atol=PROBABILITY_ATOL, rtol=0.0):
+            raise ValueError("distorted measurement probabilities must sum to one per setting")
+    if pair.identifiability_status not in {
+        "identifiable",
+        "conditionally_identifiable",
+        "unidentifiable",
+    }:
+        raise ValueError("pair identifiability_status is invalid")
+    if pair.identifiability_status == "identifiable":
+        if pair.identifiability_reason is not None:
+            raise ValueError("identifiable pair must not have identifiability_reason")
+    elif not isinstance(pair.identifiability_reason, str) or not pair.identifiability_reason:
+        raise ValueError("non-identifiable pair requires identifiability_reason")
+    if not isinstance(pair.diagnosis_supervision_mask, bool):
+        raise TypeError("diagnosis_supervision_mask must be bool")
+    if pair.identifiability_status == "unidentifiable" and pair.diagnosis_supervision_mask:
+        if pair.metadata.get("unidentifiable_supervision_override") is not True:
+            raise ValueError(
+                "unidentifiable pair supervision requires an explicit override"
+            )
+    if not isinstance(pair.observable_evidence_fingerprint, str) or not pair.observable_evidence_fingerprint:
+        raise ValueError("observable_evidence_fingerprint must be nonblank")
     expected_hash = pair_content_hash(pair)
     if pair.content_hash and pair.content_hash != expected_hash:
         raise ValueError("pair content_hash does not match pair content")

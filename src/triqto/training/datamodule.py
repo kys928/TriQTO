@@ -153,15 +153,29 @@ def _born_batch(arrays: dict[str, np.ndarray], prefix: str) -> BornTensorBatch |
         return None
     if names is None or probabilities is None:
         raise ValueError(f"Incomplete {prefix} Born arrays")
+    setting_index_array = arrays.get(f"{prefix}_measurement_setting_index")
+    basis_codes_array = arrays.get(f"{prefix}_measurement_basis_codes")
+    setting_ids_array = arrays.get(f"{prefix}_measurement_setting_ids")
+    if setting_index_array is None or basis_codes_array is None or setting_ids_array is None:
+        raise ValueError(f"{prefix} Born arrays require explicit measurement context")
     values = [str(value) for value in names.tolist()]
     bits, mask = _bitstrings_to_tensors(values)
     probs = _float_tensor(probabilities.reshape(-1))
+    setting_index = _long_tensor(setting_index_array.reshape(-1))
+    basis_by_setting = _long_tensor(basis_codes_array)
+    if basis_by_setting.ndim != 2 or basis_by_setting.shape[0] != len(setting_ids_array):
+        raise ValueError(f"{prefix} measurement basis table is malformed")
+    if setting_index.numel() != probs.numel():
+        raise ValueError(f"{prefix} measurement setting rows do not match probabilities")
+    row_basis = basis_by_setting.index_select(0, setting_index)
     return BornTensorBatch(
         outcome_bits=bits,
         outcome_bit_mask=mask,
         probabilities=probs,
         batch_index=torch.zeros(probs.numel(), dtype=torch.long),
         available_mask=torch.tensor([True]),
+        measurement_basis_codes=row_basis,
+        measurement_setting_index=setting_index,
     )
 
 
@@ -171,11 +185,22 @@ def _outcome_queries(arrays: dict[str, np.ndarray]) -> OutcomeQueryTensorBatch |
         return None
     values = [str(value) for value in names.tolist()]
     bits, mask = _bitstrings_to_tensors(values)
+    setting_index_array = arrays.get("born_target_measurement_setting_index")
+    basis_codes_array = arrays.get("born_target_measurement_basis_codes")
+    setting_ids_array = arrays.get("born_target_measurement_setting_ids")
+    if setting_index_array is None or basis_codes_array is None or setting_ids_array is None:
+        raise ValueError("Born targets require explicit measurement context")
+    setting_index = _long_tensor(setting_index_array.reshape(-1))
+    basis_by_setting = _long_tensor(basis_codes_array)
+    if basis_by_setting.ndim != 2 or basis_by_setting.shape[0] != len(setting_ids_array):
+        raise ValueError("Born target measurement basis table is malformed")
     return OutcomeQueryTensorBatch(
         outcome_bits=bits,
         outcome_bit_mask=mask,
         batch_index=torch.zeros(len(values), dtype=torch.long),
         available_mask=torch.tensor([True]),
+        measurement_basis_codes=basis_by_setting.index_select(0, setting_index),
+        measurement_setting_index=setting_index,
     )
 
 
@@ -340,7 +365,11 @@ def _action_batches(
         rank=_long_tensor(arrays["action_target_rank"].reshape(-1)),
         reward=_float_tensor(arrays["action_target_reward"].reshape(-1)),
         selected_mask=_bool_tensor(arrays["action_target_selected_mask"].reshape(-1)),
-        candidate_target_mask=torch.ones(count, dtype=torch.bool),
+        candidate_target_mask=torch.full(
+            (count,),
+            bool(np.asarray(arrays.get("action_supervision_mask", np.asarray([True]))).reshape(-1)[0]),
+            dtype=torch.bool,
+        ),
         privileged_oracle_mask=_bool_tensor(arrays["action_privileged_oracle_mask"].reshape(-1)),
         candidate_batch=candidate_batch,
     )
@@ -370,13 +399,17 @@ def _diagnosis_targets(arrays: dict[str, np.ndarray], n_nodes: int) -> Diagnosis
     affected = _bool_tensor(arrays["diagnosis_affected_qubit_mask"].reshape(-1))
     if affected.numel() != n_nodes:
         raise ValueError("Diagnosis affected-qubit target does not match graph nodes")
+    supervision_values = arrays.get("diagnosis_supervision_mask")
+    if supervision_values is None or supervision_values.size != 1:
+        raise ValueError("Diagnosis targets require one diagnosis_supervision_mask value")
+    supervised = bool(supervision_values.reshape(-1)[0])
     return DiagnosisTargets(
         class_index=torch.tensor([label_index], dtype=torch.long),
-        class_mask=torch.tensor([True]),
+        class_mask=torch.tensor([supervised]),
         strength=_float_tensor(arrays["diagnosis_strength"].reshape(-1)),
         strength_mask=_bool_tensor(arrays["diagnosis_strength_available_mask"].reshape(-1)),
         affected_qubit=affected.to(torch.float32),
-        affected_qubit_mask=torch.ones(n_nodes, dtype=torch.bool),
+        affected_qubit_mask=torch.full((n_nodes,), supervised, dtype=torch.bool),
     )
 
 
@@ -609,13 +642,45 @@ def load_training_examples(
                 pair_mask=torch.zeros((1, 1), dtype=torch.bool),
             ),
         )
-        distribution = tuple(
-            zip(
-                [str(value) for value in arrays.get("born_target_outcome_bitstrings", np.asarray([], dtype="<U1")).tolist()],
-                [float(value) for value in arrays.get("born_target_probabilities", np.asarray([], dtype=np.float64)).tolist()],
-                strict=True,
-            )
+        target_outcomes = [
+            str(value)
+            for value in arrays.get(
+                "born_target_outcome_bitstrings",
+                np.asarray([], dtype="<U1"),
+            ).tolist()
+        ]
+        target_values = [
+            float(value)
+            for value in arrays.get(
+                "born_target_probabilities",
+                np.asarray([], dtype=np.float64),
+            ).tolist()
+        ]
+        target_setting_index = arrays.get(
+            "born_target_measurement_setting_index",
+            np.asarray([], dtype=np.int64),
         )
+        target_setting_ids = arrays.get(
+            "born_target_measurement_setting_ids",
+            np.asarray([], dtype="<U1"),
+        )
+        if target_outcomes:
+            if len(target_setting_index) != len(target_outcomes):
+                raise ValueError("Born target setting rows do not match outcomes")
+            distribution = tuple(
+                (
+                    f"{str(target_setting_ids[int(setting_index)])}|{outcome}",
+                    probability,
+                )
+                for setting_index, outcome, probability in zip(
+                    target_setting_index.tolist(),
+                    target_outcomes,
+                    target_values,
+                    strict=True,
+                )
+            )
+        else:
+            distribution = ()
         examples.append(
             TrainingExample(
                 view_item_id=item.view_item_id,
@@ -704,11 +769,23 @@ def collate_training_examples(examples: Sequence[TrainingExample]) -> Supervised
         width = max(value.outcome_bits.shape[1] for _, value in rows)
         bit_parts: list[Tensor] = []
         mask_parts: list[Tensor] = []
+        basis_parts: list[Tensor] = []
+        setting_parts: list[Tensor] = []
         available = torch.zeros(len(examples), dtype=torch.bool)
+        setting_offset = 0
         for index, value in rows:
             padding = width - value.outcome_bits.shape[1]
             bit_parts.append(torch.nn.functional.pad(value.outcome_bits, (0, padding)))
             mask_parts.append(torch.nn.functional.pad(value.outcome_bit_mask, (0, padding)))
+            basis_parts.append(
+                torch.nn.functional.pad(
+                    value.measurement_basis_codes,
+                    (0, padding),
+                )
+            )
+            local = value.measurement_setting_index
+            setting_parts.append(local + setting_offset)
+            setting_offset += int(local.max()) + 1
             available[index] = True
         return BornTensorBatch(
             outcome_bits=torch.cat(bit_parts),
@@ -716,6 +793,8 @@ def collate_training_examples(examples: Sequence[TrainingExample]) -> Supervised
             probabilities=torch.cat([value.probabilities for _, value in rows]),
             batch_index=torch.cat([torch.full((value.probabilities.numel(),), index, dtype=torch.long) for index, value in rows]),
             available_mask=available,
+            measurement_basis_codes=torch.cat(basis_parts),
+            measurement_setting_index=torch.cat(setting_parts),
         )
 
     def collate_hilbert() -> HilbertTensorBatch | None:
@@ -783,16 +862,30 @@ def collate_training_examples(examples: Sequence[TrainingExample]) -> Supervised
         available = torch.zeros(len(examples), dtype=torch.bool)
         bits: list[Tensor] = []
         masks: list[Tensor] = []
+        basis_rows: list[Tensor] = []
+        setting_rows: list[Tensor] = []
+        setting_offset = 0
         for index, value in rows:
             padding = width - value.outcome_bits.shape[1]
             bits.append(torch.nn.functional.pad(value.outcome_bits, (0, padding)))
             masks.append(torch.nn.functional.pad(value.outcome_bit_mask, (0, padding)))
+            basis_rows.append(
+                torch.nn.functional.pad(
+                    value.measurement_basis_codes,
+                    (0, padding),
+                )
+            )
+            local = value.measurement_setting_index
+            setting_rows.append(local + setting_offset)
+            setting_offset += int(local.max()) + 1
             available[index] = True
         return OutcomeQueryTensorBatch(
             outcome_bits=torch.cat(bits),
             outcome_bit_mask=torch.cat(masks),
             batch_index=torch.cat([torch.full((value.outcome_bits.shape[0],), index, dtype=torch.long) for index, value in rows]),
             available_mask=available,
+            measurement_basis_codes=torch.cat(basis_rows),
+            measurement_setting_index=torch.cat(setting_rows),
         )
 
     model_batch = TriQTOBatch(

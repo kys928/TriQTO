@@ -3,8 +3,8 @@
 TriQTO (pronounced “Trikto”) is a research codebase for studying quantum-native, hardware-aware quantum-circuit optimization. The project is organized around
 
 ```text
-Parameter manifold → Hilbert-state manifold → Born-probability manifold
-θ → |ψ(θ, x)⟩ → pθ(y|x) = |⟨y|ψ(θ, x)⟩|²
+Parameter manifold → Hilbert-state manifold → basis-conditioned Born manifold
+θ → |ψ(θ, x)⟩ → pθ(y|x, M)
 ```
 
 TriQTO does **not** claim quantum advantage, universal quantum correction, or solved topology optimization. The repository is a staged implementation scaffold for future validation.
@@ -25,7 +25,9 @@ TriQTO treats circuits and hardware lattices as variable-size graphs. Qubits are
 
 ## Simulation and hardware modes
 
-Simulation records may include Hilbert-state references such as statevectors or density matrices. Hardware records cannot expose Hilbert states, so Hilbert inputs must use masks and optional references. This prevents Hilbert-field leakage during hardware-masked training.
+Simulation records may include pure-state statevector references. Density-matrix and open-system channels are not implemented. Hardware records cannot expose Hilbert states, so Hilbert inputs use masks and optional references. This prevents Hilbert-field leakage during hardware-masked training.
+
+Measurement setting `M` is first-class evidence. The offline path generates exact and optional finite-shot `p(y | M)` records for explicit Pauli-product `X/Y/Z` settings. Unidentifiable diagnosis targets are masked by default, and identical observable evidence with conflicting supervised labels is rejected. See [`docs/MEASUREMENT_IDENTIFIABILITY.md`](docs/MEASUREMENT_IDENTIFIABILITY.md).
 
 ## Phasors, geometry, and topology
 
@@ -56,7 +58,7 @@ Physics priors are scaffolding and validators, not unquestioned final authority.
 
 ## Phase 8 graph conversion
 
-Phase 8 converts completed Phase 7 datasets into deterministic, framework-neutral NumPy graph artifacts. One logical qubit becomes one node; each two-qubit gate event becomes two directed multiedges; ordered gate events, operand incidence, classical wiring, parameters, logical layers, and exact Born evidence are preserved without dataset-global padding.
+Phase 8 converts completed Phase 7 datasets into deterministic, framework-neutral NumPy graph artifacts. One logical qubit becomes one node; each two-qubit gate event becomes two directed multiedges; ordered gate events, operand incidence, classical wiring, parameters, logical layers, and basis-conditioned exact Born evidence are preserved without dataset-global padding.
 
 Graph identity is circuit/run-level, not sample-level. Sample ownership lives in graph-pair records, so a clean graph can be reused across several distortion samples without inheriting an arbitrary first `sample_id`. Exact probability evidence participates in graph identity through the source exact run. Supplemental ideal-shot counts link through the Phase 7 shot record’s `source_run_id`, remain separate from exact probabilities, and do not alter structural graph IDs or structural content hashes.
 
@@ -84,7 +86,7 @@ Parameter topology uses a downstream pullback-style pseudometric rather than pla
 
 ## Phase 12 task-specific training views
 
-Phase 12 turns the validated Phase 7/8/9/11 chain into deterministic diagnosis, action-ranking, Born-prediction, optional Hilbert-to-Born, topology-audit, joint-multitask, and hardware-masked simulation views. Related distortions and actions are split together by clean circuit, while topology cohorts spanning several splits remain `audit_only`.
+Phase 12 turns the validated Phase 7/8/9/11 chain into deterministic diagnosis, action-ranking, Born-prediction, optional Hilbert-to-Born, topology-audit, joint-multitask, and hardware-masked simulation views. Diagnosis consumes the programmed clean graph plus basis-conditioned observable evidence, so injected synthetic gates are not a label-leakage shortcut. Unidentifiable targets are masked. Related distortions and actions are split together by clean circuit, while topology cohorts spanning several splits remain `audit_only`.
 
 The view layer physically blocks Born-target leakage from Born-prediction graph inputs, separates action rollout labels from candidate inputs, carries explicit privileged-oracle masks, supports optional Hilbert references, and removes Hilbert-dependent topology from hardware-masked simulation. It performs no model training and keeps `lambda_top = 0`. See [`docs/TRAINING_VIEW_SCHEMA.md`](docs/TRAINING_VIEW_SCHEMA.md).
 
@@ -94,7 +96,7 @@ Phase 13 implements the untrained PyTorch TriQTO architecture. It combines a var
 
 The graph core uses learned sine/cosine phase quadratures over directed lattice messages rather than transformer Q/K/V attention. Hard stream policies and Phase 12 runtime masks prevent Born-target copying, direct Hilbert copying in the Hilbert-deformation head, direct topology copying in the topology audit head, and Hilbert leakage into hardware-mode rows. Inactive heads and unavailable streams are forced to zero.
 
-The architecture exposes diagnosis, variable-candidate action ranking, variable-support Born prediction, Hilbert-deformation, uncertainty, and topology-audit heads. It is deterministically initialized and identity-versioned, but explicitly records `trained=false`, no optimizer state, no training checkpoint, and `lambda_top=0`. See [`docs/MODEL_ARCHITECTURE.md`](docs/MODEL_ARCHITECTURE.md).
+The architecture exposes diagnosis, variable-candidate action ranking, measurement-conditioned variable-support Born prediction, Hilbert-deformation, uncertainty, and topology-audit heads. Born inputs and queries require per-qubit basis codes and setting indices, and normalization occurs independently for each setting. It is deterministically initialized and identity-versioned, but explicitly records `trained=false`, no optimizer state, no training checkpoint, and `lambda_top=0`. See [`docs/MODEL_ARCHITECTURE.md`](docs/MODEL_ARCHITECTURE.md).
 
 ## Phase 14 deterministic training engine
 
