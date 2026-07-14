@@ -1,0 +1,38 @@
+{
+  "bootstrap_replicates": 64,
+  "confidence_level": 0.95,
+  "depth_optimization_levels": [1, 3],
+  "epochs": 8,
+  "hidden_dim": 32,
+  "include_density_matrix": true,
+  "layout_seeds": [2026, 2027],
+  "learning_rate": 0.001,
+  "max_samples_per_split": 2,
+  "measurement_bases": ["Z", "X", "Y"],
+  "noise_profiles": [
+    {
+      "channels": [
+        {
+          "gates": ["x", "sx", "h", "rx", "ry", "rz"],
+          "probability": 0.01,
+          "qubits": 1,
+          "type": "depolarizing"
+        },
+        {
+          "probability": 0.02,
+          "type": "readout_error"
+        }
+      ],
+      "name": "depolarizing_readout_smoke",
+      "shots": 64
+    }
+  ],
+  "physical_hardware": false,
+  "probe_cost": 0.02,
+  "routing_optimization_levels": [0, 1, 3],
+  "schema_version": "triqto.phase15_5.config.v1",
+  "seed": 2026,
+  "topology_loss_weight": 0.0,
+  "utility_mse_weight": 0.25,
+  "weight_decay": 0.0
+}
