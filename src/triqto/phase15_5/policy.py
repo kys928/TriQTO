@@ -38,46 +38,34 @@ class PolicyDataset:
     available_mask: np.ndarray
 
     def validate(self) -> None:
-        count = len(self.candidate_ids)
-        if count == 0 or len(set(self.candidate_ids)) != count:
+        n = len(self.candidate_ids)
+        if n == 0 or len(set(self.candidate_ids)) != n:
             raise ValueError("policy dataset requires unique candidate IDs")
-        for name, values in (
-            ("group_ids", self.group_ids),
-            ("split_group_ids", self.split_group_ids),
-            ("splits", self.splits),
-        ):
-            if len(values) != count or any(not value for value in values):
+        for name, values in (("group_ids", self.group_ids), ("split_group_ids", self.split_group_ids), ("splits", self.splits)):
+            if len(values) != n or any(not value for value in values):
                 raise ValueError(f"{name} must match candidate rows and be nonblank")
-        if self.family_ids.shape != (count,) or self.family_ids.dtype != np.int64:
+        if self.family_ids.shape != (n,) or self.family_ids.dtype != np.int64:
             raise ValueError("family_ids must be int64 with candidate shape")
         if np.any(self.family_ids < 0) or np.any(self.family_ids >= len(FAMILY_NAMES)):
             raise ValueError("family_ids contain out-of-range values")
-        if self.context_features.ndim != 2 or self.context_features.shape[0] != count:
+        if self.context_features.ndim != 2 or self.context_features.shape[0] != n:
             raise ValueError("context_features must be two-dimensional with candidate rows")
-        if self.candidate_features.ndim != 2 or self.candidate_features.shape[0] != count:
+        if self.candidate_features.ndim != 2 or self.candidate_features.shape[0] != n:
             raise ValueError("candidate_features must be two-dimensional with candidate rows")
-        for name, values in (
-            ("context_features", self.context_features),
-            ("candidate_features", self.candidate_features),
-            ("utilities", self.utilities),
-        ):
+        for name, values in (("context_features", self.context_features), ("candidate_features", self.candidate_features), ("utilities", self.utilities)):
             if not np.isfinite(values).all():
                 raise ValueError(f"{name} contains non-finite values")
-        if self.utilities.shape != (count,) or np.any(self.utilities < 0.0) or np.any(self.utilities > 1.0):
+        if self.utilities.shape != (n,) or np.any(self.utilities < 0.0) or np.any(self.utilities > 1.0):
             raise ValueError("utilities must have candidate shape and lie in [0,1]")
-        if self.available_mask.shape != (count,) or self.available_mask.dtype != np.bool_:
+        if self.available_mask.shape != (n,) or self.available_mask.dtype != np.bool_:
             raise ValueError("available_mask must be bool with candidate shape")
-        for split in self.splits:
-            if split not in {"train", "validation", "test"}:
-                raise ValueError("policy dataset split must be train, validation, or test")
-        groups: dict[str, list[int]] = defaultdict(list)
+        if any(value not in {"train", "validation", "test"} for value in self.splits):
+            raise ValueError("policy dataset split must be train, validation, or test")
+        grouped: dict[str, list[int]] = defaultdict(list)
         for index, group_id in enumerate(self.group_ids):
-            groups[group_id].append(index)
-        for group_id, indices in groups.items():
-            families = {int(self.family_ids[index]) for index in indices}
-            splits = {self.splits[index] for index in indices}
-            split_groups = {self.split_group_ids[index] for index in indices}
-            if len(families) != 1 or len(splits) != 1 or len(split_groups) != 1:
+            grouped[group_id].append(index)
+        for group_id, indices in grouped.items():
+            if len({int(self.family_ids[i]) for i in indices}) != 1 or len({self.splits[i] for i in indices}) != 1 or len({self.split_group_ids[i] for i in indices}) != 1:
                 raise ValueError(f"policy group {group_id} mixes family/split identities")
             if not bool(self.available_mask[np.asarray(indices, dtype=np.int64)].any()):
                 raise ValueError(f"policy group {group_id} has no available candidate")
@@ -88,23 +76,16 @@ class OperationalPolicy(nn.Module):
         super().__init__()
         if min(context_dim, candidate_dim, hidden_dim, family_count) <= 0:
             raise ValueError("policy dimensions must be positive")
-        self.context_dim = int(context_dim)
-        self.candidate_dim = int(candidate_dim)
-        self.hidden_dim = int(hidden_dim)
-        self.family_count = int(family_count)
+        self.context_dim, self.candidate_dim, self.hidden_dim, self.family_count = map(int, (context_dim, candidate_dim, hidden_dim, family_count))
         self.network = nn.Sequential(
-            nn.Linear(context_dim + candidate_dim + family_count, hidden_dim),
-            nn.GELU(),
-            nn.LayerNorm(hidden_dim),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.GELU(),
-            nn.Linear(hidden_dim, 1),
+            nn.Linear(context_dim + candidate_dim + family_count, hidden_dim), nn.GELU(), nn.LayerNorm(hidden_dim),
+            nn.Linear(hidden_dim, hidden_dim), nn.GELU(), nn.Linear(hidden_dim, 1),
         )
 
     def forward(self, context: Tensor, candidate: Tensor, family_ids: Tensor) -> Tensor:
         if context.ndim != 2 or context.shape[1] != self.context_dim:
             raise ValueError("context tensor shape mismatch")
-        if candidate.ndim != 2 or candidate.shape[1] != self.candidate_dim or candidate.shape[0] != context.shape[0]:
+        if candidate.ndim != 2 or candidate.shape != (context.shape[0], self.candidate_dim):
             raise ValueError("candidate tensor shape mismatch")
         if family_ids.dtype != torch.long or family_ids.shape != (context.shape[0],):
             raise ValueError("family_ids must be int64 with row shape")
@@ -112,7 +93,7 @@ class OperationalPolicy(nn.Module):
         return self.network(torch.cat((context, candidate, family), dim=1)).squeeze(1)
 
 
-def _seed_everything(seed: int) -> None:
+def _seed(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -120,13 +101,11 @@ def _seed_everything(seed: int) -> None:
 
 
 def _normalization(values: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    mean = values.mean(axis=0)
-    std = values.std(axis=0)
-    std = np.where(std > 1e-12, std, 1.0)
-    return mean.astype(np.float64), std.astype(np.float64)
+    mean, std = values.mean(axis=0), values.std(axis=0)
+    return mean.astype(np.float64), np.where(std > 1e-12, std, 1.0).astype(np.float64)
 
 
-def _group_indices(dataset: PolicyDataset, split: str) -> list[np.ndarray]:
+def _groups(dataset: PolicyDataset, split: str) -> list[np.ndarray]:
     grouped: dict[str, list[int]] = defaultdict(list)
     for index, (group_id, row_split) in enumerate(zip(dataset.group_ids, dataset.splits, strict=True)):
         if row_split == split:
@@ -134,74 +113,34 @@ def _group_indices(dataset: PolicyDataset, split: str) -> list[np.ndarray]:
     return [np.asarray(grouped[key], dtype=np.int64) for key in sorted(grouped)]
 
 
-def _group_loss(
-    model: OperationalPolicy,
-    context: Tensor,
-    candidate: Tensor,
-    family_ids: Tensor,
-    utilities: Tensor,
-    available: Tensor,
-    indices: Tensor,
-    utility_mse_weight: float,
-) -> Tensor:
-    row_available = available.index_select(0, indices)
-    if not bool(row_available.any()):
+def _loss(model: OperationalPolicy, tensors: Mapping[str, Tensor], indices: Tensor, mse_weight: float) -> Tensor:
+    available = tensors["available"].index_select(0, indices)
+    selected = indices[available]
+    if selected.numel() == 0:
         raise ValueError("policy group has no available candidate")
-    selected = indices[row_available]
-    scores = model(
-        context.index_select(0, selected),
-        candidate.index_select(0, selected),
-        family_ids.index_select(0, selected),
-    )
-    target_utilities = utilities.index_select(0, selected)
-    best_index = torch.argmax(target_utilities).reshape(1)
-    ranking = torch.nn.functional.cross_entropy(scores.unsqueeze(0), best_index)
-    calibration = torch.nn.functional.mse_loss(torch.sigmoid(scores), target_utilities)
-    return ranking + float(utility_mse_weight) * calibration
+    scores = model(tensors["context"].index_select(0, selected), tensors["candidate"].index_select(0, selected), tensors["family_ids"].index_select(0, selected))
+    targets = tensors["utilities"].index_select(0, selected)
+    best = torch.argmax(targets).reshape(1)
+    ranking = torch.nn.functional.cross_entropy(scores.unsqueeze(0), best)
+    return ranking + float(mse_weight) * torch.nn.functional.mse_loss(torch.sigmoid(scores), targets)
 
 
-def _evaluate_loss(
-    model: OperationalPolicy,
-    tensors: Mapping[str, Tensor],
-    groups: Sequence[np.ndarray],
-    utility_mse_weight: float,
-) -> float:
+def _eval(model: OperationalPolicy, tensors: Mapping[str, Tensor], groups: Sequence[np.ndarray], mse_weight: float) -> float:
     if not groups:
         raise ValueError("policy evaluation split has no groups")
     model.eval()
     total = 0.0
     with torch.no_grad():
-        for indices in groups:
-            total += float(
-                _group_loss(
-                    model,
-                    tensors["context"],
-                    tensors["candidate"],
-                    tensors["family_ids"],
-                    tensors["utilities"],
-                    tensors["available"],
-                    torch.as_tensor(indices, dtype=torch.long),
-                    utility_mse_weight,
-                ).cpu()
-            )
+        for group in groups:
+            total += float(_loss(model, tensors, torch.as_tensor(group, dtype=torch.long), mse_weight).cpu())
     return total / len(groups)
 
 
-def train_operational_policy(
-    dataset: PolicyDataset,
-    *,
-    hidden_dim: int,
-    epochs: int,
-    learning_rate: float,
-    weight_decay: float,
-    utility_mse_weight: float,
-    seed: int,
-) -> dict[str, Any]:
+def train_operational_policy(dataset: PolicyDataset, *, hidden_dim: int, epochs: int, learning_rate: float, weight_decay: float, utility_mse_weight: float, seed: int) -> dict[str, Any]:
     dataset.validate()
     if epochs <= 0 or hidden_dim <= 0:
         raise ValueError("policy epochs/hidden_dim must be positive")
-    train_groups = _group_indices(dataset, "train")
-    validation_groups = _group_indices(dataset, "validation")
+    train_groups, validation_groups = _groups(dataset, "train"), _groups(dataset, "validation")
     if not train_groups or not validation_groups:
         raise ValueError("operational policy requires train and validation groups")
     train_rows = np.asarray([value == "train" for value in dataset.splits], dtype=np.bool_)
@@ -214,9 +153,9 @@ def train_operational_policy(
         "utilities": torch.as_tensor(dataset.utilities, dtype=torch.float32),
         "available": torch.as_tensor(dataset.available_mask, dtype=torch.bool),
     }
-    _seed_everything(seed)
+    _seed(seed)
     model = OperationalPolicy(dataset.context_features.shape[1], dataset.candidate_features.shape[1], hidden_dim)
-    optimizer = torch.optim.AdamWmodel.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     best_state: dict[str, Tensor] | None = None
     best_validation = math.inf
     best_epoch = -1
@@ -224,23 +163,20 @@ def train_operational_policy(
     for epoch in range(epochs):
         model.train()
         optimizer.zero_grad(set_to_none=True)
-        losses: list[Tensor] = []
-        for group in train_groups:
-            losses.append(_group_loss(model, tensors["context"], tensors["candidate"], tensors["family_ids"], tensors["utilities"], tensors["available"], torch.as_tensor(group, dtype=torch.long), utility_mse_weight))
-        train_loss = torch.stack(losses).mean()
+        train_loss = torch.stack([_loss(model, tensors, torch.as_tensor(group, dtype=torch.long), utility_mse_weight) for group in train_groups]).mean()
         train_loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
         optimizer.step()
-        validation_loss = _evaluate_loss(model, tensors, validation_groups, utility_mse_weight)
+        validation_loss = _eval(model, tensors, validation_groups, utility_mse_weight)
         history.append({"epoch": epoch, "train_loss": float(train_loss.detach().cpu()), "validation_loss": validation_loss})
         if validation_loss < best_validation - 1e-12:
-            best_validation = validation_loss
-            best_epoch = epoch
+            best_validation, best_epoch = validation_loss, epoch
             best_state = {name: value.detach().cpu().clone() for name, value in model.state_dict().items()}
     if best_state is None or best_epoch < 0 or not math.isfinite(best_validation):
         raise RuntimeError("operational policy failed to produce a finite checkpoint")
     model.load_state_dict(best_state, strict=True)
     return {"model": model.eval(), "history": history, "best_epoch": best_epoch, "best_validation_loss": best_validation, "context_mean": context_mean, "context_std": context_std, "candidate_mean": candidate_mean, "candidate_std": candidate_std}
+
 
 def score_dataset(model: OperationalPolicy, dataset: PolicyDataset, *, context_mean: np.ndarray, context_std: np.ndarray, candidate_mean: np.ndarray, candidate_std: np.ndarray) -> np.ndarray:
     dataset.validate()
@@ -254,6 +190,7 @@ def score_dataset(model: OperationalPolicy, dataset: PolicyDataset, *, context_m
     scores[~dataset.available_mask] = -math.inf
     return scores
 
+
 def _state_arrays(model: OperationalPolicy) -> tuple[dict[str, np.ndarray], dict[str, str]]:
     arrays: dict[str, np.ndarray] = {}
     mapping: dict[str, str] = {}
@@ -263,15 +200,17 @@ def _state_arrays(model: OperationalPolicy) -> tuple[dict[str, np.ndarray], dict
         mapping[name] = key
     return arrays, mapping
 
+
 def _checkpoint_hash(metadata: Mapping[str, Any], arrays: Mapping[str, np.ndarray]) -> str:
     digest = hashlib.sha256(canonical_json(dict(metadata)).encode("utf-8"))
     for name in sorted(arrays):
         value = np.ascontiguousarray(arrays[name])
-        digest.update(name.encode("utf-8"))
-        digest.update(value.dtype.str.encode("ascii"))
-        digest.update(str(value.shape).encode("ascii"))
+        digest.update(name.encode())
+        digest.update(value.dtype.str.encode())
+        digest.update(str(value.shape).encode())
         digest.update(value.tobytes())
     return f"sha256:{digest.hexdigest()}"
+
 
 def save_policy_checkpoint(path: str | Path, *, training_result: Mapping[str, Any], source_identity: Mapping[str, Any], config_identity: Mapping[str, Any]) -> dict[str, Any]:
     target = Path(path)
@@ -290,27 +229,24 @@ def save_policy_checkpoint(path: str | Path, *, training_result: Mapping[str, An
     target.with_suffix(".json").write_text(json.dumps(metadata, sort_keys=True, indent=2, allow_nan=False) + "\n", encoding="utf-8")
     return metadata
 
+
 def load_policy_checkpoint(path: str | Path) -> dict[str, Any]:
     target = Path(path)
     metadata = json.loads(target.with_suffix(".json").read_text(encoding="utf-8"))
-    expected_hash = metadata.pop("content_hash", None)
+    expected = metadata.pop("content_hash", None)
     with np.load(target, allow_pickle=False) as payload:
         arrays = {name: payload[name].copy() for name in payload.files}
-    if expected_hash != _checkpoint_hash(metadata, arrays):
+    if expected != _checkpoint_hash(metadata, arrays):
         raise ValueError("operational policy checkpoint content hash mismatch")
-    metadata["content_hash"] = expected_hash
+    metadata["content_hash"] = expected
     if metadata.get("schema") != POLICY_SCHEMA or metadata.get("trained") is not True:
         raise ValueError("operational policy checkpoint claim boundary mismatch")
     if metadata.get("physical_hardware") is not False or metadata.get("topology_loss_weight") != 0.0:
         raise ValueError("operational policy checkpoint hardware/topology boundary mismatch")
-    model = OperationalPolicy(
-        context_dim=int(metadata["context_dim"]),
-        candidate_dim=int(metadata["candidate_dim"]),
-        hidden_dim=int(metadata["hidden_dim"]),
-        family_count=len(metadata["family_names"]),
-    )
+    model = OperationalPolicy(int(metadata["context_dim"]), int(metadata["candidate_dim"]), int(metadata["hidden_dim"]), len(metadata["family_names"]))
     state = {name: torch.from_numpy(arrays[key].copy()) for name, key in metadata["state_mapping"].items()}
     model.load_state_dict(state, strict=True)
     return {"model": model.eval(), "metadata": metadata, "context_mean": np.asarray(arrays["context_mean"], dtype=np.float64), "context_std": np.asarray(arrays["context_std"], dtype=np.float64), "candidate_mean": np.asarray(arrays["candidate_mean"], dtype=np.float64), "candidate_std": np.asarray(arrays["candidate_std"], dtype=np.float64)}
+
 
 __all__ = ["FAMILY_NAMES", "OperationalPolicy", "POLICY_SCHEMA", "PolicyDataset", "load_policy_checkpoint", "save_policy_checkpoint", "score_dataset", "train_operational_policy"]
