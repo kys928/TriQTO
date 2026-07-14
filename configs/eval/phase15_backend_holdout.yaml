@@ -1,0 +1,10 @@
+schema_version: triqto.eval.backend_holdout.v1
+evaluation: phase15_backend_holdout_fake_axis
+axis: backend_id
+heldout_backend_ids:
+  - backend_e7791b66840d793a4c06c22c9ddc30d5
+claim_label: exact_fake_backend_axis_holdout
+seed: 2026
+backend_assignment_level: clean_circuit
+evidence_tier: fake_backend_fixture
+physical_hardware: false

@@ -128,7 +128,7 @@ See `docs/CAPABILITY_MATRIX.md` for the maintained capability matrix.
 
 ### Current evidence boundary update
 
-The current branch includes offline fake-backend metadata propagation into Phase 7/12/14 artifacts, deterministic backend-holdout audits, standalone operational actions, and checkpoint-bound latent-topology diagnostics. These are not physical-hardware results: no IBM Runtime job is submitted by default or in tests, fake-backend evidence remains simulator/fixture evidence, latent topology requires a real checkpoint identity supplied by a reproducible run, and no OOD or calibration claim is made without corresponding empirical artifacts.
+The current branch includes offline fake-backend metadata propagation into Phase 7/12/14 artifacts, an executable deterministic fake-backend-axis holdout smoke/audit path, standalone operational actions, and checkpoint-bound latent-topology diagnostics. These are not physical-hardware results: no IBM Runtime job is submitted by default or in tests, fake-backend evidence remains simulator/fixture evidence, latent topology requires a real checkpoint identity supplied by a reproducible run, and no OOD or calibration claim is made without corresponding empirical artifacts.
 
 ## Capability-category status (2026-07-14)
 

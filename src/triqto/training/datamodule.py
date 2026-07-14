@@ -502,6 +502,7 @@ def build_training_data_spec(
     topology_names: set[str] = set()
     backend_rows: list[np.ndarray] = []
     backend_feature_names: tuple[str, ...] = ()
+    seen_backend_entities: set[tuple[str, str]] = set()
     for record in sorted(dataset.item_records, key=lambda row: row.view_item_id):
         if record.split != "train" or record.task == "topology_audit":
             continue
@@ -516,7 +517,12 @@ def build_training_data_spec(
             if backend_feature_names and names != backend_feature_names:
                 raise ValueError("Backend feature schema changed across training items")
             backend_feature_names = names
-            backend_rows.append(np.asarray(item.arrays["backend_features"], dtype=np.float64))
+            backend_id_array = item.arrays.get("backend_id")
+            backend_id = str(backend_id_array.reshape(-1)[0]) if backend_id_array is not None and backend_id_array.size else "unknown_backend"
+            backend_entity = (record.split_group_id, backend_id)
+            if backend_entity not in seen_backend_entities:
+                seen_backend_entities.add(backend_entity)
+                backend_rows.append(np.asarray(item.arrays["backend_features"], dtype=np.float64))
         pairs = _topology_pairs(item.arrays)
         if pairs:
             topology_rows.append(pairs)

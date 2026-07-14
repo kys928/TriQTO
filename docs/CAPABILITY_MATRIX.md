@@ -19,7 +19,7 @@ Status categories used below are exact repository claim boundaries:
 | Phase 12 task-specific training views | integrated into the primary pipeline | Diagnosis, action-ranking, Born-prediction, optional Hilbert-to-Born, topology-audit, joint, and hardware-masked views enforce leakage masks. |
 | Phase 14 deterministic training engine | integrated into the primary pipeline | Trains from Phase 12 views with train-only normalization and zero topology loss; test/audit-only rows do not fit normalization or select checkpoints. |
 | Fake-backend metadata stream | integrated into the primary pipeline | Stable local fake-backend evidence reaches Phase 7/12/14 model inputs with availability masks and train-only normalization. This is fixture/simulator evidence, not hardware validation. |
-| Backend-ID holdout utilities and audits | standalone executable API | Deterministic backend holdout and clean-circuit assignment audits are tested; any report must be limited to the exact recorded fake-backend axis. |
+| Backend-ID holdout utilities and audits | integrated into the primary pipeline | A strict fake-backend generation config, Phase 12 config, and Phase 15 audit config exercise an exact backend-ID axis holdout with clean-circuit assignment and train/validation-vs-test disjointness checks. Any result is limited to the recorded fake-backend fixture axis, not physical-hardware generalization. |
 | Phase 15 comparison identity utilities | standalone executable API | Baseline comparison IDs include task/view/ablation/execution/evidence discriminators; full empirical Phase 15 report publication remains unmerged. |
 | Phase 15 trained evaluation/reporting | planning-only/unsupported | No complete repository Phase 15 trained-result artifact is committed; IID must not be relabeled OOD. |
 | Noisy Aer shots / density simulation | standalone executable API | Seeded helpers are tested for small circuits, but noisy/density evidence does not enter the main Phase 7 data lake by default. |
@@ -40,7 +40,7 @@ Status categories used below are exact repository claim boundaries:
 - **Trained checkpoint/result exists:** no committed research checkpoint or paper-level result is present; tests may create temporary smoke checkpoints only.
 - **Noisy/density evidence enters the main data lake:** no; it remains a standalone executable API.
 - **Fake-backend evidence reaches model training:** yes, as offline fixture evidence with masks through the Phase 7/12/14 path.
-- **Backend holdout has been executed:** only deterministic tests/audits are executed; no paper-level held-out backend performance claim is committed.
+- **Backend holdout has been executed:** yes for an executable deterministic fake-backend-axis smoke/audit path; no paper-level held-out performance claim is committed.
 - **Physical hardware was used:** no.
 - **Latent topology was run on trained representations:** no committed trained-representation topology result exists.
 - **Uncertainty calibration was demonstrated:** no.
