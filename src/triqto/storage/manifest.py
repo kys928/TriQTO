@@ -15,6 +15,8 @@ from typing import Any, Iterable
 from triqto.storage.schema import ManifestRecordMixin
 
 _EMPTY_MAP_SENTINEL = "__triqto_parquet_empty_map_v1__"
+_NUMERIC_MAP_SENTINEL = "__triqto_parquet_numeric_map_v1__"
+_RESERVED_MAP_KEYS = frozenset({_EMPTY_MAP_SENTINEL, _NUMERIC_MAP_SENTINEL})
 
 
 def _record_to_dict(record: Any) -> dict[str, Any]:
@@ -31,20 +33,42 @@ def _record_to_dict(record: Any) -> dict[str, Any]:
     raise TypeError(f"Unsupported manifest record type: {type(record)!r}")
 
 
-def _encode_parquet_value(value: Any, path: str) -> Any:
-    """Replace empty mappings with a reserved one-field struct for Parquet.
+def _is_numeric_map(value: Mapping[str, Any]) -> bool:
+    """Return whether a mapping can use the stable numeric-map Parquet encoding."""
+    return bool(value) and all(
+        isinstance(key, str)
+        and isinstance(item, (int, float))
+        and not isinstance(item, bool)
+        and math.isfinite(float(item))
+        for key, item in value.items()
+    )
 
-    PyArrow cannot persist a struct with no child field. The sentinel is decoded on every
-    read, so application-level records still receive exact empty dictionaries at any
-    nesting depth. Legitimate data may not use the reserved sentinel key.
+
+def _encode_parquet_value(value: Any, path: str) -> Any:
+    """Encode mappings into Parquet-stable recursive representations.
+
+    PyArrow cannot persist a struct with no child field, so empty mappings use a
+    reserved one-field sentinel. Numeric mappings with dynamic keys (for example
+    circuit parameter bindings) are encoded as a sorted list of name/value records.
+    Encoding those maps as ordinary structs is unsafe when rows have different keys:
+    Arrow can otherwise infer or materialize an incorrect scalar type during a mixed
+    manifest round trip.
     """
     if isinstance(value, Mapping):
-        if _EMPTY_MAP_SENTINEL in value:
+        reserved = _RESERVED_MAP_KEYS.intersection(value)
+        if reserved:
             raise ValueError(
-                f"{path} uses reserved manifest key {_EMPTY_MAP_SENTINEL!r}"
+                f"{path} uses reserved manifest key {sorted(reserved)[0]!r}"
             )
         if not value:
             return {_EMPTY_MAP_SENTINEL: True}
+        if _is_numeric_map(value):
+            return {
+                _NUMERIC_MAP_SENTINEL: [
+                    {"name": key, "value": float(value[key])}
+                    for key in sorted(value)
+                ]
+            }
         return {
             key: _encode_parquet_value(item, f"{path}.{key}")
             for key, item in value.items()
@@ -66,26 +90,60 @@ def _is_missing(value: Any) -> bool:
     return value is None or (isinstance(value, float) and math.isnan(value))
 
 
+def _decode_numeric_map(value: Any, path: str) -> dict[str, float]:
+    if not isinstance(value, (list, tuple)):
+        raise ValueError(f"{path} has malformed numeric-map sentinel value")
+    decoded: dict[str, float] = {}
+    for index, entry in enumerate(value):
+        if not isinstance(entry, Mapping):
+            raise ValueError(f"{path}[{index}] must be a name/value mapping")
+        name = entry.get("name")
+        raw_value = entry.get("value")
+        if not isinstance(name, str) or not name:
+            raise ValueError(f"{path}[{index}].name must be a nonblank string")
+        if name in decoded:
+            raise ValueError(f"{path} contains duplicate numeric-map key {name!r}")
+        if (
+            not isinstance(raw_value, (int, float))
+            or isinstance(raw_value, bool)
+            or not math.isfinite(float(raw_value))
+        ):
+            raise ValueError(f"{path}[{index}].value must be finite numeric data")
+        decoded[name] = float(raw_value)
+    return decoded
+
+
 def _decode_parquet_value(value: Any, path: str) -> Any:
-    """Restore recursively encoded empty mappings after Parquet readback."""
+    """Restore recursively encoded mappings after Parquet readback."""
     if (
         not isinstance(value, (str, bytes, Mapping, list, tuple))
         and hasattr(value, "tolist")
     ):
         return _decode_parquet_value(value.tolist(), path)
     if isinstance(value, Mapping):
-        sentinel = value.get(_EMPTY_MAP_SENTINEL)
+        empty_sentinel = value.get(_EMPTY_MAP_SENTINEL)
+        numeric_sentinel = value.get(_NUMERIC_MAP_SENTINEL)
         other_items = {
-            key: item for key, item in value.items() if key != _EMPTY_MAP_SENTINEL
+            key: item for key, item in value.items() if key not in _RESERVED_MAP_KEYS
         }
-        if sentinel is True:
+        if empty_sentinel is True:
+            if numeric_sentinel is not None and not _is_missing(numeric_sentinel):
+                raise ValueError(
+                    f"{path} has both empty-map and numeric-map sentinels"
+                )
             if any(not _is_missing(item) for item in other_items.values()):
                 raise ValueError(
                     f"{path} has an empty-map sentinel alongside real values"
                 )
             return {}
-        if sentinel is not None and not _is_missing(sentinel):
+        if empty_sentinel is not None and not _is_missing(empty_sentinel):
             raise ValueError(f"{path} has malformed empty-map sentinel value")
+        if numeric_sentinel is not None and not _is_missing(numeric_sentinel):
+            if any(not _is_missing(item) for item in other_items.values()):
+                raise ValueError(
+                    f"{path} has a numeric-map sentinel alongside real values"
+                )
+            return _decode_numeric_map(numeric_sentinel, path)
         return {
             key: _decode_parquet_value(item, f"{path}.{key}")
             for key, item in other_items.items()
@@ -158,7 +216,7 @@ class ManifestReader:
         return self.root / name
 
     def read_records(self, manifest_name: str) -> list[dict[str, Any]]:
-        """Read a Parquet manifest and restore encoded empty mappings."""
+        """Read a Parquet manifest and restore encoded mappings."""
         path = self.manifest_path(manifest_name)
         if not path.exists():
             raise FileNotFoundError(f"Manifest does not exist: {path}")
