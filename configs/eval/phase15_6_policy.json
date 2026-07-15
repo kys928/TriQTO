@@ -49,16 +49,6 @@
       ],
       "name": "thermal_relaxation",
       "shots": 512
-    },
-    {
-      "channels": [
-        {"gates": ["x", "sx", "h", "rx", "ry", "rz"], "probability": 0.01, "qubits": 1, "type": "depolarizing"},
-        {"gates": ["x", "sx", "h", "rx", "ry", "rz"], "probability": 0.01, "type": "amplitude_damping"},
-        {"gates": ["x", "sx", "h", "rx", "ry", "rz"], "probability": 0.015, "type": "phase_damping"},
-        {"probability": 0.03, "type": "readout_error"}
-      ],
-      "name": "mixed_noisy_fixture",
-      "shots": 1024
     }
   ],
   "physical_hardware": false,
