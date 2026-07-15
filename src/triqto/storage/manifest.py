@@ -91,6 +91,10 @@ def _is_missing(value: Any) -> bool:
 
 
 def _decode_numeric_map(value: Any, path: str) -> dict[str, float]:
+    # Pandas/PyArrow commonly materializes a Parquet list column as a NumPy array.
+    # Normalize array-like values before validating the logical name/value records.
+    if not isinstance(value, (str, bytes, Mapping, list, tuple)) and hasattr(value, "tolist"):
+        value = value.tolist()
     if not isinstance(value, (list, tuple)):
         raise ValueError(f"{path} has malformed numeric-map sentinel value")
     decoded: dict[str, float] = {}
