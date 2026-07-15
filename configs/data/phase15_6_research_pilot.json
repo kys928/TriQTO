@@ -1,0 +1,52 @@
+{
+  "backend_names": [
+    "triqto_local_line_fake_v1",
+    "triqto_local_line_fake_v2"
+  ],
+  "base_seed": 2026,
+  "born_zero_atol": 1e-12,
+  "circuit_specs": [
+    {"family": "bell", "generator_kwargs": {"measure": true}, "n_qubits": 2, "repetitions": 64},
+    {"family": "ghz", "generator_kwargs": {"measure": true}, "n_qubits": 3, "repetitions": 64},
+    {"family": "ghz", "generator_kwargs": {"measure": true}, "n_qubits": 4, "repetitions": 64},
+    {"family": "ghz", "generator_kwargs": {"measure": true}, "n_qubits": 6, "repetitions": 64},
+    {"family": "ghz", "generator_kwargs": {"measure": true}, "n_qubits": 8, "repetitions": 64},
+    {"family": "phase_interference", "generator_kwargs": {"layers": 2, "measure": true}, "n_qubits": 2, "repetitions": 64},
+    {"family": "phase_interference", "generator_kwargs": {"layers": 2, "measure": true}, "n_qubits": 4, "repetitions": 64},
+    {"family": "phase_interference", "generator_kwargs": {"layers": 2, "measure": true}, "n_qubits": 6, "repetitions": 64},
+    {"family": "qft_like", "generator_kwargs": {"include_swaps": false, "measure": true}, "n_qubits": 2, "repetitions": 64},
+    {"family": "qft_like", "generator_kwargs": {"include_swaps": false, "measure": true}, "n_qubits": 4, "repetitions": 64},
+    {"family": "qft_like", "generator_kwargs": {"include_swaps": false, "measure": true}, "n_qubits": 6, "repetitions": 64},
+    {"family": "hardware_efficient_ansatz", "generator_kwargs": {"entanglement": "linear", "layers": 2, "measure": true}, "n_qubits": 2, "repetitions": 64},
+    {"family": "hardware_efficient_ansatz", "generator_kwargs": {"entanglement": "linear", "layers": 2, "measure": true}, "n_qubits": 4, "repetitions": 64},
+    {"family": "hardware_efficient_ansatz", "generator_kwargs": {"entanglement": "linear", "layers": 2, "measure": true}, "n_qubits": 6, "repetitions": 64},
+    {"family": "hardware_efficient_ansatz", "generator_kwargs": {"entanglement": "linear", "layers": 2, "measure": true}, "n_qubits": 8, "repetitions": 64},
+    {"family": "random_shallow", "generator_kwargs": {"depth": 4, "measure": true}, "n_qubits": 4, "repetitions": 64},
+    {"family": "random_shallow", "generator_kwargs": {"depth": 4, "measure": true}, "n_qubits": 6, "repetitions": 64},
+    {"family": "random_shallow", "generator_kwargs": {"depth": 4, "measure": true}, "n_qubits": 8, "repetitions": 64},
+    {"family": "qaoa_like", "generator_kwargs": {"layers": 2, "measure": true}, "n_qubits": 4, "repetitions": 64},
+    {"family": "qaoa_like", "generator_kwargs": {"layers": 2, "measure": true}, "n_qubits": 6, "repetitions": 64},
+    {"family": "qaoa_like", "generator_kwargs": {"layers": 2, "measure": true}, "n_qubits": 8, "repetitions": 64}
+  ],
+  "dataset_name": "triqto_phase15_6_research_pilot_v1",
+  "distortion_specs": [
+    {"kwargs": {"qubits": [0], "strength": 0.05}, "name": "rx_overrotation"},
+    {"kwargs": {"qubits": [0], "strength": 0.15}, "name": "rx_overrotation"},
+    {"kwargs": {"qubits": [0], "strength": 0.05}, "name": "ry_overrotation"},
+    {"kwargs": {"qubits": [0], "strength": 0.15}, "name": "ry_overrotation"},
+    {"kwargs": {"qubits": [0], "strength": 0.05}, "name": "phase_rz_drift"},
+    {"kwargs": {"qubits": [0], "strength": 0.15}, "name": "phase_rz_drift"},
+    {"kwargs": {"strength": 0.05}, "name": "entangling_rzz_drift"},
+    {"kwargs": {"strength": 0.15}, "name": "entangling_rzz_drift"},
+    {"kwargs": {"probability": 0.02, "qubits": [0]}, "name": "readout_bitflip_marker"},
+    {"kwargs": {"probability": 0.08, "qubits": [0]}, "name": "readout_bitflip_marker"}
+  ],
+  "ideal_shots": null,
+  "max_samples": 15000,
+  "measurement_bases": ["Z", "X", "Y"],
+  "parameter_high": 3.141592653589793,
+  "parameter_low": -3.141592653589793,
+  "schema_version": "triqto.phase7.v1",
+  "store_statevectors": false,
+  "strict_identifiability": false
+}
