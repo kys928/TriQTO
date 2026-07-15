@@ -1,0 +1,36 @@
+{
+  "campaign_name": "triqto_phase15_6_research_pilot_v1",
+  "campaign_seed": 2026,
+  "data_build": {
+    "action_candidate_magnitudes": [0.05, 0.1, 0.2, 0.3],
+    "include_supplemental_counts": false,
+    "max_candidates_per_sample": 128,
+    "max_edits_per_action": 32,
+    "topology_betti_grid_size": 16,
+    "topology_include_hilbert": false,
+    "topology_max_groups": 2048,
+    "topology_max_points_per_group": 512,
+    "topology_max_statevector_amplitudes": 1024,
+    "topology_min_points": 3,
+    "topology_top_k_lifetimes": 4
+  },
+  "execution_device": "auto",
+  "generation_config": "configs/data/phase15_6_research_pilot.json",
+  "model_config": "configs/model/phase15_6_base.json",
+  "phase15_5_config": "configs/eval/phase15_6_policy.json",
+  "physical_hardware": false,
+  "pod_requirements": {
+    "minimum_cpu_cores": 16,
+    "minimum_free_disk_gb": 250.0,
+    "minimum_gpu_vram_gb": 16.0,
+    "minimum_memory_gb": 64.0,
+    "require_cuda_for_training": false
+  },
+  "resource_profile": "recommended",
+  "run_phase15_5": true,
+  "schema_version": "triqto.phase15_6.campaign.v1",
+  "topology_loss_weight": 0.0,
+  "training_config": "configs/training/phase15_6_research_pilot.json",
+  "training_seeds": [2026, 2027, 2028],
+  "training_view_config": "configs/training_views/phase15_6_research_pilot.yaml"
+}

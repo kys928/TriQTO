@@ -53,6 +53,7 @@ Physics priors are scaffolding and validators, not unquestioned final authority.
 14. Training engine.
 15. Evaluation and reports.
 15.5. Noisy simulation, matched operational-policy training, and grouped empirical smoke benchmarking.
+15.6. User-operated research campaign preparation, multi-seed training, and cross-seed aggregation.
 16. Hardware validation.
 
 ## Phase 8 graph conversion
@@ -107,7 +108,7 @@ Checkpoints are pickle-free NPZ artifacts containing model, optimizer, scheduler
 
 The extended CPU workflow creates typed immutable operational-action artifacts for basis probes, fake-backend layout/routing, and semantics-verified depth reduction. Operational candidates use a separately versioned Phase-12-compatible adapter with availability and family masks, zero logical-correction target masks, and no privileged-oracle mask. The Phase 14 logical-action head is not relabeled as an operational policy.
 
-A real positive-step Phase 14 smoke checkpoint can be restored to extract ordered latent coordinates from an explicit Phase 12 split. Persistent homology consumes only that validated latent artifact and binds its identity to checkpoint bytes, model/source identities, split/head/representation, point order, coordinate hash, and topology configuration. Absolute scale is preserved by default; optional `shape_only` analysis is separately identified. Phase 15 reports operational families separately and labels latent topology diagnostic only.
+A real positive-step Phase 14 smoke checkpoint can be restored to extract ordered latent coordinates from an explicit Phase 12 split. Persistent homology consumes only that validated latent artifact and binds its identity to checkpoint bytes, model/source identities, Phase 12 source, split/head/representation, point order, coordinate hash, and topology configuration. Absolute scale is preserved by default; optional `shape_only` analysis is separately identified. Phase 15 reports operational families separately and labels latent topology diagnostic only.
 
 Run the complete engineering-validation workflow into a fresh external directory:
 
@@ -134,9 +135,24 @@ python scripts/run_phase15_5.py \
 
 This is deterministic engineering validation, not broad OOD evidence, calibrated uncertainty, hardware transfer, or research-quality superiority. The exact Phase 7 dataset identity is not silently modified. See [`docs/PHASE15_5.md`](docs/PHASE15_5.md).
 
+## Phase 15.6 user-operated research campaign
+
+Phase 15.6 provides a pod bootstrap, machine-readable preflight, immutable campaign planning, one shared Phase 7→8→9→11→12 data universe, independent Phase 14 training seeds, per-seed Phase 15.5 evaluation, and cross-seed aggregation. Generated workspaces must live outside the Git checkout, completed stages are reused, and concurrent writers are blocked.
+
+The included pilot defines 13,440 Phase 7 samples across 21 circuit specifications, seven circuit families, 2–8 qubits, ten controlled distortions, X/Y/Z measurements, five independently interpretable noisy-Aer profiles, and three training seeds. The repository prepares this campaign but does not run it automatically or commit its outputs.
+
+```bash
+bash docker/phase15_6/bootstrap_pod.sh
+export TRIQTO_WORKSPACE=/workspace/triqto-data/phase15_6_pilot_v1
+python scripts/run_phase15_6_campaign.py prepare --workspace "$TRIQTO_WORKSPACE"
+python scripts/run_phase15_6_campaign.py preflight --workspace "$TRIQTO_WORKSPACE"
+```
+
+See [`docs/PHASE15_6.md`](docs/PHASE15_6.md) for pod sizing and staged execution commands.
+
 ## Current evidence level and claim boundaries
 
-TriQTO is currently an offline deterministic research scaffold. The executable CPU path includes ideal/fake-backend evidence, seeded noisy-Aer evidence, deterministic Phase 14 training/evaluation, a separately trained Phase 15.5 operational policy, operational engineering artifacts, and checkpoint-bound latent-topology diagnostics. It does **not** establish quantum advantage, physical-hardware validation, broad OOD generalization, calibrated uncertainty, research-scale operational-policy superiority, or causal/topology benefit. IBM Runtime submission remains credential-gated and is not executed by default.
+TriQTO is currently an offline deterministic research scaffold. The executable path includes ideal/fake-backend evidence, seeded noisy-Aer evidence, deterministic Phase 14 training/evaluation, a separately trained Phase 15.5 operational policy, operational engineering artifacts, checkpoint-bound latent-topology diagnostics, and Phase 15.6 campaign orchestration. It does **not** establish quantum advantage, physical-hardware validation, broad OOD generalization, calibrated uncertainty, research-scale operational-policy superiority, or causal/topology benefit. The configured Phase 15.6 research pilot remains unexecuted until a user runs it on external compute.
 
 ## Reproducible CPU installation
 
@@ -150,18 +166,18 @@ python scripts/verify_dependency_pins.py
 PYTHONPATH=src pytest -q
 ```
 
-Optional GPU dependencies are isolated in `requirements-gpu.txt` plus `constraints/gpu.txt`; do not use them for default CI or CPU-only validation.
+Optional GPU dependencies are isolated in `requirements-gpu.txt` plus `constraints/gpu.txt`; do not use them for default CI or CPU-only validation. The Phase 15.6 pod bootstrap keeps Aer on the CPU-supported path and may replace CPU Torch with an explicitly selected CUDA wheel.
 
 ## Config migration note
 
-Broad future configs that mention RunPod, physical hardware validation, or unsupported actions are explicitly marked `unsupported: true` with a reason. Active fake-backend, operational-action, adapter, latent-extraction, latent-topology, Phase 15.5 noisy-simulation, and smoke-evaluation configs are covered by executable tests. Phase 15.5 noisy evidence is a source-bound extension rather than a silent mutation of the exact Phase 7 data lake. Old artifacts/configs that relied on `monster_generation.yaml`, `runpod_generation.yaml`, `hardware_validation.yaml`, or broad `configs/eval/heldout_*.yaml` as executable should be treated as planning inputs until the corresponding mode has implementation and offline tests.
+Legacy broad configs that mention monster-scale generation, physical hardware validation, or unsupported actions remain marked `unsupported: true` with a reason. Active fake-backend, operational-action, adapter, latent-extraction, latent-topology, Phase 15.5, and specific Phase 15.6 campaign configs are covered by executable tests. Phase 15.5 noisy evidence is a source-bound extension rather than a silent mutation of the exact Phase 7 data lake. The versioned Phase 15.6 pod path does not make legacy `monster_generation.yaml`, `runpod_generation.yaml`, `hardware_validation.yaml`, or broad held-out configs executable.
 
 See `docs/CAPABILITY_MATRIX.md` for the maintained capability matrix.
 
 ### Current evidence boundary update
 
-The repository includes offline fake-backend metadata propagation into Phase 7/12/14 artifacts, an executable deterministic fake-backend-axis holdout path, immutable operational-action generation, checkpoint-derived latent extraction, checkpoint-bound latent persistent homology, family-specific Phase 15 reporting, and a Phase 15.5 noisy-simulation operational-policy workflow with grouped test benchmarking. These are engineering-validation capabilities, not physical-hardware or paper-level empirical results. Basis probes acquire evidence and are not corrections; compilation actions are not privileged inverses; noisy and fake-backend evidence remain simulator/fixture evidence; clean-pair target evidence is excluded from policy inputs; topology is diagnostic only; and `topology_loss_weight` remains exactly zero.
+The repository includes offline fake-backend metadata propagation into Phase 7/12/14 artifacts, an executable deterministic fake-backend-axis holdout path, immutable operational-action generation, checkpoint-derived latent extraction, checkpoint-bound latent persistent homology, family-specific Phase 15 reporting, a Phase 15.5 noisy-simulation operational-policy workflow, and Phase 15.6 external-campaign orchestration. These are engineering and experiment-execution capabilities, not physical-hardware or paper-level empirical results. Basis probes acquire evidence and are not corrections; compilation actions are not privileged inverses; noisy and fake-backend evidence remain simulator/fixture evidence; clean-pair target evidence is excluded from policy inputs; topology is diagnostic only; and `topology_loss_weight` remains exactly zero.
 
-## Capability-category status (2026-07-14)
+## Capability-category status (2026-07-15)
 
-The maintained category matrix is in [`docs/CAPABILITY_MATRIX.md`](docs/CAPABILITY_MATRIX.md) and uses these exact categories: integrated into the primary pipeline, standalone executable API, credential-gated, empirically unvalidated, and planning-only/unsupported. Temporary smoke checkpoints, Phase 15.5 policy artifacts, and checkpoint-bound topology artifacts can be created in user-selected output directories, but no trained research checkpoint, research-scale operational-policy result, physical-hardware result, calibrated-uncertainty result, or topology-benefit result is committed.
+The maintained category matrix is in [`docs/CAPABILITY_MATRIX.md`](docs/CAPABILITY_MATRIX.md) and uses these exact categories: integrated into the primary pipeline, standalone executable API, credential-gated, empirically unvalidated, and planning-only/unsupported. Temporary smoke checkpoints and user-run Phase 15.6 artifacts can be created in external output directories, but no trained research checkpoint, research-scale operational-policy result, physical-hardware result, calibrated-uncertainty result, or topology-benefit result is committed.
