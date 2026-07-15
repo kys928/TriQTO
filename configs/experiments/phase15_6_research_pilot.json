@@ -4,7 +4,7 @@
   "data_build": {
     "action_candidate_magnitudes": [0.05, 0.1, 0.2, 0.3],
     "include_supplemental_counts": false,
-    "max_candidates_per_sample": 128,
+    "max_candidates_per_sample": 512,
     "max_edits_per_action": 32,
     "topology_betti_grid_size": 16,
     "topology_include_hilbert": false,
