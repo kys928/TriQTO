@@ -1,0 +1,16 @@
+{
+  "backend_input_dim": 16,
+  "dropout": 0.1,
+  "graph_message_passing_layers": 3,
+  "hidden_dim": 128,
+  "hilbert_deformation_dim": 32,
+  "initialization_seed": 2026,
+  "model_name": "triqto_phase15_6_base",
+  "residual_mlp_layers": 2,
+  "topology_input_dim": 64,
+  "topology_loss_weight": 0.0,
+  "topology_prediction_dim": 32,
+  "use_backend": true,
+  "use_hilbert": true,
+  "use_topology": true
+}
