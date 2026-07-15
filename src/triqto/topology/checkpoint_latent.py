@@ -9,7 +9,6 @@ import uuid
 
 import numpy as np
 from triqto.core.ids import canonical_json, make_deterministic_id
-from triqto.training.latent_extraction import load_latent_extraction
 from .latent import LatentTopologyConfig, compute_latent_topology
 
 CHECKPOINT_LATENT_TOPOLOGY_SCHEMA = "triqto.checkpoint_latent_topology.v1"
@@ -21,6 +20,12 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
 
 
 def run_checkpoint_bound_latent_topology(*, latent_extraction_root: str | Path, output_root: str | Path, config: LatentTopologyConfig | None = None) -> dict[str, Any]:
+    # Import lazily to keep the public topology package importable while the
+    # training package is still initializing.  Eagerly importing this helper
+    # creates training.datamodule -> training_views -> topology -> training
+    # and leaves datamodule only partially initialized.
+    from triqto.training.latent_extraction import load_latent_extraction
+
     extracted = load_latent_extraction(latent_extraction_root)
     metadata = extracted["metadata"]
     if metadata.get("trained_checkpoint") is not True or metadata.get("topology_loss_weight") != 0.0:
