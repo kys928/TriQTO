@@ -50,6 +50,13 @@ def test_phase156_plan_validates_research_inputs() -> None:
     assert plan["resource_estimate"]["estimate_kind"] == "conservative_heuristic_not_benchmark"
 
 
+def test_phase156_action_guardrail_covers_observed_pilot_candidate_count() -> None:
+    config = load_phase156_config(CONFIG)
+    # The first real pilot run produced 266 unique candidates for one sample.
+    # Keep operational headroom without changing the scientific action universe.
+    assert config.data_build.max_candidates_per_sample >= 512
+
+
 def test_prepare_campaign_is_idempotent_and_external(tmp_path: Path) -> None:
     config = load_phase156_config(CONFIG)
     workspace = tmp_path / "campaign"
