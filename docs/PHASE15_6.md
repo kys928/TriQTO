@@ -26,7 +26,7 @@ The repository includes a first research pilot configuration with:
 - 13,440 Phase 7 clean/distorted samples;
 - X/Y/Z measurement settings;
 - three independent Phase 14 seeds;
-- six noisy-Aer profiles for Phase 15.5 evaluation.
+- five independently interpretable noisy-Aer profiles for Phase 15.5 evaluation.
 
 This is a serious pilot configuration, not yet a final publication campaign.
 
