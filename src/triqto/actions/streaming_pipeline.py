@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import json
 import os
 from pathlib import Path
 import shutil
