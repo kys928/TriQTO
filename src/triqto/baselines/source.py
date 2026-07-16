@@ -16,7 +16,11 @@ from triqto.actions import (
     load_rollout_artifact,
     validate_action_dataset_joins,
 )
-from triqto.actions.sharded_artifacts import ShardedActionReader
+from triqto.actions.sharded_artifacts import (
+    ShardedActionReader,
+    archive_reference,
+    split_sharded_reference,
+)
 from triqto.graph import snapshot_managed_files
 from triqto.graph.utils import (
     ensure_sorted_unique_strings,
@@ -70,6 +74,19 @@ def _actual_file_set(root: Path) -> set[str]:
         for path in root.rglob("*")
         if path.is_file()
     }
+
+
+def _resolve_artifact_file(
+    root: Path,
+    reference: str,
+    label: str,
+) -> tuple[Path, bool]:
+    """Resolve either a legacy file or the physical archive for a shard member."""
+    physical_reference = archive_reference(reference)
+    path = resolve_safe_file(root, physical_reference, label)
+    return path, split_sharded_reference(reference) is not None or reference.endswith(
+        ".zip"
+    )
 
 
 def load_completed_action_dataset(
@@ -147,10 +164,12 @@ def load_completed_action_dataset(
 
     reader = ManifestReader(root / "manifests")
     candidate_records = reader.read_typed_records(
-        "action_candidate_manifest", ActionCandidateRecordV1
+        "action_candidate_manifest",
+        ActionCandidateRecordV1,
     )
     rollout_records = reader.read_typed_records(
-        "action_rollout_manifest", ActionRolloutRecord
+        "action_rollout_manifest",
+        ActionRolloutRecord,
     )
     if _strict_nonnegative_int(marker, "candidate_count") != len(candidate_records):
         raise ValueError("action_complete.json candidate_count mismatch")
@@ -176,17 +195,17 @@ def load_completed_action_dataset(
                 raise ValueError(
                     f"Duplicate Phase 9 candidate circuit {record.candidate_circuit_id}"
                 )
-            action_path = resolve_safe_file(
+            action_path, action_is_sharded = _resolve_artifact_file(
                 root,
                 record.action_ref,
                 f"ActionCandidateRecordV1 {record.action_id}.action_ref",
             )
-            circuit_path = resolve_safe_file(
+            circuit_path, circuit_is_sharded = _resolve_artifact_file(
                 root,
                 record.circuit_ref,
                 f"ActionCandidateRecordV1 {record.action_id}.circuit_ref",
             )
-            if record.action_ref.endswith(".zip"):
+            if action_is_sharded:
                 candidate = shard_reader.load_candidate(
                     record.action_ref,
                     record.action_id,
@@ -198,7 +217,7 @@ def load_completed_action_dataset(
                     config,
                     record.content_hash,
                 )
-            if record.circuit_ref.endswith(".zip"):
+            if circuit_is_sharded:
                 circuit = shard_reader.load_circuit(
                     record.circuit_ref,
                     record.candidate_circuit_id,
@@ -225,12 +244,12 @@ def load_completed_action_dataset(
                 raise ValueError(
                     f"Action rollout {record.rollout_id} references missing circuit"
                 )
-            rollout_path = resolve_safe_file(
+            rollout_path, rollout_is_sharded = _resolve_artifact_file(
                 root,
                 record.rollout_ref,
                 f"ActionRolloutRecord {record.rollout_id}.rollout_ref",
             )
-            if record.rollout_ref.endswith(".zip"):
+            if rollout_is_sharded:
                 rollout = shard_reader.load_rollout(
                     record.rollout_ref,
                     record.rollout_id,
