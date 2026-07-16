@@ -16,6 +16,11 @@ from triqto.actions import (
     load_rollout_artifact,
     validate_action_dataset_joins,
 )
+from triqto.actions.sharded_artifacts import (
+    ShardedActionReader,
+    archive_reference,
+    split_sharded_reference,
+)
 from triqto.graph import snapshot_managed_files
 from triqto.graph.utils import (
     ensure_sorted_unique_strings,
@@ -69,6 +74,19 @@ def _actual_file_set(root: Path) -> set[str]:
         for path in root.rglob("*")
         if path.is_file()
     }
+
+
+def _resolve_artifact_file(
+    root: Path,
+    reference: str,
+    label: str,
+) -> tuple[Path, bool]:
+    """Resolve either a legacy file or the physical archive for a shard member."""
+    physical_reference = archive_reference(reference)
+    path = resolve_safe_file(root, physical_reference, label)
+    return path, split_sharded_reference(reference) is not None or reference.endswith(
+        ".zip"
+    )
 
 
 def load_completed_action_dataset(
@@ -146,10 +164,12 @@ def load_completed_action_dataset(
 
     reader = ManifestReader(root / "manifests")
     candidate_records = reader.read_typed_records(
-        "action_candidate_manifest", ActionCandidateRecordV1
+        "action_candidate_manifest",
+        ActionCandidateRecordV1,
     )
     rollout_records = reader.read_typed_records(
-        "action_rollout_manifest", ActionRolloutRecord
+        "action_rollout_manifest",
+        ActionRolloutRecord,
     )
     if _strict_nonnegative_int(marker, "candidate_count") != len(candidate_records):
         raise ValueError("action_complete.json candidate_count mismatch")
@@ -163,62 +183,89 @@ def load_completed_action_dataset(
     candidates_by_id: dict[str, Any] = {}
     circuits_by_id: dict[str, Any] = {}
     candidate_record_by_action: dict[str, Any] = {}
-    for record in candidate_records:
-        record.validate()
-        if record.action_id in candidates_by_id:
-            raise ValueError(f"Duplicate Phase 9 action {record.action_id}")
-        if record.candidate_circuit_id in circuits_by_id:
-            raise ValueError(
-                f"Duplicate Phase 9 candidate circuit {record.candidate_circuit_id}"
-            )
-        candidate = load_action_artifact(
-            resolve_safe_file(
+    rollouts_by_id: dict[str, Any] = {}
+    rollouts_by_sample: dict[str, list[Any]] = {}
+
+    with ShardedActionReader(root, config) as shard_reader:
+        for record in candidate_records:
+            record.validate()
+            if record.action_id in candidates_by_id:
+                raise ValueError(f"Duplicate Phase 9 action {record.action_id}")
+            if record.candidate_circuit_id in circuits_by_id:
+                raise ValueError(
+                    f"Duplicate Phase 9 candidate circuit {record.candidate_circuit_id}"
+                )
+            action_path, action_is_sharded = _resolve_artifact_file(
                 root,
                 record.action_ref,
                 f"ActionCandidateRecordV1 {record.action_id}.action_ref",
-            ),
-            config,
-            record.content_hash,
-        )
-        circuit = load_candidate_circuit(
-            resolve_safe_file(
+            )
+            circuit_path, circuit_is_sharded = _resolve_artifact_file(
                 root,
                 record.circuit_ref,
                 f"ActionCandidateRecordV1 {record.action_id}.circuit_ref",
-            ),
-            record.circuit_hash,
-        )
-        candidates_by_id[record.action_id] = candidate
-        circuits_by_id[record.candidate_circuit_id] = circuit
-        candidate_record_by_action[record.action_id] = record
+            )
+            if action_is_sharded:
+                candidate = shard_reader.load_candidate(
+                    record.action_ref,
+                    record.action_id,
+                    record.content_hash,
+                )
+            else:
+                candidate = load_action_artifact(
+                    action_path,
+                    config,
+                    record.content_hash,
+                )
+            if circuit_is_sharded:
+                circuit = shard_reader.load_circuit(
+                    record.circuit_ref,
+                    record.candidate_circuit_id,
+                    record.circuit_hash,
+                )
+            else:
+                circuit = load_candidate_circuit(
+                    circuit_path,
+                    record.circuit_hash,
+                )
+            candidates_by_id[record.action_id] = candidate
+            circuits_by_id[record.candidate_circuit_id] = circuit
+            candidate_record_by_action[record.action_id] = record
 
-    rollouts_by_id: dict[str, Any] = {}
-    rollouts_by_sample: dict[str, list[Any]] = {}
-    for record in rollout_records:
-        record.validate()
-        candidate_record = candidate_record_by_action.get(record.action_id)
-        if candidate_record is None:
-            raise ValueError(
-                f"Action rollout {record.rollout_id} references missing candidate"
-            )
-        circuit = circuits_by_id.get(record.candidate_circuit_id)
-        if circuit is None:
-            raise ValueError(
-                f"Action rollout {record.rollout_id} references missing circuit"
-            )
-        rollout = load_rollout_artifact(
-            resolve_safe_file(
+        for record in rollout_records:
+            record.validate()
+            candidate_record = candidate_record_by_action.get(record.action_id)
+            if candidate_record is None:
+                raise ValueError(
+                    f"Action rollout {record.rollout_id} references missing candidate"
+                )
+            circuit = circuits_by_id.get(record.candidate_circuit_id)
+            if circuit is None:
+                raise ValueError(
+                    f"Action rollout {record.rollout_id} references missing circuit"
+                )
+            rollout_path, rollout_is_sharded = _resolve_artifact_file(
                 root,
                 record.rollout_ref,
                 f"ActionRolloutRecord {record.rollout_id}.rollout_ref",
-            ),
-            circuit,
-            record.content_hash,
-        )
-        if rollout.rollout_id in rollouts_by_id:
-            raise ValueError(f"Duplicate Phase 9 rollout {rollout.rollout_id}")
-        rollouts_by_id[rollout.rollout_id] = rollout
-        rollouts_by_sample.setdefault(rollout.sample_id, []).append(rollout)
+            )
+            if rollout_is_sharded:
+                rollout = shard_reader.load_rollout(
+                    record.rollout_ref,
+                    record.rollout_id,
+                    circuit,
+                    record.content_hash,
+                )
+            else:
+                rollout = load_rollout_artifact(
+                    rollout_path,
+                    circuit,
+                    record.content_hash,
+                )
+            if rollout.rollout_id in rollouts_by_id:
+                raise ValueError(f"Duplicate Phase 9 rollout {rollout.rollout_id}")
+            rollouts_by_id[rollout.rollout_id] = rollout
+            rollouts_by_sample.setdefault(rollout.sample_id, []).append(rollout)
 
     validate_action_dataset_joins(
         list(candidate_records),
