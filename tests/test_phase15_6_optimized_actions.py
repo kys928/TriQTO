@@ -141,9 +141,9 @@ def test_streaming_phase9_matches_serial_without_full_result_accumulation(
     )
     loaded = load_baseline_sources(phase7, phase8, phase9).action
 
-    assert sorted(loaded.candidates_by_id) == [
+    assert sorted(loaded.candidates_by_id) == sorted(
         item.action_id for item in serial.candidates
-    ]
+    )
     assert [
         loaded.candidates_by_id[item.action_id].content_hash
         for item in serial.candidates
