@@ -1,20 +1,25 @@
 """Resumable optimized Phase 15.6 data construction.
 
 Each phase publishes independently and is skipped on restart when its strict
-completion marker is present.  Later failures therefore never discard already
-validated Phase 7/8/9/11 work.
+completion marker is present. Phase 9 additionally checkpoints deterministic
+storage shards, so an interruption resumes from completed shards rather than
+recomputing the full action universe.
 """
 from __future__ import annotations
 
-import json
 from pathlib import Path
 import time
 from typing import Any
 
 from triqto.actions.config import ActionEngineConfig
-from triqto.actions.parallel_pipeline import build_action_engine_result_parallel
-from triqto.actions.sharded_artifacts import write_sharded_action_dataset
-from triqto.data_generation import generate_dataset, load_generation_config, write_dataset
+from triqto.actions.streaming_pipeline import (
+    build_and_write_action_dataset_streaming,
+)
+from triqto.data_generation import (
+    generate_dataset,
+    load_generation_config,
+    write_dataset,
+)
 from triqto.graph import (
     GraphConversionConfig,
     convert_completed_dataset_to_graphs,
@@ -44,7 +49,11 @@ from .campaign import (
 from .config import Phase156CampaignConfig
 
 
-def _require_complete_or_absent(root: Path, marker_name: str, phase_name: str) -> bool:
+def _require_complete_or_absent(
+    root: Path,
+    marker_name: str,
+    phase_name: str,
+) -> bool:
     marker = root / marker_name
     if marker.is_file():
         payload = _read_json(marker)
@@ -62,12 +71,21 @@ def _require_complete_or_absent(root: Path, marker_name: str, phase_name: str) -
 def _progress_line(payload: dict[str, Any]) -> None:
     eta = payload.get("eta_seconds")
     eta_text = "unknown" if eta is None else f"{float(eta) / 60.0:.1f}m"
+    shard_text = ""
+    if "completed_shards" in payload:
+        shard_text = (
+            f" | shards={payload['completed_shards']}/"
+            f"{payload['total_shards']}"
+        )
+    resumed = int(payload.get("resumed_samples", 0))
+    resumed_text = f" | resumed={resumed}" if resumed else ""
     print(
         "[Phase 9] "
         f"{payload['completed_samples']}/{payload['total_samples']} samples | "
         f"{payload['candidate_count']} candidates | "
         f"{payload['samples_per_second']:.3f} samples/s | "
-        f"ETA {eta_text} | workers={payload['workers']}",
+        f"ETA {eta_text} | workers={payload['workers']}"
+        f"{shard_text}{resumed_text}",
         flush=True,
     )
 
@@ -78,7 +96,10 @@ def _timed_start(name: str) -> float:
 
 
 def _timed_done(name: str, started: float) -> None:
-    print(f"[{name}] complete in {(time.monotonic() - started) / 60.0:.2f} minutes", flush=True)
+    print(
+        f"[{name}] complete in {(time.monotonic() - started) / 60.0:.2f} minutes",
+        flush=True,
+    )
 
 
 def run_optimized_data_stage(
@@ -86,7 +107,7 @@ def run_optimized_data_stage(
     workspace: str | Path,
     workers: int | None = None,
 ) -> dict[str, Any]:
-    """Build Phase 7/8/9/11/12 with resume, progress, and ZIP-sharded Phase 9."""
+    """Build Phase 7/8/9/11/12 with phase and Phase 9 shard resume."""
     target = Path(workspace).expanduser().resolve()
     plan = _load_prepared_plan(target)
     _verify_source_configs(plan)
@@ -110,17 +131,27 @@ def run_optimized_data_stage(
     with _workspace_lock(target, "optimized-data"):
         final_root.mkdir(parents=True, exist_ok=True)
 
-        if _require_complete_or_absent(phase7, "dataset_complete.json", "Phase 7"):
+        if _require_complete_or_absent(
+            phase7,
+            "dataset_complete.json",
+            "Phase 7",
+        ):
             print("[Phase 7] already complete; resuming", flush=True)
         else:
             started = _timed_start("Phase 7")
             generation = generate_dataset(
-                load_generation_config(plan["source_configs"]["generation"]["absolute_path"])
+                load_generation_config(
+                    plan["source_configs"]["generation"]["absolute_path"]
+                )
             )
             write_dataset(generation, phase7)
             _timed_done("Phase 7", started)
 
-        if _require_complete_or_absent(phase8, "graph_complete.json", "Phase 8"):
+        if _require_complete_or_absent(
+            phase8,
+            "graph_complete.json",
+            "Phase 8",
+        ):
             print("[Phase 8] already complete; resuming", flush=True)
         else:
             started = _timed_start("Phase 8")
@@ -133,13 +164,18 @@ def run_optimized_data_stage(
             write_graph_dataset(graph, phase8)
             _timed_done("Phase 8", started)
 
-        if _require_complete_or_absent(phase9, "action_complete.json", "Phase 9"):
+        if _require_complete_or_absent(
+            phase9,
+            "action_complete.json",
+            "Phase 9",
+        ):
             print("[Phase 9] already complete; resuming", flush=True)
         else:
             started = _timed_start("Phase 9")
-            actions = build_action_engine_result_parallel(
+            build_and_write_action_dataset_streaming(
                 phase7,
                 phase8,
+                phase9,
                 ActionEngineConfig(
                     candidate_magnitudes=build.action_candidate_magnitudes,
                     max_candidates_per_sample=build.max_candidates_per_sample,
@@ -148,11 +184,13 @@ def run_optimized_data_stage(
                 workers=workers,
                 progress_callback=_progress_line,
             )
-            print("[Phase 9] computation complete; writing compressed shards", flush=True)
-            write_sharded_action_dataset(actions, phase9)
             _timed_done("Phase 9", started)
 
-        if _require_complete_or_absent(phase11, "topology_complete.json", "Phase 11"):
+        if _require_complete_or_absent(
+            phase11,
+            "topology_complete.json",
+            "Phase 11",
+        ):
             print("[Phase 11] already complete; resuming", flush=True)
         else:
             started = _timed_start("Phase 11")
@@ -166,7 +204,9 @@ def run_optimized_data_stage(
                     top_k_lifetimes=build.topology_top_k_lifetimes,
                     max_points_per_group=build.topology_max_points_per_group,
                     max_groups=build.topology_max_groups,
-                    max_statevector_amplitudes=build.topology_max_statevector_amplitudes,
+                    max_statevector_amplitudes=(
+                        build.topology_max_statevector_amplitudes
+                    ),
                     include_hilbert=build.topology_include_hilbert,
                 ),
             )
