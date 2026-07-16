@@ -1,10 +1,9 @@
 """Compressed sharded persistence for large Phase 9 action datasets.
 
-The legacy Phase 9 writer creates three files per candidate.  Large research
-campaigns can therefore create millions of small files and exhaust a volume's
-quota long before its byte capacity.  This module preserves the exact logical
-records and hashes while packing candidate, circuit, and rollout payloads into
-a deterministic set of ZIP shards.
+The legacy Phase 9 writer creates three files per candidate. Large campaigns can
+therefore create millions of small files. This module preserves the exact logical
+records and hashes while packing candidate, circuit, and rollout payloads into a
+bounded deterministic set of ZIP shards.
 """
 from __future__ import annotations
 
@@ -18,7 +17,7 @@ from pathlib import Path
 import shutil
 from typing import Any
 import uuid
-from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
+from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile, ZipInfo
 
 import numpy as np
 
@@ -43,7 +42,7 @@ from .artifacts import (
 )
 from .config import ActionEngineConfig, load_action_config, save_action_config
 from .constants import ACTION_ARTIFACT_SCHEMA_VERSION, ROLLOUT_ARTIFACT_SCHEMA_VERSION
-from .identities import action_content_hash, circuit_semantic_hash, rollout_content_hash
+from .identities import circuit_semantic_hash
 from .models import (
     ActionCandidate,
     ActionEdit,
@@ -57,15 +56,26 @@ from .validators import (
     validate_action_rollout,
 )
 
-_SHARD_COUNT = 256
+DEFAULT_ACTION_SHARD_COUNT = 256
+_SHARD_SEPARATOR = "#"
 
 
-def action_shard_reference(sample_id: str) -> str:
-    """Return a deterministic storage shard for one sample."""
+def action_shard_reference(
+    sample_id: str,
+    shard_count: int = DEFAULT_ACTION_SHARD_COUNT,
+) -> str:
+    """Return the deterministic archive path for one sample."""
     if not isinstance(sample_id, str) or not sample_id:
         raise ValueError("sample_id must be nonblank")
-    bucket = int.from_bytes(hashlib.sha256(sample_id.encode("utf-8")).digest()[:2], "big")
-    bucket %= _SHARD_COUNT
+    if isinstance(shard_count, bool) or not isinstance(shard_count, int):
+        raise TypeError("shard_count must be an integer and not bool")
+    if shard_count <= 0:
+        raise ValueError("shard_count must be positive")
+    bucket = int.from_bytes(
+        hashlib.sha256(sample_id.encode("utf-8")).digest()[:4],
+        "big",
+    )
+    bucket %= shard_count
     return f"artifacts/shards/action-shard-{bucket:03d}.zip"
 
 
@@ -79,6 +89,35 @@ def _circuit_member(candidate_circuit_id: str) -> str:
 
 def _rollout_member(rollout_id: str) -> str:
     return f"rollouts/{rollout_id}.npz"
+
+
+def sharded_member_reference(archive_reference: str, member: str) -> str:
+    """Return a unique manifest reference for a member inside one ZIP shard."""
+    if not isinstance(archive_reference, str) or not archive_reference.endswith(".zip"):
+        raise ValueError("archive_reference must be a .zip path")
+    if not isinstance(member, str) or not member or member.startswith("/"):
+        raise ValueError("member must be a nonempty relative path")
+    if _SHARD_SEPARATOR in archive_reference or _SHARD_SEPARATOR in member:
+        raise ValueError("sharded references must not contain '#' in path components")
+    return f"{archive_reference}{_SHARD_SEPARATOR}{member}"
+
+
+def split_sharded_reference(reference: str) -> tuple[str, str] | None:
+    """Split a member-qualified shard reference, returning None for legacy files."""
+    if not isinstance(reference, str) or not reference:
+        raise ValueError("reference must be nonblank")
+    if _SHARD_SEPARATOR not in reference:
+        return None
+    archive_reference, member = reference.split(_SHARD_SEPARATOR, 1)
+    if not archive_reference.endswith(".zip") or not member or member.startswith("/"):
+        raise ValueError(f"Malformed sharded artifact reference: {reference}")
+    return archive_reference, member
+
+
+def archive_reference(reference: str) -> str:
+    """Return the physical file path represented by a manifest reference."""
+    split = split_sharded_reference(reference)
+    return reference if split is None else split[0]
 
 
 def _strict_json_bytes(payload: Mapping[str, Any]) -> bytes:
@@ -115,6 +154,62 @@ def _rollout_bytes(rollout: ActionRollout) -> bytes:
         **{_ROLLOUT_METADATA_NAME: _json_bytes_array(_rollout_metadata(rollout))},
     )
     return handle.getvalue()
+
+
+def write_deterministic_member(
+    archive: ZipFile,
+    member: str,
+    data: bytes,
+    *,
+    compress_type: int,
+    compresslevel: int | None = None,
+) -> None:
+    """Write a reproducible ZIP member with a fixed timestamp and permissions."""
+    info = ZipInfo(member, date_time=(1980, 1, 1, 0, 0, 0))
+    info.compress_type = compress_type
+    info.create_system = 3
+    info.external_attr = 0o600 << 16
+    archive.writestr(
+        info,
+        data,
+        compress_type=compress_type,
+        compresslevel=compresslevel,
+    )
+
+
+def write_candidate_bundle(
+    archive: ZipFile,
+    candidate: ActionCandidate,
+    rollout: ActionRollout,
+    config: ActionEngineConfig,
+) -> tuple[str, str, str]:
+    """Validate and immediately serialize one candidate/rollout bundle."""
+    validate_action_candidate(candidate, config, require_hash=True)
+    validate_action_rollout(rollout, require_hash=True)
+    action_name = _action_member(candidate.action_id)
+    circuit_name = _circuit_member(rollout.candidate_circuit_id)
+    rollout_name = _rollout_member(rollout.rollout_id)
+    write_deterministic_member(
+        archive,
+        action_name,
+        _strict_json_bytes(_action_payload(candidate)),
+        compress_type=ZIP_DEFLATED,
+        compresslevel=6,
+    )
+    write_deterministic_member(
+        archive,
+        circuit_name,
+        _circuit_bytes(rollout.candidate_circuit),
+        compress_type=ZIP_DEFLATED,
+        compresslevel=3,
+    )
+    write_deterministic_member(
+        archive,
+        rollout_name,
+        _rollout_bytes(rollout),
+        compress_type=ZIP_STORED,
+    )
+    return action_name, circuit_name, rollout_name
 
 
 def _candidate_from_payload(
@@ -262,7 +357,7 @@ def _rollout_from_bytes(
 
 
 class ShardedActionReader:
-    """Read many logical artifacts while keeping each ZIP shard open once."""
+    """Read many logical artifacts while keeping each physical ZIP open once."""
 
     def __init__(self, root: str | Path, config: ActionEngineConfig) -> None:
         self.root = Path(root)
@@ -281,7 +376,8 @@ class ShardedActionReader:
         self.close()
 
     def _archive(self, reference: str) -> ZipFile:
-        path = (self.root / reference).resolve()
+        physical_reference = archive_reference(reference)
+        path = (self.root / physical_reference).resolve()
         root = self.root.resolve()
         if root not in path.parents or not path.is_file():
             raise ValueError(f"unsafe or missing action shard reference: {reference}")
@@ -291,13 +387,19 @@ class ShardedActionReader:
             self._archives[path] = archive
         return archive
 
+    @staticmethod
+    def _member(reference: str, fallback: str) -> str:
+        split = split_sharded_reference(reference)
+        return fallback if split is None else split[1]
+
     def load_candidate(
         self,
         reference: str,
         action_id: str,
         expected_content_hash: str,
     ) -> ActionCandidate:
-        data = self._archive(reference).read(_action_member(action_id))
+        member = self._member(reference, _action_member(action_id))
+        data = self._archive(reference).read(member)
         return _candidate_from_payload(
             strict_json_loads(data.decode("utf-8")),
             self.config,
@@ -310,7 +412,8 @@ class ShardedActionReader:
         candidate_circuit_id: str,
         expected_circuit_hash: str,
     ) -> Any:
-        data = self._archive(reference).read(_circuit_member(candidate_circuit_id))
+        member = self._member(reference, _circuit_member(candidate_circuit_id))
+        data = self._archive(reference).read(member)
         circuits = _qpy_module().load(BytesIO(data))
         if len(circuits) != 1:
             raise ValueError("Candidate circuit shard member must contain one circuit")
@@ -326,7 +429,8 @@ class ShardedActionReader:
         candidate_circuit: Any,
         expected_content_hash: str,
     ) -> ActionRollout:
-        data = self._archive(reference).read(_rollout_member(rollout_id))
+        member = self._member(reference, _rollout_member(rollout_id))
+        data = self._archive(reference).read(member)
         return _rollout_from_bytes(data, candidate_circuit, expected_content_hash)
 
 
@@ -356,8 +460,10 @@ def _verify_result_sources(result: ActionEngineResult) -> None:
 def write_sharded_action_dataset(
     result: ActionEngineResult,
     output_root: str | Path,
+    *,
+    shard_count: int = DEFAULT_ACTION_SHARD_COUNT,
 ) -> ActionWriteResult:
-    """Publish Phase 9 with a bounded number of compressed artifact files."""
+    """Publish an in-memory Phase 9 result using bounded compressed artifacts."""
     if not isinstance(result, ActionEngineResult):
         raise TypeError("result must be ActionEngineResult")
     output = Path(output_root)
@@ -378,18 +484,34 @@ def write_sharded_action_dataset(
     staging = output.parent / f".{output.name}.staging-{uuid.uuid4().hex}"
 
     rollout_by_action = {rollout.action_id: rollout for rollout in result.rollouts}
-    candidate_records = [
-        replace(
-            record,
-            action_ref=action_shard_reference(record.sample_id),
-            circuit_ref=action_shard_reference(record.sample_id),
+    candidate_records = []
+    for record in result.candidate_records:
+        archive_ref = action_shard_reference(record.sample_id, shard_count)
+        candidate_records.append(
+            replace(
+                record,
+                action_ref=sharded_member_reference(
+                    archive_ref,
+                    _action_member(record.action_id),
+                ),
+                circuit_ref=sharded_member_reference(
+                    archive_ref,
+                    _circuit_member(record.candidate_circuit_id),
+                ),
+            )
         )
-        for record in result.candidate_records
-    ]
-    rollout_records = [
-        replace(record, rollout_ref=action_shard_reference(record.sample_id))
-        for record in result.rollout_records
-    ]
+    rollout_records = []
+    for record in result.rollout_records:
+        archive_ref = action_shard_reference(record.sample_id, shard_count)
+        rollout_records.append(
+            replace(
+                record,
+                rollout_ref=sharded_member_reference(
+                    archive_ref,
+                    _rollout_member(record.rollout_id),
+                ),
+            )
+        )
 
     try:
         (staging / "manifests").mkdir(parents=True, exist_ok=False)
@@ -401,7 +523,9 @@ def write_sharded_action_dataset(
 
         candidates_by_shard: dict[str, list[ActionCandidate]] = defaultdict(list)
         for candidate in result.candidates:
-            candidates_by_shard[action_shard_reference(candidate.sample_id)].append(candidate)
+            candidates_by_shard[
+                action_shard_reference(candidate.sample_id, shard_count)
+            ].append(candidate)
 
         for reference in sorted(candidates_by_shard):
             path = staging / reference
@@ -409,32 +533,18 @@ def write_sharded_action_dataset(
             expected_members: set[str] = set()
             with ZipFile(path, "w", allowZip64=True) as archive:
                 for candidate in sorted(
-                    candidates_by_shard[reference], key=lambda item: item.action_id
+                    candidates_by_shard[reference],
+                    key=lambda item: item.action_id,
                 ):
                     rollout = rollout_by_action[candidate.action_id]
-                    validate_action_candidate(candidate, result.config, require_hash=True)
-                    validate_action_rollout(rollout, require_hash=True)
-                    action_name = _action_member(candidate.action_id)
-                    circuit_name = _circuit_member(rollout.candidate_circuit_id)
-                    rollout_name = _rollout_member(rollout.rollout_id)
-                    archive.writestr(
-                        action_name,
-                        _strict_json_bytes(_action_payload(candidate)),
-                        compress_type=ZIP_DEFLATED,
-                        compresslevel=6,
+                    expected_members.update(
+                        write_candidate_bundle(
+                            archive,
+                            candidate,
+                            rollout,
+                            result.config,
+                        )
                     )
-                    archive.writestr(
-                        circuit_name,
-                        _circuit_bytes(rollout.candidate_circuit),
-                        compress_type=ZIP_DEFLATED,
-                        compresslevel=3,
-                    )
-                    archive.writestr(
-                        rollout_name,
-                        _rollout_bytes(rollout),
-                        compress_type=ZIP_STORED,
-                    )
-                    expected_members.update((action_name, circuit_name, rollout_name))
             with ZipFile(path, "r") as archive:
                 actual_members = set(archive.namelist())
                 if actual_members != expected_members:
@@ -461,13 +571,13 @@ def write_sharded_action_dataset(
         persisted_config = load_action_config(staging / "action_config.json")
         reader = ManifestReader(staging / "manifests")
         persisted_candidates = reader.read_typed_records(
-            "action_candidate_manifest", ActionCandidateRecordV1
+            "action_candidate_manifest",
+            ActionCandidateRecordV1,
         )
         persisted_rollouts = reader.read_typed_records(
-            "action_rollout_manifest", ActionRolloutRecord
+            "action_rollout_manifest",
+            ActionRolloutRecord,
         )
-        for record in [*persisted_candidates, *persisted_rollouts]:
-            record.validate()
         if persisted_config != result.config:
             raise ValueError("Persisted action config does not match conversion config")
         validate_action_dataset_joins(
@@ -478,8 +588,7 @@ def write_sharded_action_dataset(
             config=persisted_config,
         )
 
-        expected_before_marker = set(managed)
-        if _relative_file_set(staging) != expected_before_marker:
+        if _relative_file_set(staging) != set(managed):
             raise ValueError("Staging sharded action dataset inventory mismatch")
         managed_files = tuple(sorted([*managed, "action_complete.json"]))
         completion = {
@@ -506,13 +615,17 @@ def write_sharded_action_dataset(
         manifest_paths = tuple(
             output / reference
             for reference in sorted(
-                reference for reference in managed_files if reference.startswith("manifests/")
+                reference
+                for reference in managed_files
+                if reference.startswith("manifests/")
             )
         )
         artifact_paths = tuple(
             output / reference
             for reference in sorted(
-                reference for reference in managed_files if reference.startswith("artifacts/")
+                reference
+                for reference in managed_files
+                if reference.startswith("artifacts/")
             )
         )
         written_paths = tuple(output / reference for reference in managed_files)
@@ -533,7 +646,13 @@ def write_sharded_action_dataset(
 
 
 __all__ = [
+    "DEFAULT_ACTION_SHARD_COUNT",
     "ShardedActionReader",
     "action_shard_reference",
+    "archive_reference",
+    "sharded_member_reference",
+    "split_sharded_reference",
+    "write_candidate_bundle",
+    "write_deterministic_member",
     "write_sharded_action_dataset",
 ]
