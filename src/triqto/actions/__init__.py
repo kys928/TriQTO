@@ -39,6 +39,7 @@ from .identities import (
     circuit_semantic_hash,
     rollout_content_hash,
 )
+from .lazy_dataset import LazyActionDataset, load_lazy_action_dataset
 from .models import (
     ActionCandidate,
     ActionEdit,
@@ -117,6 +118,7 @@ __all__ = [
     "ActionWriteResult",
     "AppliedAction",
     "CompletedGraphDataset",
+    "LazyActionDataset",
     "OperationalActionResult",
     "OperationalActionSmokeConfig",
     "OperationalActionTensorBatch",
@@ -147,6 +149,7 @@ __all__ = [
     "load_action_engine_sources",
     "load_candidate_circuit",
     "load_completed_graph_dataset",
+    "load_lazy_action_dataset",
     "load_operational_action_dataset",
     "load_operational_action_result",
     "load_operational_action_smoke_config",
