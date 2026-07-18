@@ -1,11 +1,12 @@
 """Deterministic point-cloud grouping for the Phase 11 topology audit."""
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from typing import Any
 
 from .config import TopologyAuditConfig
+from .constants import GROUP_KINDS
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,7 +71,12 @@ def build_topology_group_specs(
     sources: Any,
     config: TopologyAuditConfig,
 ) -> tuple[list[TopologyGroupSpec], dict[str, int]]:
-    """Build action neighborhoods and deterministic Phase 7 cohort groups."""
+    """Build every eligible group, then order work deterministically by cost.
+
+    Scientific group membership is unchanged. Small groups are scheduled first so the
+    run produces durable checkpoints and a useful ETA early; final publication remains
+    deterministic because group identities do not depend on execution order.
+    """
     if not isinstance(config, TopologyAuditConfig):
         raise TypeError("config must be TopologyAuditConfig")
     specs: list[TopologyGroupSpec] = []
@@ -173,7 +179,15 @@ def build_topology_group_specs(
                     "family_qubit_distortion_cohort_below_min_points"
                 ] += 1
 
-    specs.sort(key=lambda item: (item.group_kind, item.group_key, item.point_ids))
+    kind_order = {kind: index for index, kind in enumerate(GROUP_KINDS)}
+    specs.sort(
+        key=lambda item: (
+            len(item.point_ids),
+            kind_order[item.group_kind],
+            item.group_key,
+            item.point_ids,
+        )
+    )
     seen_keys: set[tuple[str, str]] = set()
     for spec in specs:
         key = (spec.group_kind, spec.group_key)
@@ -184,6 +198,15 @@ def build_topology_group_specs(
         raise RuntimeError(
             f"Topology group count {len(specs)} exceeds max_groups={config.max_groups}"
         )
+    kind_counts = Counter(spec.group_kind for spec in specs)
+    print(
+        "[Phase 11][group-plan] complete | "
+        f"groups={len(specs):,} | total_points={sum(len(spec.point_ids) for spec in specs):,} | "
+        f"smallest={min((len(spec.point_ids) for spec in specs), default=0):,} | "
+        f"largest={max((len(spec.point_ids) for spec in specs), default=0):,} | "
+        f"cost_order=ascending_point_count | kinds={dict(sorted(kind_counts.items()))}",
+        flush=True,
+    )
     return specs, dict(sorted(skipped_counts.items()))
 
 
