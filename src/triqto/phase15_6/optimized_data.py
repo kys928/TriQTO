@@ -1,9 +1,8 @@
 """Resumable optimized Phase 15.6 data construction.
 
-Each phase publishes independently and is skipped on restart when its strict
-completion marker is present. Phase 9 additionally checkpoints deterministic
-storage shards, so an interruption resumes from completed shards rather than
-recomputing the full action universe.
+Each phase publishes independently. Phase 9 checkpoints deterministic storage shards,
+Phase 11 checkpoints validated topology groups, and Phase 12 checkpoints validated item
+artifacts before one atomic final publication.
 """
 from __future__ import annotations
 
@@ -12,29 +11,11 @@ import time
 from typing import Any
 
 from triqto.actions.config import ActionEngineConfig
-from triqto.actions.streaming_pipeline import (
-    build_and_write_action_dataset_streaming,
-)
-from triqto.data_generation import (
-    generate_dataset,
-    load_generation_config,
-    write_dataset,
-)
-from triqto.graph import (
-    GraphConversionConfig,
-    convert_completed_dataset_to_graphs,
-    write_graph_dataset,
-)
-from triqto.topology import (
-    TopologyAuditConfig,
-    build_topology_audit_result,
-    write_topology_dataset,
-)
-from triqto.training_views import (
-    build_training_view_result,
-    load_training_view_config,
-    write_training_view_dataset,
-)
+from triqto.actions.streaming_pipeline import build_and_write_action_dataset_streaming
+from triqto.data_generation import generate_dataset, load_generation_config, write_dataset
+from triqto.graph import GraphConversionConfig, convert_completed_dataset_to_graphs, write_graph_dataset
+from triqto.topology import TopologyAuditConfig, write_topology_dataset
+from triqto.training_views import build_training_view_result, load_training_view_config
 
 from .campaign import (
     PHASE156_DATA_COMPLETE_SCHEMA,
@@ -47,13 +28,12 @@ from .campaign import (
     _workspace_lock,
 )
 from .config import Phase156CampaignConfig
+from .resumable_phase11 import build_topology_audit_result_resumable
+from .resumable_phase12 import write_training_view_dataset_resumable
+from .topology_capacity import resolve_topology_group_capacity
 
 
-def _require_complete_or_absent(
-    root: Path,
-    marker_name: str,
-    phase_name: str,
-) -> bool:
+def _require_complete_or_absent(root: Path, marker_name: str, phase_name: str) -> bool:
     marker = root / marker_name
     if marker.is_file():
         payload = _read_json(marker)
@@ -68,24 +48,45 @@ def _require_complete_or_absent(
     return False
 
 
-def _progress_line(payload: dict[str, Any]) -> None:
+def _phase9_progress(payload: dict[str, Any]) -> None:
     eta = payload.get("eta_seconds")
     eta_text = "unknown" if eta is None else f"{float(eta) / 60.0:.1f}m"
     shard_text = ""
     if "completed_shards" in payload:
-        shard_text = (
-            f" | shards={payload['completed_shards']}/"
-            f"{payload['total_shards']}"
-        )
+        shard_text = f" | shards={payload['completed_shards']}/{payload['total_shards']}"
     resumed = int(payload.get("resumed_samples", 0))
     resumed_text = f" | resumed={resumed}" if resumed else ""
     print(
         "[Phase 9] "
         f"{payload['completed_samples']}/{payload['total_samples']} samples | "
         f"{payload['candidate_count']} candidates | "
-        f"{payload['samples_per_second']:.3f} samples/s | "
-        f"ETA {eta_text} | workers={payload['workers']}"
-        f"{shard_text}{resumed_text}",
+        f"{payload['samples_per_second']:.3f} samples/s | ETA {eta_text} | "
+        f"workers={payload['workers']}{shard_text}{resumed_text}",
+        flush=True,
+    )
+
+
+def _phase11_progress(payload: dict[str, Any]) -> None:
+    resumed = int(payload.get("resumed_groups", 0))
+    resumed_text = f" | resumed={resumed}" if resumed else ""
+    print(
+        "[Phase 11] "
+        f"{payload['completed_groups']}/{payload['total_groups']} groups | "
+        f"{payload['group_kind']} | {payload['group_key']}{resumed_text}",
+        flush=True,
+    )
+
+
+def _phase12_progress(payload: dict[str, Any]) -> None:
+    completed = int(payload["completed_items"])
+    total = int(payload["total_items"])
+    if completed != total and completed % 1000 != 0:
+        return
+    resumed = int(payload.get("resumed_items", 0))
+    resumed_text = f" | resumed={resumed}" if resumed else ""
+    print(
+        f"[Phase 12] {completed}/{total} item artifacts | task={payload['task']}"
+        f"{resumed_text}",
         flush=True,
     )
 
@@ -96,18 +97,11 @@ def _timed_start(name: str) -> float:
 
 
 def _timed_done(name: str, started: float) -> None:
-    print(
-        f"[{name}] complete in {(time.monotonic() - started) / 60.0:.2f} minutes",
-        flush=True,
-    )
+    print(f"[{name}] complete in {(time.monotonic() - started) / 60.0:.2f} minutes", flush=True)
 
 
-def run_optimized_data_stage(
-    *,
-    workspace: str | Path,
-    workers: int | None = None,
-) -> dict[str, Any]:
-    """Build Phase 7/8/9/11/12 with phase and Phase 9 shard resume."""
+def run_optimized_data_stage(*, workspace: str | Path, workers: int | None = None) -> dict[str, Any]:
+    """Build Phase 7/8/9/11/12 with phase, shard, group, and item resume."""
     target = Path(workspace).expanduser().resolve()
     plan = _load_prepared_plan(target)
     _verify_source_configs(plan)
@@ -127,48 +121,35 @@ def run_optimized_data_stage(
     phase9 = final_root / "phase9"
     phase11 = final_root / "phase11"
     phase12 = final_root / "phase12"
+    topology_capacity_path = final_root / "topology_capacity_resolution.json"
+    phase11_checkpoints = final_root / ".phase11-checkpoints"
+    phase12_checkpoints = final_root / ".phase12-checkpoints"
 
     with _workspace_lock(target, "optimized-data"):
         final_root.mkdir(parents=True, exist_ok=True)
 
-        if _require_complete_or_absent(
-            phase7,
-            "dataset_complete.json",
-            "Phase 7",
-        ):
+        if _require_complete_or_absent(phase7, "dataset_complete.json", "Phase 7"):
             print("[Phase 7] already complete; resuming", flush=True)
         else:
             started = _timed_start("Phase 7")
             generation = generate_dataset(
-                load_generation_config(
-                    plan["source_configs"]["generation"]["absolute_path"]
-                )
+                load_generation_config(plan["source_configs"]["generation"]["absolute_path"])
             )
             write_dataset(generation, phase7)
             _timed_done("Phase 7", started)
 
-        if _require_complete_or_absent(
-            phase8,
-            "graph_complete.json",
-            "Phase 8",
-        ):
+        if _require_complete_or_absent(phase8, "graph_complete.json", "Phase 8"):
             print("[Phase 8] already complete; resuming", flush=True)
         else:
             started = _timed_start("Phase 8")
             graph = convert_completed_dataset_to_graphs(
                 phase7,
-                GraphConversionConfig(
-                    include_supplemental_counts=build.include_supplemental_counts
-                ),
+                GraphConversionConfig(include_supplemental_counts=build.include_supplemental_counts),
             )
             write_graph_dataset(graph, phase8)
             _timed_done("Phase 8", started)
 
-        if _require_complete_or_absent(
-            phase9,
-            "action_complete.json",
-            "Phase 9",
-        ):
+        if _require_complete_or_absent(phase9, "action_complete.json", "Phase 9"):
             print("[Phase 9] already complete; resuming", flush=True)
         else:
             started = _timed_start("Phase 9")
@@ -182,42 +163,55 @@ def run_optimized_data_stage(
                     max_edits_per_action=build.max_edits_per_action,
                 ),
                 workers=workers,
-                progress_callback=_progress_line,
+                progress_callback=_phase9_progress,
             )
             _timed_done("Phase 9", started)
 
-        if _require_complete_or_absent(
-            phase11,
-            "topology_complete.json",
-            "Phase 11",
-        ):
+        effective_topology_capacity, topology_capacity = resolve_topology_group_capacity(
+            phase7,
+            phase9,
+            build.topology_max_points_per_group,
+        )
+        topology_capacity = {
+            **topology_capacity,
+            "campaign_id": plan["campaign_id"],
+            "phase7_generation_id": _read_json(phase7 / "dataset_complete.json")["scientific_generation_id"],
+            "phase9_action_engine_id": _read_json(phase9 / "action_complete.json")["action_engine_id"],
+        }
+        _atomic_write_json(topology_capacity_path, topology_capacity)
+        if topology_capacity["auto_expanded"]:
+            print(
+                "[Phase 11] topology capacity auto-expanded losslessly: "
+                f"{topology_capacity['requested_capacity']} -> "
+                f"{topology_capacity['effective_capacity']} points/group",
+                flush=True,
+            )
+
+        if _require_complete_or_absent(phase11, "topology_complete.json", "Phase 11"):
             print("[Phase 11] already complete; resuming", flush=True)
         else:
             started = _timed_start("Phase 11")
-            topology = build_topology_audit_result(
+            topology_config = TopologyAuditConfig(
+                min_points=build.topology_min_points,
+                betti_grid_size=build.topology_betti_grid_size,
+                top_k_lifetimes=build.topology_top_k_lifetimes,
+                max_points_per_group=effective_topology_capacity,
+                max_groups=build.topology_max_groups,
+                max_statevector_amplitudes=build.topology_max_statevector_amplitudes,
+                include_hilbert=build.topology_include_hilbert,
+            )
+            topology = build_topology_audit_result_resumable(
                 phase7,
                 phase8,
                 phase9,
-                TopologyAuditConfig(
-                    min_points=build.topology_min_points,
-                    betti_grid_size=build.topology_betti_grid_size,
-                    top_k_lifetimes=build.topology_top_k_lifetimes,
-                    max_points_per_group=build.topology_max_points_per_group,
-                    max_groups=build.topology_max_groups,
-                    max_statevector_amplitudes=(
-                        build.topology_max_statevector_amplitudes
-                    ),
-                    include_hilbert=build.topology_include_hilbert,
-                ),
+                phase11_checkpoints,
+                topology_config,
+                progress_callback=_phase11_progress,
             )
             write_topology_dataset(topology, phase11)
             _timed_done("Phase 11", started)
 
-        if _require_complete_or_absent(
-            phase12,
-            "training_view_complete.json",
-            "Phase 12",
-        ):
+        if _require_complete_or_absent(phase12, "training_view_complete.json", "Phase 12"):
             print("[Phase 12] already complete; resuming", flush=True)
         else:
             started = _timed_start("Phase 12")
@@ -226,11 +220,14 @@ def run_optimized_data_stage(
                 phase8,
                 phase9,
                 phase11,
-                load_training_view_config(
-                    plan["source_configs"]["training_view"]["absolute_path"]
-                ),
+                load_training_view_config(plan["source_configs"]["training_view"]["absolute_path"]),
             )
-            write_training_view_dataset(views, phase12)
+            write_training_view_dataset_resumable(
+                views,
+                phase12,
+                phase12_checkpoints,
+                progress_callback=_phase12_progress,
+            )
             _timed_done("Phase 12", started)
 
         phase7_marker = _read_json(phase7 / "dataset_complete.json")
@@ -244,9 +241,15 @@ def run_optimized_data_stage(
             "phase7_generation_id": phase7_marker["scientific_generation_id"],
             "phase8_graph_conversion_id": phase8_marker["graph_conversion_id"],
             "phase9_action_engine_id": phase9_marker["action_engine_id"],
-            "phase12_training_view_dataset_id": phase12_marker[
-                "training_view_dataset_id"
-            ],
+            "phase12_training_view_dataset_id": phase12_marker["training_view_dataset_id"],
+            "topology_capacity_resolution": topology_capacity,
+            "restartability": {
+                "phase7": "phase_boundary",
+                "phase8": "phase_boundary",
+                "phase9": "deterministic_shard",
+                "phase11": "validated_topology_group",
+                "phase12": "validated_item_artifact_publication",
+            },
             "source_config_hashes": {
                 name: record["sha256"]
                 for name, record in sorted(plan["source_configs"].items())
