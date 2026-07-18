@@ -47,6 +47,7 @@ from .campaign import (
     _workspace_lock,
 )
 from .config import Phase156CampaignConfig
+from .topology_capacity import resolve_topology_group_capacity
 
 
 def _require_complete_or_absent(
@@ -127,6 +128,7 @@ def run_optimized_data_stage(
     phase9 = final_root / "phase9"
     phase11 = final_root / "phase11"
     phase12 = final_root / "phase12"
+    topology_capacity_path = final_root / "topology_capacity_resolution.json"
 
     with _workspace_lock(target, "optimized-data"):
         final_root.mkdir(parents=True, exist_ok=True)
@@ -186,6 +188,32 @@ def run_optimized_data_stage(
             )
             _timed_done("Phase 9", started)
 
+        effective_topology_capacity, topology_capacity = (
+            resolve_topology_group_capacity(
+                phase7,
+                phase9,
+                build.topology_max_points_per_group,
+            )
+        )
+        topology_capacity = {
+            **topology_capacity,
+            "campaign_id": plan["campaign_id"],
+            "phase7_generation_id": _read_json(
+                phase7 / "dataset_complete.json"
+            )["scientific_generation_id"],
+            "phase9_action_engine_id": _read_json(
+                phase9 / "action_complete.json"
+            )["action_engine_id"],
+        }
+        _atomic_write_json(topology_capacity_path, topology_capacity)
+        if topology_capacity["auto_expanded"]:
+            print(
+                "[Phase 11] topology capacity auto-expanded losslessly: "
+                f"{topology_capacity['requested_capacity']} -> "
+                f"{topology_capacity['effective_capacity']} points/group",
+                flush=True,
+            )
+
         if _require_complete_or_absent(
             phase11,
             "topology_complete.json",
@@ -202,7 +230,7 @@ def run_optimized_data_stage(
                     min_points=build.topology_min_points,
                     betti_grid_size=build.topology_betti_grid_size,
                     top_k_lifetimes=build.topology_top_k_lifetimes,
-                    max_points_per_group=build.topology_max_points_per_group,
+                    max_points_per_group=effective_topology_capacity,
                     max_groups=build.topology_max_groups,
                     max_statevector_amplitudes=(
                         build.topology_max_statevector_amplitudes
@@ -247,6 +275,7 @@ def run_optimized_data_stage(
             "phase12_training_view_dataset_id": phase12_marker[
                 "training_view_dataset_id"
             ],
+            "topology_capacity_resolution": topology_capacity,
             "source_config_hashes": {
                 name: record["sha256"]
                 for name, record in sorted(plan["source_configs"].items())
