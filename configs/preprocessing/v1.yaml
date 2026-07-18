@@ -1,0 +1,150 @@
+schema_version: triqto.preprocessing.v1
+preprocessing_version: 1.0.0
+random_seed: 20260718
+
+numerical_tolerances:
+  probability_sum_warning: 1.0e-10
+  probability_sum_repair: 1.0e-8
+  probability_negative_repair: 1.0e-14
+  state_norm_warning: 1.0e-10
+  state_norm_repair: 1.0e-8
+  hermiticity_warning: 1.0e-10
+  hermiticity_repair: 1.0e-8
+  trace_warning: 1.0e-10
+  trace_repair: 1.0e-8
+  psd_eigenvalue_warning: -1.0e-10
+  psd_eigenvalue_failure: -1.0e-7
+  hash_rounding_decimals: 14
+  comparison_atol: 1.0e-10
+  comparison_rtol: 1.0e-9
+
+canonicalization:
+  angle_interval: [-3.141592653589793, 3.141592653589793]
+  angle_period: 6.283185307179586
+  gate_alias_map:
+    cnot: cx
+    CNOT: cx
+    CX: cx
+    measure_all: measure
+  basis_alias_map:
+    computational: Z
+    z: Z
+    Z: Z
+    x: X
+    X: X
+    y: Y
+    Y: Y
+  bit_order: qiskit_msb_left
+  graph_method: wl_bucket_plus_exact_isomorphism
+  state_global_phase_epsilon: 1.0e-12
+  floating_point_format: .17g
+  barrier_semantically_irrelevant: false
+
+validation:
+  allowed_labels: []
+  repair_small_numerical_drift: true
+  validate_cptp: true
+  validate_layout: true
+  validate_backend_basis: true
+  quarantine_unknown_bit_order: true
+
+effects:
+  hilbert_metrics: [infidelity, fubini_study, pure_trace_distance]
+  born_metrics: [hellinger, jensen_shannon_distance, total_variation, fisher_rao]
+  combined_distance_weights:
+    hilbert: 0.35
+    born: 0.35
+    graph: 0.15
+    parameter: 0.15
+    metadata: 0.0
+  severity_thresholds:
+    negligible_max: 1.0e-6
+    weak_max: 1.0e-3
+    moderate_max: 5.0e-2
+    strong_max: 2.5e-1
+  phase_sensitive_threshold: 1.0e-4
+  born_effect_threshold: 1.0e-4
+  layout_depth_threshold: 5.0e-2
+
+missingness_statuses:
+  - available
+  - unavailable_by_design
+  - intentionally_masked
+  - not_computed
+  - corrupted
+  - not_applicable
+  - unknown_legacy_record
+forbid_implicit_zero_fill: true
+preserve_duplicate_multiplicity: true
+canonical_representative_policy: lexicographically_smallest_sample_id
+
+grouping:
+  group_by_base_circuit: true
+  group_by_target: true
+  group_by_trajectory: true
+  group_by_parameter_neighbourhood: true
+  group_by_calibration_window: true
+  group_by_symmetry: true
+  group_by_family_for_selected_splits: true
+  calibration_window_seconds: 86400
+  hard_negative_max_pairs_per_category: 10000
+
+splits:
+  train_fraction: 0.70
+  validation_fraction: 0.15
+  test_fraction: 0.15
+  seed: 20260718
+  challenge_splits:
+    - grouped_baseline
+    - held_out_circuit_instance
+    - held_out_parameter_region
+    - held_out_distortion_strength
+    - held_out_distortion_combination
+    - held_out_circuit_family
+    - held_out_layout_identity
+    - held_out_layout_structure
+    - held_out_qubit_count
+    - temporal_calibration
+    - held_out_backend
+  minimum_group_count: 3
+  stratification_fields: [family, n_qubits, intervention_label, severity]
+  parameter_region_bins: 8
+
+outliers:
+  enabled: true
+  methods: [mad, iqr, nearest_neighbor]
+  mad_threshold: 6.0
+  iqr_multiplier: 3.0
+  nearest_neighbor_quantile: 0.995
+  tag_only: true
+
+balancing:
+  enabled: true
+  dimensions:
+    - family
+    - n_qubits
+    - intervention_label
+    - severity
+    - measurement_basis
+    - source_type
+  method: effective_number
+  beta: 0.999
+  clipping: [0.25, 8.0]
+
+scaling:
+  enabled: true
+  method_by_family:
+    angles: sincos
+    gate_errors: log1p_robust
+    coherence_times: log_robust
+    probabilities: identity
+    distances: identity
+    topology_lifetimes: robust
+    topology_counts: log1p_robust
+    depth_counts: log1p_robust
+
+reports:
+  html: true
+  json: true
+  parquet: true
+  plots: false
