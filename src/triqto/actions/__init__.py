@@ -1,6 +1,10 @@
 """Public deterministic Phase 9 logical and operational action APIs."""
 from __future__ import annotations
 
+from collections.abc import Iterator, Mapping
+import sqlite3
+from typing import Any
+
 from .action_space import supported_edit_types
 from .apply_actions import apply_action
 from .artifacts import (
@@ -38,6 +42,10 @@ from .identities import (
     candidate_circuit_id,
     circuit_semantic_hash,
     rollout_content_hash,
+)
+from .lazy_dataset import (
+    LazyActionDataset,
+    load_lazy_action_dataset as _load_lazy_action_dataset,
 )
 from .models import (
     ActionCandidate,
@@ -101,6 +109,52 @@ from .validators import (
     validate_applied_action,
 )
 
+
+class _LazyCircuitMapping(Mapping[str, Any]):
+    """Resolve candidate circuits by candidate_circuit_id without global hydration."""
+
+    def __init__(self, owner: LazyActionDataset) -> None:
+        self.owner = owner
+
+    def __len__(self) -> int:
+        return self.owner.candidate_count
+
+    def __iter__(self) -> Iterator[str]:
+        connection = sqlite3.connect(self.owner.db_path, timeout=120.0)
+        try:
+            for row in connection.execute(
+                "SELECT candidate_circuit_id FROM candidates "
+                "ORDER BY candidate_circuit_id"
+            ):
+                yield str(row[0])
+        finally:
+            connection.close()
+
+    def __getitem__(self, candidate_circuit_id: str) -> Any:
+        connection = sqlite3.connect(self.owner.db_path, timeout=120.0)
+        try:
+            row = connection.execute(
+                "SELECT sample_id FROM candidates WHERE candidate_circuit_id=?",
+                (candidate_circuit_id,),
+            ).fetchone()
+        finally:
+            connection.close()
+        if row is None:
+            raise KeyError(candidate_circuit_id)
+        hydrated = self.owner._hydrate_sample(str(row[0]))
+        try:
+            return hydrated.circuits_by_id[candidate_circuit_id]
+        except KeyError as exc:
+            raise KeyError(candidate_circuit_id) from exc
+
+
+def load_lazy_action_dataset(*args: Any, **kwargs: Any) -> LazyActionDataset:
+    """Load the lazy dataset with circuit lookup keyed by candidate_circuit_id."""
+    dataset = _load_lazy_action_dataset(*args, **kwargs)
+    dataset.circuits_by_id = _LazyCircuitMapping(dataset)
+    return dataset
+
+
 __all__ = [
     "OPERATIONAL_ACTION_DATASET_SCHEMA",
     "OPERATIONAL_ACTION_FAMILIES",
@@ -117,6 +171,7 @@ __all__ = [
     "ActionWriteResult",
     "AppliedAction",
     "CompletedGraphDataset",
+    "LazyActionDataset",
     "OperationalActionResult",
     "OperationalActionSmokeConfig",
     "OperationalActionTensorBatch",
@@ -147,6 +202,7 @@ __all__ = [
     "load_action_engine_sources",
     "load_candidate_circuit",
     "load_completed_graph_dataset",
+    "load_lazy_action_dataset",
     "load_operational_action_dataset",
     "load_operational_action_result",
     "load_operational_action_smoke_config",

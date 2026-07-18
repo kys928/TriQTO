@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from triqto.baselines import load_baseline_sources
+from triqto.actions import load_action_engine_sources, load_lazy_action_dataset
 from triqto.graph import snapshot_managed_files
 from triqto.graph.utils import (
     ensure_sorted_unique_strings,
@@ -163,7 +163,8 @@ def load_completed_topology_dataset(
     groups_by_id: dict[str, Any] = {}
     records_by_id: dict[str, Any] = {}
     point_total = 0
-    for record in records:
+    total_records = len(records)
+    for index, record in enumerate(records, start=1):
         record.validate()
         if record.topology_group_id in records_by_id:
             raise ValueError(
@@ -181,6 +182,12 @@ def load_completed_topology_dataset(
         groups_by_id[group.topology_group_id] = group
         records_by_id[record.topology_group_id] = record
         point_total += int(group.point_ids.size)
+        if index == 1 or index % 250 == 0 or index == total_records:
+            print(
+                "[Phase 12][source-load] "
+                f"validated topology groups {index:,}/{total_records:,}",
+                flush=True,
+            )
     if _strict_nonnegative_int(marker, "point_count") != point_total:
         raise ValueError("topology_complete.json point_count mismatch")
     if summary.get("total_group_point_count") != point_total:
@@ -209,28 +216,35 @@ def load_training_view_sources(
     action_root: str | Path,
     topology_root: str | Path,
 ) -> TrainingViewSources:
-    """Cross-validate the exact Phase 7/8/9/11 chain consumed by Phase 12."""
-    earlier = load_baseline_sources(phase7_root, graph_root, action_root)
+    """Cross-validate Phase 7/8/11 and lazily index Phase 9 for Phase 12."""
+    earlier = load_action_engine_sources(phase7_root, graph_root)
+    action_path = Path(action_root)
+    action = load_lazy_action_dataset(
+        action_path,
+        phase7=earlier.phase7,
+        graph=earlier.graph,
+        checkpoint_root=action_path.parent / ".phase9-lazy-index",
+        label="Phase 12",
+    )
     topology = load_completed_topology_dataset(
         topology_root,
         phase7=earlier.phase7,
         graph=earlier.graph,
-        action=earlier.action,
+        action=action,
     )
     return TrainingViewSources(
         phase7=earlier.phase7,
         graph=earlier.graph,
-        action=earlier.action,
+        action=action,
         topology=topology,
     )
 
 
 def verify_training_view_source_snapshots(sources: TrainingViewSources) -> None:
-    """Prove no managed source file changed during Phase 12 work."""
+    """Prove no managed source changed during Phase 12 work."""
     checks = (
         ("Phase 7", sources.phase7.source_root, sources.phase7.source_snapshot),
         ("Phase 8", sources.graph.root, sources.graph.snapshot),
-        ("Phase 9", sources.action.root, sources.action.snapshot),
         ("Phase 11", sources.topology.root, sources.topology.snapshot),
     )
     for name, root, expected in checks:
@@ -240,6 +254,15 @@ def verify_training_view_source_snapshots(sources: TrainingViewSources) -> None:
         )
         if actual != expected:
             raise RuntimeError(f"{name} managed source files changed during Phase 12")
+    if getattr(sources.action, "is_lazy", False):
+        sources.action.verify_source()
+    else:
+        actual = snapshot_managed_files(
+            sources.action.root,
+            tuple(entry.reference for entry in sources.action.snapshot.entries),
+        )
+        if actual != sources.action.snapshot:
+            raise RuntimeError("Phase 9 managed source files changed during Phase 12")
 
 
 __all__ = [

@@ -1,6 +1,7 @@
 """Indexed source context shared by Phase 12 task builders."""
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -23,9 +24,9 @@ class ViewBuildContext:
     metrics_by_id: dict[str, Any]
     graph_records_by_id: dict[str, Any]
     pair_records_by_sample_id: dict[str, Any]
-    candidate_records_by_action_id: dict[str, Any]
-    rollout_records_by_action_id: dict[str, Any]
-    action_to_sample: dict[str, str]
+    candidate_records_by_action_id: Mapping[str, Any]
+    rollout_records_by_action_id: Mapping[str, Any]
+    action_to_sample: Mapping[str, str]
     topology_by_sample_id: dict[str, Any]
     topology_record_by_sample_id: dict[str, Any]
 
@@ -66,18 +67,37 @@ def build_view_context(
         "graph_id",
         "graph record",
     )
-    candidate_records = _unique_index(
-        sources.action.candidate_records,
-        "action_id",
-        "candidate record",
-    )
-    rollout_records_by_action: dict[str, Any] = {}
-    action_to_sample: dict[str, str] = {}
-    for record in sources.action.rollout_records:
-        if record.action_id in rollout_records_by_action:
-            raise ValueError(f"Duplicate rollout record action_id {record.action_id}")
-        rollout_records_by_action[record.action_id] = record
-        action_to_sample[record.action_id] = record.sample_id
+
+    if getattr(sources.action, "is_lazy", False):
+        print(
+            "[Phase 12][context] using lazy Phase 9 mappings; "
+            "no global candidate or rollout hydration",
+            flush=True,
+        )
+        candidate_records: Mapping[str, Any] = (
+            sources.action.candidate_records_by_action_id
+        )
+        rollout_records_by_action: Mapping[str, Any] = (
+            sources.action.rollout_records_by_action_id
+        )
+        action_to_sample: Mapping[str, str] = sources.action.action_to_sample
+    else:
+        candidate_records = _unique_index(
+            sources.action.candidate_records,
+            "action_id",
+            "candidate record",
+        )
+        rollout_index: dict[str, Any] = {}
+        sample_index: dict[str, str] = {}
+        for record in sources.action.rollout_records:
+            if record.action_id in rollout_index:
+                raise ValueError(
+                    f"Duplicate rollout record action_id {record.action_id}"
+                )
+            rollout_index[record.action_id] = record
+            sample_index[record.action_id] = record.sample_id
+        rollout_records_by_action = rollout_index
+        action_to_sample = sample_index
 
     topology_by_sample: dict[str, Any] = {}
     topology_record_by_sample: dict[str, Any] = {}
