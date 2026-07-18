@@ -56,6 +56,16 @@ def _append_if_eligible(
     )
 
 
+def _action_ids_for_sample(action_source: Any, sample_id: str) -> list[str]:
+    lazy_method = getattr(action_source, "action_ids_for_sample", None)
+    if callable(lazy_method):
+        return list(lazy_method(sample_id))
+    rollouts = action_source.rollouts_by_sample_id.get(sample_id)
+    if rollouts is None:
+        raise ValueError(f"Phase 7 sample {sample_id} has no Phase 9 rollout neighborhood")
+    return [rollout.action_id for rollout in rollouts]
+
+
 def build_topology_group_specs(
     sources: Any,
     config: TopologyAuditConfig,
@@ -67,13 +77,19 @@ def build_topology_group_specs(
     skipped_counts: dict[str, int] = defaultdict(int)
 
     if "action_neighborhood" in config.group_kinds:
-        for sample in sorted(sources.phase7.samples, key=lambda item: item.sample_id):
-            rollouts = sources.action.rollouts_by_sample_id.get(sample.sample_id)
-            if rollouts is None:
-                raise ValueError(
-                    f"Phase 7 sample {sample.sample_id} has no Phase 9 rollout neighborhood"
+        total_samples = len(sources.phase7.samples)
+        for sample_index, sample in enumerate(
+            sorted(sources.phase7.samples, key=lambda item: item.sample_id),
+            start=1,
+        ):
+            point_ids = _action_ids_for_sample(sources.action, sample.sample_id)
+            if sample_index == 1 or sample_index % 250 == 0 or sample_index == total_samples:
+                print(
+                    "[Phase 11][group-plan] "
+                    f"action neighborhoods indexed {sample_index:,}/{total_samples:,} | "
+                    f"latest_points={len(point_ids):,}",
+                    flush=True,
                 )
-            point_ids = [rollout.action_id for rollout in rollouts]
             before = len(specs)
             _append_if_eligible(
                 specs,
@@ -86,6 +102,10 @@ def build_topology_group_specs(
                     "n_qubits": sample.n_qubits,
                     "distortion_id": sample.distortion_id,
                     "point_semantics": "phase9_candidate_action_rollouts",
+                    "action_source_mode": (
+                        "lazy_per_sample" if getattr(sources.action, "is_lazy", False)
+                        else "fully_materialized"
+                    ),
                 },
                 config=config,
             )
