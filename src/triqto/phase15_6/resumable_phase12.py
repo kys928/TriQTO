@@ -15,6 +15,8 @@ from triqto.graph.utils import resolve_safe_file, strict_json_load, write_strict
 from triqto.storage import ManifestReader, ManifestWriter
 from triqto.storage.training_view_schema import TrainingViewDefinitionRecordV1, TrainingViewItemRecordV1
 from triqto.training_views.artifacts import (
+    _validate_source_refs,
+    _verify_result_sources,
     load_training_view_item_artifact,
     save_training_view_item_artifact,
 )
@@ -42,6 +44,13 @@ def write_training_view_dataset_resumable(
     output = Path(output_root)
     if output.exists():
         raise FileExistsError(f"Training-view output root already exists: {output}")
+    source_roots = {
+        "phase7": Path(result.phase7_source_root),
+        "phase8": Path(result.graph_source_root),
+        "phase9": Path(result.action_source_root),
+        "phase11": Path(result.topology_source_root),
+    }
+    _verify_result_sources(result)
     checkpoints = Path(checkpoint_root)
     artifacts = checkpoints / "items"
     markers = checkpoints / "markers"
@@ -49,6 +58,7 @@ def write_training_view_dataset_resumable(
     markers.mkdir(parents=True, exist_ok=True)
     resumed = 0
     for index, item in enumerate(result.items, start=1):
+        _validate_source_refs(item, source_roots)
         artifact = artifacts / f"{item.view_item_id}.npz"
         marker = markers / f"{item.view_item_id}.json"
         if artifact.is_file() and marker.is_file():
@@ -120,6 +130,7 @@ def write_training_view_dataset_resumable(
                 persisted_config,
                 record.content_hash,
             )
+            _validate_source_refs(item, source_roots)
             loaded[item.view_item_id] = item
         validate_training_view_dataset_joins(definitions, records, items_by_id=loaded, config=persisted_config)
         managed_files = tuple(sorted([*managed, "training_view_complete.json"]))
@@ -145,6 +156,7 @@ def write_training_view_dataset_resumable(
         write_strict_json(staging / "training_view_complete.json", completion)
         if _relative_file_set(staging) != set(managed_files):
             raise ValueError("Committed training-view inventory does not match staging")
+        _verify_result_sources(result)
         os.replace(staging, output)
         manifest_paths = (
             output / "manifests" / "training_view_manifest.parquet",
