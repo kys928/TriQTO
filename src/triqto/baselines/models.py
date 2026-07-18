@@ -65,6 +65,7 @@ class CompletedActionDataset:
     rollouts_by_sample_id: dict[str, tuple[Any, ...]]
     managed_files: tuple[str, ...]
     snapshot: SourceFileSnapshot
+    rollouts_by_action_id: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
