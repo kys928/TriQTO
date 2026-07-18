@@ -8,7 +8,6 @@ from typing import Any
 import numpy as np
 
 from triqto.simulation import simulate_ideal_statevector
-
 from .config import TopologyAuditConfig
 from .models import TopologyPointCloudGroup
 from .topology_groups import TopologyGroupSpec
@@ -43,16 +42,18 @@ def _probability_matrix(
                 f"Born outcome {key!r} must be a width-{n_qubits} binary string"
             )
     matrix = np.zeros((len(rows), len(support)), dtype=np.float64)
+    support_index = {key: index for index, key in enumerate(support)}
     for row_index, row in enumerate(rows):
         if not isinstance(row, Mapping):
             raise TypeError("Born probability rows must be mappings")
         for key, raw_value in row.items():
-            if key not in support:
+            column = support_index.get(key)
+            if column is None:
                 raise ValueError("Internal Born support mismatch")
             value = _strict_numeric(raw_value, f"probability[{row_index}][{key}]")
             if value < 0.0:
                 raise ValueError("Born probabilities must be nonnegative")
-            matrix[row_index, support.index(key)] = value
+            matrix[row_index, column] = value
         total = float(np.sum(matrix[row_index]))
         if not math.isclose(total, 1.0, rel_tol=0.0, abs_tol=1e-12):
             raise ValueError(
@@ -99,8 +100,14 @@ def _action_point_cloud(
     sources: Any,
     config: TopologyAuditConfig,
 ) -> TopologyPointCloudGroup:
+    sample_id = spec.metadata.get("sample_id")
+    if not isinstance(sample_id, str) or not sample_id:
+        raise ValueError("Action-neighborhood topology spec requires sample_id metadata")
+    sample_rollouts = sources.action.rollouts_by_sample_id.get(sample_id)
+    if sample_rollouts is None:
+        raise ValueError(f"Action neighborhood references missing sample {sample_id}")
     rollout_by_action: dict[str, Any] = {}
-    for rollout in sources.action.rollouts_by_id.values():
+    for rollout in sample_rollouts:
         if rollout.action_id in rollout_by_action:
             raise ValueError(f"Duplicate Phase 9 rollout for action {rollout.action_id}")
         rollout_by_action[rollout.action_id] = rollout
@@ -178,6 +185,7 @@ def _action_point_cloud(
             ),
             "raw_statevectors_persisted": False,
             "point_order": "sorted_action_id",
+            "rollout_index_scope": "sample_neighborhood_only",
         },
     )
 

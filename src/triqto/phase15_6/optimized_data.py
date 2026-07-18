@@ -1,12 +1,13 @@
 """Resumable optimized Phase 15.6 data construction.
 
-Each phase publishes independently. Phase 9 checkpoints deterministic storage shards,
-Phase 11 checkpoints validated topology groups, and Phase 12 checkpoints validated item
-artifacts before one atomic final publication.
+Phase 9 checkpoints deterministic storage shards. Phase 11 checkpoints point-cloud,
+distance, per-manifold persistence, and final-group stages. Phase 12 checkpoints
+deterministic logical task shards and item artifacts before atomic publication.
 """
 from __future__ import annotations
 
 from pathlib import Path
+import shutil
 import time
 from typing import Any
 
@@ -15,7 +16,7 @@ from triqto.actions.streaming_pipeline import build_and_write_action_dataset_str
 from triqto.data_generation import generate_dataset, load_generation_config, write_dataset
 from triqto.graph import GraphConversionConfig, convert_completed_dataset_to_graphs, write_graph_dataset
 from triqto.topology import TopologyAuditConfig, write_topology_dataset
-from triqto.training_views import build_training_view_result, load_training_view_config
+from triqto.training_views import load_training_view_config
 
 from .campaign import (
     PHASE156_DATA_COMPLETE_SCHEMA,
@@ -28,8 +29,12 @@ from .campaign import (
     _workspace_lock,
 )
 from .config import Phase156CampaignConfig
+from .resumable import normalize_checkpoint_retention, normalize_resume_mode
 from .resumable_phase11 import build_topology_audit_result_resumable
-from .resumable_phase12 import write_training_view_dataset_resumable
+from .resumable_phase12 import (
+    build_training_view_result_resumable,
+    write_training_view_dataset_resumable,
+)
 from .topology_capacity import resolve_topology_group_capacity
 
 
@@ -67,28 +72,63 @@ def _phase9_progress(payload: dict[str, Any]) -> None:
 
 
 def _phase11_progress(payload: dict[str, Any]) -> None:
-    resumed = int(payload.get("resumed_groups", 0))
-    resumed_text = f" | resumed={resumed}" if resumed else ""
+    if payload.get("event") == "plan":
+        estimated_gib = float(payload["estimated_checkpoint_bytes"]) / (1024**3)
+        print(
+            "[Phase 11] plan | "
+            f"groups={payload['total_groups']} | workers={payload['workers']} | "
+            f"large-group-exclusive-at={payload['exclusive_point_threshold']} points | "
+            f"checkpoint estimate≈{estimated_gib:.2f} GiB",
+            flush=True,
+        )
+        return
+    elapsed = payload.get("elapsed_seconds")
+    elapsed_text = "" if elapsed is None else f" | {float(elapsed) / 60.0:.2f}m"
+    resumed = int(payload.get("resumed_stages", 0))
     print(
         "[Phase 11] "
-        f"{payload['completed_groups']}/{payload['total_groups']} groups | "
-        f"{payload['group_kind']} | {payload['group_key']}{resumed_text}",
+        f"group={payload['current_group_index']}/{payload['total_groups']} | "
+        f"points={payload['point_count']} | {payload['group_kind']} | "
+        f"stage={payload['stage']}:{payload['stage_status']} | "
+        f"resumed_stages={resumed}{elapsed_text}",
         flush=True,
     )
 
 
 def _phase12_progress(payload: dict[str, Any]) -> None:
-    completed = int(payload["completed_items"])
-    total = int(payload["total_items"])
-    if completed != total and completed % 1000 != 0:
+    event = payload.get("event")
+    if event == "plan":
+        print(
+            "[Phase 12] plan | "
+            f"tasks={payload['task_count']} | hash_shards={payload['shard_count']}",
+            flush=True,
+        )
         return
-    resumed = int(payload.get("resumed_items", 0))
-    resumed_text = f" | resumed={resumed}" if resumed else ""
-    print(
-        f"[Phase 12] {completed}/{total} item artifacts | task={payload['task']}"
-        f"{resumed_text}",
-        flush=True,
-    )
+    if event == "logical_shard":
+        completed = int(payload["completed_shards"])
+        total = int(payload["total_shards"])
+        status = str(payload["status"])
+        if status == "started" and completed != 0:
+            return
+        if status not in {"resumed"} and completed != total and completed % 10 != 0:
+            return
+        print(
+            "[Phase 12] "
+            f"task={payload['task']} | shards={completed}/{total} | "
+            f"status={status} | resumed={payload['resumed_shards']}",
+            flush=True,
+        )
+        return
+    if event == "item_publication":
+        completed = int(payload["completed_items"])
+        total = int(payload["total_items"])
+        if completed != total and completed % 1000 != 0:
+            return
+        print(
+            f"[Phase 12] publication={completed}/{total} items | "
+            f"task={payload['task']} | resumed={payload['resumed_items']}",
+            flush=True,
+        )
 
 
 def _timed_start(name: str) -> float:
@@ -100,8 +140,24 @@ def _timed_done(name: str, started: float) -> None:
     print(f"[{name}] complete in {(time.monotonic() - started) / 60.0:.2f} minutes", flush=True)
 
 
-def run_optimized_data_stage(*, workspace: str | Path, workers: int | None = None) -> dict[str, Any]:
-    """Build Phase 7/8/9/11/12 with phase, shard, group, and item resume."""
+def _remove_checkpoint(root: Path, label: str) -> None:
+    if root.exists():
+        shutil.rmtree(root)
+        print(f"[{label}] checkpoints removed by retention policy", flush=True)
+
+
+def run_optimized_data_stage(
+    *,
+    workspace: str | Path,
+    workers: int | None = None,
+    phase11_workers: int = 1,
+    phase12_shards: int = 256,
+    resume_mode: str = "strict",
+    checkpoint_retention: str = "campaign",
+) -> dict[str, Any]:
+    """Build Phase 7/8/9/11/12 with durable bounded-loss restart semantics."""
+    resolved_resume_mode = normalize_resume_mode(resume_mode)
+    resolved_retention = normalize_checkpoint_retention(checkpoint_retention)
     target = Path(workspace).expanduser().resolve()
     plan = _load_prepared_plan(target)
     _verify_source_configs(plan)
@@ -207,28 +263,39 @@ def run_optimized_data_stage(*, workspace: str | Path, workers: int | None = Non
                 phase11_checkpoints,
                 topology_config,
                 progress_callback=_phase11_progress,
+                resume_mode=resolved_resume_mode,
+                workers=phase11_workers,
             )
             write_topology_dataset(topology, phase11)
             _timed_done("Phase 11", started)
+            if resolved_retention == "phase":
+                _remove_checkpoint(phase11_checkpoints, "Phase 11")
 
         if _require_complete_or_absent(phase12, "training_view_complete.json", "Phase 12"):
             print("[Phase 12] already complete; resuming", flush=True)
         else:
             started = _timed_start("Phase 12")
-            views = build_training_view_result(
+            views = build_training_view_result_resumable(
                 phase7,
                 phase8,
                 phase9,
                 phase11,
+                phase12_checkpoints,
                 load_training_view_config(plan["source_configs"]["training_view"]["absolute_path"]),
+                shard_count=phase12_shards,
+                resume_mode=resolved_resume_mode,
+                progress_callback=_phase12_progress,
             )
             write_training_view_dataset_resumable(
                 views,
                 phase12,
                 phase12_checkpoints,
                 progress_callback=_phase12_progress,
+                resume_mode=resolved_resume_mode,
             )
             _timed_done("Phase 12", started)
+            if resolved_retention == "phase":
+                _remove_checkpoint(phase12_checkpoints, "Phase 12")
 
         phase7_marker = _read_json(phase7 / "dataset_complete.json")
         phase8_marker = _read_json(phase8 / "graph_complete.json")
@@ -247,8 +314,12 @@ def run_optimized_data_stage(*, workspace: str | Path, workers: int | None = Non
                 "phase7": "phase_boundary",
                 "phase8": "phase_boundary",
                 "phase9": "deterministic_shard",
-                "phase11": "validated_topology_group",
-                "phase12": "validated_item_artifact_publication",
+                "phase11": "point_cloud_distance_per_manifold_persistence_final_group",
+                "phase12": "deterministic_task_entity_hash_shard_and_item_artifact",
+                "resume_mode": resolved_resume_mode,
+                "checkpoint_retention": resolved_retention,
+                "phase11_workers": phase11_workers,
+                "phase12_shards": phase12_shards,
             },
             "source_config_hashes": {
                 name: record["sha256"]
