@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
+from qiskit import QuantumCircuit
 
 from triqto.phase15_6.resumable import (
     commit_checkpoint_artifact,
@@ -21,6 +23,8 @@ from triqto.phase15_6.resumable_phase11 import (
 from triqto.phase15_6.resumable_phase12 import _shard_index
 from triqto.topology.config import TopologyAuditConfig
 from triqto.topology.models import PersistenceSummary, TopologyPointCloudGroup
+from triqto.topology.point_clouds import build_point_cloud_group
+from triqto.topology.topology_groups import TopologyGroupSpec
 
 
 def test_checkpoint_strict_reuse_and_repair_quarantine(tmp_path: Path) -> None:
@@ -165,6 +169,43 @@ def test_phase11_point_cloud_distance_and_persistence_roundtrip(
     loaded_summary = _load_persistence(persistence_path, "born", config)
     assert np.array_equal(loaded_summary.diagrams[0], summary.diagrams[0])
     assert loaded_summary.metadata == summary.metadata
+
+
+def test_action_point_cloud_uses_sample_local_rollout_index() -> None:
+    class FailOnGlobalScan(dict[str, object]):
+        def values(self):  # type: ignore[override]
+            raise AssertionError("global rollout scan must not be used")
+
+    candidate = SimpleNamespace(action_id="a1", edits=())
+    rollout = SimpleNamespace(
+        action_id="a1",
+        candidate_circuit_id="c1",
+        outcome_bitstrings=np.asarray(["0"], dtype="<U1"),
+        exact_probabilities=np.asarray([1.0], dtype=np.float64),
+    )
+    action = SimpleNamespace(
+        candidates_by_id={"a1": candidate},
+        circuits_by_id={"c1": QuantumCircuit(1)},
+        rollouts_by_id=FailOnGlobalScan(),
+        rollouts_by_sample_id={"s1": (rollout,)},
+    )
+    sources = SimpleNamespace(action=action)
+    spec = TopologyGroupSpec(
+        group_kind="action_neighborhood",
+        group_key="sample=s1",
+        point_ids=("a1",),
+        metadata={"sample_id": "s1"},
+    )
+
+    group = build_point_cloud_group(
+        spec,
+        sources,
+        TopologyAuditConfig(include_hilbert=False),
+    )
+
+    assert group.point_ids.tolist() == ["a1"]
+    assert group.born_coordinates.tolist() == [[1.0]]
+    assert group.metadata["rollout_index_scope"] == "sample_neighborhood_only"
 
 
 def test_phase12_shard_assignment_is_deterministic() -> None:
