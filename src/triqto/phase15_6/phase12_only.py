@@ -215,6 +215,20 @@ def run_phase12_only(
         resolution_path=resolution_path,
     )
     progress = _Phase12Progress(progress_path, phase12_workers)
+    build_resume_mode = resolved_resume_mode
+    has_existing_checkpoints = checkpoints.is_dir() and any(checkpoints.iterdir())
+    if (
+        action_resolution.get("auto_expanded") is True
+        and resolved_resume_mode == "strict"
+        and has_existing_checkpoints
+    ):
+        build_resume_mode = "repair"
+        print(
+            "[Phase 12] action capacity changed after earlier checkpoints; "
+            "repairing only incompatible logical-shard identities. Existing item "
+            "artifacts remain content-addressed and reusable.",
+            flush=True,
+        )
 
     with _workspace_lock(target, "optimized-data"):
         if not (phase12 / "training_view_complete.json").is_file():
@@ -233,7 +247,7 @@ def run_phase12_only(
                 checkpoints,
                 effective_config,
                 shard_count=phase12_shards,
-                resume_mode=resolved_resume_mode,
+                resume_mode=build_resume_mode,
                 progress_callback=progress,
                 workers=phase12_workers,
             )
@@ -242,7 +256,7 @@ def run_phase12_only(
                 phase12,
                 checkpoints,
                 progress_callback=progress,
-                resume_mode=resolved_resume_mode,
+                resume_mode=build_resume_mode,
             )
             print(
                 f"[Phase 12] complete in {(time.monotonic() - started) / 60.0:.2f} minutes",
