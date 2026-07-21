@@ -122,7 +122,11 @@ def test_projected_builder_emits_canonical_action_ranking_arrays(
         sources=SimpleNamespace(
             phase7=SimpleNamespace(samples=[sample]),
             graph=SimpleNamespace(graphs_by_id={"graph-1": object()}),
-            action=SimpleNamespace(is_lazy=True, db_path="index.sqlite3", root="phase9"),
+            action=SimpleNamespace(
+                is_lazy=True,
+                db_path="index.sqlite3",
+                root="phase9",
+            ),
         ),
         pair_records_by_sample_id={"sample-1": pair},
         graph_records_by_id={
@@ -171,7 +175,7 @@ def test_projection_falls_back_for_nonlazy_sources(
     monkeypatch.setattr(
         projection,
         "_canonical_action_ranking_builder",
-        lambda context: sentinel if context == "context" else [],
+        lambda _context: sentinel,
     )
     context = SimpleNamespace(sources=SimpleNamespace(action=SimpleNamespace(is_lazy=False)))
     assert projection.build_action_ranking_items_projected(context) is sentinel
