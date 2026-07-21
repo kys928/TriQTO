@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from functools import lru_cache
 import json
 from pathlib import Path, PurePosixPath
 from typing import Any
+from zipfile import BadZipFile, ZipFile
 
 
 def _reject_constant(value: str) -> None:
@@ -97,7 +99,7 @@ def normalize_relative_posix_ref(reference: Any, name: str) -> str:
     return normalized
 
 
-def resolve_safe_file(root: str | Path, reference: Any, name: str) -> Path:
+def _resolve_safe_regular_file(root: str | Path, reference: Any, name: str) -> Path:
     ref = normalize_relative_posix_ref(reference, name)
     base = Path(root).resolve()
     candidate = (base / Path(*PurePosixPath(ref).parts)).resolve()
@@ -110,6 +112,61 @@ def resolve_safe_file(root: str | Path, reference: Any, name: str) -> Path:
     if not candidate.is_file():
         raise ValueError(f"{name} does not reference a file: {ref}")
     return candidate
+
+
+@lru_cache(maxsize=512)
+def _zip_member_index(
+    archive_path: str,
+    archive_size: int,
+    archive_mtime_ns: int,
+) -> tuple[frozenset[str], frozenset[str]]:
+    """Read a ZIP central directory once per immutable archive version."""
+    del archive_size, archive_mtime_ns
+    with ZipFile(archive_path, "r") as archive:
+        infos = archive.infolist()
+    names = [info.filename for info in infos]
+    if len(set(names)) != len(names):
+        raise ValueError(f"ZIP archive contains duplicate member names: {archive_path}")
+    directories = frozenset(info.filename for info in infos if info.is_dir())
+    return frozenset(names), directories
+
+
+def resolve_safe_file(root: str | Path, reference: Any, name: str) -> Path:
+    """Resolve a file or validate an ``archive.zip#member`` source reference.
+
+    Archive-member references return the resolved archive path after validating both
+    the archive and the exact normalized member name.  No archive content is
+    extracted.
+    """
+    if isinstance(reference, str) and "#" in reference:
+        if reference.count("#") != 1:
+            raise ValueError(f"{name} must contain at most one ZIP member separator")
+        archive_ref, member_ref = reference.split("#", 1)
+        archive_ref = normalize_relative_posix_ref(archive_ref, f"{name} archive")
+        member_ref = normalize_relative_posix_ref(member_ref, f"{name} archive member")
+        archive_path = _resolve_safe_regular_file(root, archive_ref, f"{name} archive")
+        stat = archive_path.stat()
+        try:
+            member_names, directory_names = _zip_member_index(
+                str(archive_path),
+                stat.st_size,
+                stat.st_mtime_ns,
+            )
+        except BadZipFile as exc:
+            raise ValueError(
+                f"{name} references invalid ZIP archive: {archive_ref}"
+            ) from exc
+        if member_ref not in member_names:
+            raise FileNotFoundError(
+                f"{name} references missing ZIP member: {archive_ref}#{member_ref}"
+            )
+        if member_ref in directory_names:
+            raise ValueError(
+                f"{name} ZIP member does not reference a file: "
+                f"{archive_ref}#{member_ref}"
+            )
+        return archive_path
+    return _resolve_safe_regular_file(root, reference, name)
 
 
 def ensure_sorted_unique_strings(values: Sequence[Any], name: str) -> tuple[str, ...]:
