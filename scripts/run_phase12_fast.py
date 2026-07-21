@@ -17,6 +17,9 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
+from triqto.phase15_6.action_ranking_projection import (
+    install_action_ranking_projection,
+)
 from triqto.phase15_6.phase12_only import run_phase12_only
 
 
@@ -136,6 +139,13 @@ def main() -> None:
     if args.heartbeat_seconds < 0:
         parser.error("--heartbeat-seconds must be nonnegative")
     os.environ["TRIQTO_RESUME_MODE"] = args.resume_mode
+    install_action_ranking_projection()
+    print(
+        "[Phase 12] action-ranking projection enabled | "
+        "candidate_qpy_skipped=true | rollout_arrays_skipped=true | "
+        "policy=lossless_all_candidates",
+        flush=True,
+    )
     workspace = Path(args.workspace).expanduser().resolve()
     heartbeat = Heartbeat(workspace, args.heartbeat_seconds)
     heartbeat.start()
