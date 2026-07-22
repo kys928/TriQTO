@@ -20,7 +20,10 @@ if str(SRC) not in sys.path:
 from triqto.phase15_6.action_ranking_projection import (
     install_action_ranking_projection,
 )
-from triqto.phase15_6.phase12_only import run_phase12_only
+from triqto.phase15_6.fast_phase12_publication import (
+    write_training_view_dataset_fast,
+)
+import triqto.phase15_6.phase12_only as _phase12_only
 
 
 def _read_json(path: Path) -> dict[str, Any] | None:
@@ -139,18 +142,29 @@ def main() -> None:
     if args.heartbeat_seconds < 0:
         parser.error("--heartbeat-seconds must be nonnegative")
     os.environ["TRIQTO_RESUME_MODE"] = args.resume_mode
+    os.environ.setdefault(
+        "TRIQTO_PHASE12_PUBLICATION_WORKERS",
+        str(args.phase12_workers),
+    )
     install_action_ranking_projection()
+    _phase12_only.write_training_view_dataset_resumable = write_training_view_dataset_fast
     print(
         "[Phase 12] action-ranking projection enabled | "
         "candidate_qpy_skipped=true | rollout_arrays_skipped=true | "
         "policy=lossless_all_candidates",
         flush=True,
     )
+    print(
+        "[Phase 12] fast publication enabled | "
+        "redundant_npz_reloads_skipped=true | "
+        f"publication_workers={os.environ['TRIQTO_PHASE12_PUBLICATION_WORKERS']}",
+        flush=True,
+    )
     workspace = Path(args.workspace).expanduser().resolve()
     heartbeat = Heartbeat(workspace, args.heartbeat_seconds)
     heartbeat.start()
     try:
-        result = run_phase12_only(
+        result = _phase12_only.run_phase12_only(
             workspace=workspace,
             phase12_workers=args.phase12_workers,
             phase12_shards=args.phase12_shards,
