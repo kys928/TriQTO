@@ -215,4 +215,3 @@ def validate_cptp_channel(
             "pass_with_warning",
         )
     return True
-

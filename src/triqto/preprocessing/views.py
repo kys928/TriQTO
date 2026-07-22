@@ -152,4 +152,3 @@ def _task_view_rows(
         name: sorted(rows, key=lambda row: (row["partition"], row["sample_id"]))
         for name, rows in sorted(views.items())
     }
-

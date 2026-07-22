@@ -178,4 +178,3 @@ def _quarantined_sample(
         audit_flags=["quarantined"],
         canonical_payload={},
     )
-

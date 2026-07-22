@@ -512,4 +512,3 @@ def preprocess_phase7_dataset(
     except Exception:
         discard_staging_directory(staging)
         raise
-
