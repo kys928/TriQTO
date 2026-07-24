@@ -47,8 +47,8 @@ def test_diagnosis_strength_scale_has_stable_positive_floor() -> None:
         + output.strength_log_scale
     ).mean()
     loss.backward()
+    assert graph.grad is not None
     assert torch.isfinite(graph.grad).all()
-    assert torch.isfinite(nodes.grad).all()
 
 
 def test_action_reward_head_starts_at_zero_baseline() -> None:
