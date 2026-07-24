@@ -129,16 +129,28 @@ def born_input(inputs: Mapping[str, np.ndarray]) -> BornTensorBatch | None:
     )
 
 
+def born_query_outcomes(inputs: Mapping[str, np.ndarray]) -> np.ndarray | None:
+    """Return explicit deployable query coordinates, preferring the new contract."""
+    value = inputs.get("x_born_query_outcome_bitstrings")
+    if value is not None:
+        return np.asarray(value)
+    legacy = inputs.get("x_born_input_outcome_bitstrings")
+    return None if legacy is None else np.asarray(legacy)
+
+
 def born_queries_from_inputs(
     inputs: Mapping[str, np.ndarray],
     task: str,
 ) -> OutcomeQueryTensorBatch | None:
     if task not in {"born_prediction", "joint_multitask", "hardware_masked"}:
         return None
-    outcomes = inputs.get("x_born_input_outcome_bitstrings")
+    outcomes = born_query_outcomes(inputs)
     if outcomes is None:
-        raise ValueError(f"{task} requires x_born_input_outcome_bitstrings")
-    names = [str(value) for value in np.asarray(outcomes).reshape(-1).tolist()]
+        raise ValueError(
+            f"{task} requires x_born_query_outcome_bitstrings "
+            "(or legacy x_born_input_outcome_bitstrings)"
+        )
+    names = [str(value) for value in outcomes.reshape(-1).tolist()]
     bits, mask = bitstrings_to_tensors(names)
     return OutcomeQueryTensorBatch(
         outcome_bits=bits,
@@ -178,6 +190,7 @@ __all__ = [
     "bitstrings_to_tensors",
     "born_input",
     "born_queries_from_inputs",
+    "born_query_outcomes",
     "float_tensor",
     "graph_batch",
     "long_tensor",
