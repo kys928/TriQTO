@@ -46,10 +46,16 @@ class ActionRankingHead(nn.Module):
         )
         self.score = nn.Linear(hidden, 1)
         self.reward = nn.Linear(hidden, 1)
-        # Real candidate rewards are centered very close to zero. Starting from the
-        # empirical zero baseline avoids order-one random predictions overwhelming
-        # a target whose natural MSE is around 1e-4, while preserving gradients into
-        # the reward layer from the first optimizer step.
+        self.reset_reward_baseline()
+
+    def reset_reward_baseline(self) -> None:
+        """Start reward regression at the empirical zero-reward baseline.
+
+        ``TriQTOModel`` applies its generic Xavier initializer after constructing all
+        submodules, so the top-level model calls this method again after that pass.
+        Keeping the policy on the head makes both direct and full-model construction
+        obey the same initialization contract.
+        """
         nn.init.zeros_(self.reward.weight)
         nn.init.zeros_(self.reward.bias)
 
