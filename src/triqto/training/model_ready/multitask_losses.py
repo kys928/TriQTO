@@ -13,6 +13,8 @@ from triqto.training.config import LossConfig
 from .losses import compute_model_ready_action_losses
 from .multitask_types import ModelReadySupervisedBatch
 
+_DIAGNOSIS_STUDENT_T_DOF = 3.0
+
 
 def _zero(reference: Tensor) -> Tensor:
     return reference.sum() * 0.0
@@ -23,6 +25,22 @@ def _masked_mean(values: Tensor, mask: Tensor) -> Tensor:
         raise ValueError("masked mean requires shape-matched boolean mask")
     selected = values[mask]
     return selected.mean() if selected.numel() else _zero(values)
+
+
+def _student_t_strength_nll(error: Tensor, log_scale: Tensor) -> Tensor:
+    """Robust heteroscedastic Student-t NLL, omitting target-independent constants.
+
+    A Gaussian mean gradient grows as ``error / scale**2`` and can become enormous
+    when a learned scale approaches its floor. The Student-t influence is bounded,
+    while ``log_scale`` still trains a per-example aleatoric uncertainty estimate.
+    """
+    if error.shape != log_scale.shape:
+        raise ValueError("strength error and log_scale shapes must match")
+    dof = _DIAGNOSIS_STUDENT_T_DOF
+    standardized_sq = (error * torch.exp(-log_scale)).square()
+    return log_scale + 0.5 * (dof + 1.0) * torch.log1p(
+        standardized_sq / dof
+    )
 
 
 def _distribution_losses(
@@ -94,9 +112,7 @@ def compute_model_ready_multitask_losses(
         active = diagnosis_target.strength_mask
         error = output.distortion.strength_mean[active] - diagnosis_target.strength[active]
         log_scale = output.distortion.strength_log_scale[active]
-        diagnosis_strength = (
-            0.5 * torch.exp(-2.0 * log_scale) * error.square() + log_scale
-        ).mean()
+        diagnosis_strength = _student_t_strength_nll(error, log_scale).mean()
     else:
         diagnosis_strength = _zero(reference)
     if bool(diagnosis_target.affected_qubit_mask.any()):
