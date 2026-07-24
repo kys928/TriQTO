@@ -33,31 +33,35 @@ def build_optimizer(model: nn.Module, config: OptimizerConfig) -> torch.optim.Op
 
 
 def finite_gradient_norm(parameters: Iterable[nn.Parameter]) -> float:
-    """Return an exact finite global norm for audit/debug callers.
+    """Return an exact finite global norm with one host synchronization.
 
-    This helper intentionally performs a full scan. The hot training path uses
-    ``clip_gradient_norm`` instead, because ``torch.nn.utils.clip_grad_norm_`` already
-    computes the same pre-clip norm while applying clipping.
+    Individual parameter norms stay on their original device and are reduced there.
+    Only the final scalar is transferred to the CPU. This preserves the float64 audit
+    calculation without synchronizing CUDA once per parameter.
     """
-    squares = 0.0
-    found = False
-    for parameter in parameters:
-        if parameter.grad is None:
-            continue
-        gradient = parameter.grad.detach()
-        if not torch.isfinite(gradient).all():
-            raise FloatingPointError("Non-finite gradient detected")
-        squares += float(gradient.double().square().sum().cpu())
-        found = True
-    return math.sqrt(squares) if found else 0.0
+    gradients = [
+        parameter.grad.detach()
+        for parameter in parameters
+        if parameter.grad is not None
+    ]
+    if not gradients:
+        return 0.0
+    device = gradients[0].device
+    if any(gradient.device != device for gradient in gradients):
+        raise ValueError("gradient norm requires all gradients on one device")
+    squared = torch.stack(
+        [gradient.double().square().sum() for gradient in gradients]
+    ).sum()
+    if not bool(torch.isfinite(squared)):
+        raise FloatingPointError("Non-finite gradient detected")
+    return math.sqrt(float(squared.detach().cpu()))
 
 
 def clip_gradient_norm(model: nn.Module, maximum: float) -> float:
     """Clip once and return the pre-clip global norm with one device sync.
 
-    The previous implementation scanned every parameter on the GPU, copied each
-    partial norm to the CPU, and then called ``clip_grad_norm_``, which recomputed the
-    same norm. On CUDA this caused many avoidable synchronizations per optimizer step.
+    ``torch.nn.utils.clip_grad_norm_`` already computes the pre-clip norm. Reusing its
+    return value avoids a redundant full gradient scan before clipping.
     """
     if maximum <= 0 or not math.isfinite(maximum):
         raise ValueError("maximum gradient norm must be finite and positive")
