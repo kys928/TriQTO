@@ -97,8 +97,9 @@ class TriQTOModel(nn.Module):
             nn.init.zeros_(module.bias)
 
     def _initialize_output_baselines(self) -> None:
-        """Restore head-specific baseline policies after generic initialization."""
-        self.action_ranking_head.reset_reward_baseline()
+        """Restore head-specific neutral baselines after generic initialization."""
+        self.distortion_head.reset_output_baselines()
+        self.action_ranking_head.reset_output_baselines()
 
     @property
     def parameter_count(self) -> int:
