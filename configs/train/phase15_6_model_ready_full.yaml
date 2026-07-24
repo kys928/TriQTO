@@ -14,7 +14,7 @@ stages:
     tasks: [hardware_masked]
 batch_size: 8
 gradient_accumulation_steps: 2
-max_gradient_norm: 1.0
+max_gradient_norm: 10.0
 optimizer:
   name: adamw
   learning_rate: 0.0001
