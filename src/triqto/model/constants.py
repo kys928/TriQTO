@@ -5,7 +5,7 @@ MODEL_SCHEMA_VERSION = "triqto.model.phase13.v2"
 MODEL_INPUT_CONTRACT_VERSION = "triqto.model.tensor_contract.v2"
 PHASE_COUPLED_LAYER_VERSION = "triqto.phase_coupled_message_passing.v1"
 MASK_FUSION_VERSION = "triqto.mask_aware_stream_fusion.v1"
-MODEL_OUTPUT_CONTRACT_VERSION = "triqto.model.output_contract.v1"
+MODEL_OUTPUT_CONTRACT_VERSION = "triqto.model.output_contract.v2"
 
 STREAM_ORDER = (
     "circuit_graph",
@@ -50,16 +50,15 @@ ACTION_EDIT_TYPES = (
     "diagnostic_basis",
 )
 
-# Policies are hard ceilings. Runtime masks may only remove streams, never enable a
-# stream forbidden here. Born prediction cannot consume its Born target. Hilbert is
-# permitted only so Phase 14 can run the explicit simulation-only Hilbert-to-Born
-# auxiliary view; normal Born-prediction masks still exclude Hilbert. The topology
-# head cannot reconstruct topology from topology input directly.
+# Hard ceilings: runtime masks may remove streams but cannot enable a forbidden
+# stream. Action-neighborhood topology contains exact rollout/Born evidence and
+# is therefore forbidden for both action ranking and Born prediction. The
+# topology head cannot reconstruct topology directly from the topology input.
 HEAD_STREAM_POLICY = {
     "diagnosis": (True, True, True, True, True, True, True),
-    "action_ranking": (True, True, True, True, True, True, True),
+    "action_ranking": (True, True, True, True, True, True, False),
     "born_prediction": (True, True, True, True, False, True, False),
-    "hilbert_deformation": (True, True, True, False,True, True, True),
+    "hilbert_deformation": (True, True, True, False, True, True, True),
     "uncertainty": (True, True, True, True, True, True, True),
     "topology": (True, True, True, True, True, True, False),
 }

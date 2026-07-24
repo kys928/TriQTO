@@ -17,6 +17,9 @@ class DistortionHeadOutput:
 
 @dataclass(slots=True)
 class ActionRankingHeadOutput:
+    should_act_logit: Tensor
+    should_act_probability: Tensor
+    should_act_available_mask: Tensor
     candidate_scores: Tensor
     candidate_probabilities: Tensor
     predicted_rewards: Tensor
