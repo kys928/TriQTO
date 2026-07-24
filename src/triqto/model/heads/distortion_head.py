@@ -1,6 +1,8 @@
 """Distortion diagnosis outputs at graph and qubit levels."""
 from __future__ import annotations
 
+import math
+
 import torch
 from torch import Tensor, nn
 import torch.nn.functional as F
@@ -9,7 +11,14 @@ from triqto.model.config import TriQTOModelConfig
 from triqto.model.outputs import DistortionHeadOutput
 
 _STRENGTH_SCALE_FLOOR = 0.05
+_STRENGTH_DEFAULT_SCALE = 0.50
 _STRENGTH_LOG_SCALE_MAX = 3.0
+
+
+def _inverse_softplus(value: float) -> float:
+    if not math.isfinite(value) or value <= 0.0:
+        raise ValueError("inverse-softplus input must be finite and positive")
+    return math.log(math.expm1(value))
 
 
 class DistortionHead(nn.Module):
@@ -30,6 +39,31 @@ class DistortionHead(nn.Module):
             nn.GELU(),
             nn.Linear(hidden, 1),
         )
+        self.reset_output_baselines()
+
+    def reset_output_baselines(self) -> None:
+        """Start diagnosis outputs at neutral, calibrated baselines.
+
+        The top-level model applies a generic Xavier pass after constructing all
+        submodules, then calls this method again. Zero output weights keep the first
+        optimization step focused on learning each head's readout before sending a
+        large random gradient into shared fusion. Strength starts at mean zero with a
+        finite default scale of 0.5 in normalized target units.
+        """
+        nn.init.zeros_(self.classifier.weight)
+        nn.init.zeros_(self.classifier.bias)
+        nn.init.zeros_(self.strength.weight)
+        nn.init.zeros_(self.strength.bias)
+        raw_scale = _inverse_softplus(
+            _STRENGTH_DEFAULT_SCALE - _STRENGTH_SCALE_FLOOR
+        )
+        with torch.no_grad():
+            self.strength.bias[1] = raw_scale
+        final_node = self.node_classifier[-1]
+        if not isinstance(final_node, nn.Linear):
+            raise TypeError("diagnosis node classifier must end with a Linear layer")
+        nn.init.zeros_(final_node.weight)
+        nn.init.zeros_(final_node.bias)
 
     def forward(
         self,
@@ -40,10 +74,9 @@ class DistortionHead(nn.Module):
     ) -> DistortionHeadOutput:
         hidden = self.graph_trunk(graph_latent)
         strength = self.strength(hidden)
-        # The second channel is an unconstrained raw scale parameter. Converting it
-        # through softplus avoids the e^24 precision permitted by the old -12 clamp.
-        # The floor is expressed in the normalized strength-target units and keeps
-        # the Gaussian NLL finite without removing heteroscedastic uncertainty.
+        # The second channel is an unconstrained raw scale parameter. Softplus keeps
+        # the reported scale positive; the robust Student-t training objective bounds
+        # the influence of residuals even if the learned scale approaches this floor.
         strength_scale = F.softplus(strength[:, 1]) + _STRENGTH_SCALE_FLOOR
         strength_log_scale = torch.log(strength_scale).clamp(
             max=_STRENGTH_LOG_SCALE_MAX
