@@ -7,7 +7,7 @@
   "initialization_seed": 2026,
   "model_name": "triqto_phase15_6_base",
   "residual_mlp_layers": 2,
-  "topology_input_dim": 64,
+  "topology_input_dim": 121,
   "topology_loss_weight": 0.0,
   "topology_prediction_dim": 32,
   "use_backend": true,

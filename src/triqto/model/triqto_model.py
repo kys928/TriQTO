@@ -47,6 +47,7 @@ class TriQTOModel(nn.Module):
             torch.manual_seed(self.config.initialization_seed)
             self._build_modules()
             self.apply(self._initialize_module)
+            self._initialize_output_baselines()
 
     def _build_modules(self) -> None:
         config = self.config
@@ -94,6 +95,11 @@ class TriQTOModel(nn.Module):
         elif isinstance(module, nn.LayerNorm):
             nn.init.ones_(module.weight)
             nn.init.zeros_(module.bias)
+
+    def _initialize_output_baselines(self) -> None:
+        """Restore head-specific neutral baselines after generic initialization."""
+        self.distortion_head.reset_output_baselines()
+        self.action_ranking_head.reset_output_baselines()
 
     @property
     def parameter_count(self) -> int:

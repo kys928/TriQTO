@@ -1,4 +1,4 @@
-"""Variable-candidate action ranking head."""
+"""Two-stage variable-candidate action head."""
 from __future__ import annotations
 
 import torch
@@ -11,10 +11,18 @@ from triqto.model.tensor_ops import segment_mean, segment_softmax
 
 
 class ActionRankingHead(nn.Module):
+    """Predict whether to act, then score the available deployable actions."""
+
     def __init__(self, config: TriQTOModelConfig) -> None:
         super().__init__()
         hidden = config.hidden_dim
         edit_dim = hidden // 4
+        self.should_act = nn.Sequential(
+            nn.Linear(hidden, hidden),
+            nn.GELU(),
+            nn.Dropout(config.dropout),
+            nn.Linear(hidden, 1),
+        )
         self.edit_type = nn.Embedding(config.action_edit_type_count, edit_dim)
         self.edit = nn.Sequential(
             nn.Linear(edit_dim + 2, hidden),
@@ -38,6 +46,29 @@ class ActionRankingHead(nn.Module):
         )
         self.score = nn.Linear(hidden, 1)
         self.reward = nn.Linear(hidden, 1)
+        self.reset_output_baselines()
+
+    def reset_reward_baseline(self) -> None:
+        """Start reward regression at the empirical zero-reward baseline."""
+        nn.init.zeros_(self.reward.weight)
+        nn.init.zeros_(self.reward.bias)
+
+    def reset_output_baselines(self) -> None:
+        """Start gate, ranking, and reward outputs at neutral baselines.
+
+        A zero gate logit means probability 0.5, zero candidate scores produce a
+        uniform distribution over eligible candidates, and zero reward is the real
+        data's strong baseline. The top-level model calls this method after its generic
+        Xavier pass so these policies survive full-model construction.
+        """
+        gate_output = self.should_act[-1]
+        if not isinstance(gate_output, nn.Linear):
+            raise TypeError("should-act network must end with a Linear layer")
+        nn.init.zeros_(gate_output.weight)
+        nn.init.zeros_(gate_output.bias)
+        nn.init.zeros_(self.score.weight)
+        nn.init.zeros_(self.score.bias)
+        self.reset_reward_baseline()
 
     def forward(
         self,
@@ -49,18 +80,32 @@ class ActionRankingHead(nn.Module):
         device = graph_latent.device
         if graph_active_mask.dtype != torch.bool or graph_active_mask.shape != (graph_count,):
             raise ValueError("graph_active_mask must be bool with shape [graph_count]")
+
+        should_act_logit = self.should_act(graph_latent).squeeze(1)
+        should_act_logit = should_act_logit * graph_active_mask.to(should_act_logit.dtype)
+        should_act_probability = torch.sigmoid(should_act_logit)
+        should_act_probability = (
+            should_act_probability * graph_active_mask.to(should_act_probability.dtype)
+        )
+
         if actions is None or actions.candidate_features.shape[0] == 0:
             empty_float = graph_latent.new_zeros((0,))
             empty_long = torch.zeros(0, dtype=torch.long, device=device)
             empty_bool = torch.zeros(0, dtype=torch.bool, device=device)
             return ActionRankingHeadOutput(
+                should_act_logit=should_act_logit,
+                should_act_probability=should_act_probability,
+                should_act_available_mask=graph_active_mask,
                 candidate_scores=empty_float,
                 candidate_probabilities=empty_float,
                 predicted_rewards=empty_float,
                 candidate_batch=empty_long,
                 candidate_available_mask=empty_bool,
-                graph_available_mask=torch.zeros(graph_count, dtype=torch.bool, device=device),
+                graph_available_mask=torch.zeros(
+                    graph_count, dtype=torch.bool, device=device
+                ),
             )
+
         candidate_count = actions.candidate_features.shape[0]
         if actions.edit_type_ids.numel():
             edit = self.edit(
@@ -79,8 +124,12 @@ class ActionRankingHead(nn.Module):
                 candidate_count,
             )
         else:
-            edit_context = graph_latent.new_zeros((candidate_count, graph_latent.shape[1]))
-        candidate = self.candidate(torch.cat((actions.candidate_features, edit_context), dim=1))
+            edit_context = graph_latent.new_zeros(
+                (candidate_count, graph_latent.shape[1])
+            )
+        candidate = self.candidate(
+            torch.cat((actions.candidate_features, edit_context), dim=1)
+        )
         graph_context = graph_latent.index_select(0, actions.candidate_batch)
         paired = self.pair(torch.cat((candidate, graph_context), dim=1))
         score = self.score(paired).squeeze(1)
@@ -103,6 +152,9 @@ class ActionRankingHead(nn.Module):
         if active_graphs.numel():
             graph_available.scatter_(0, active_graphs, True)
         return ActionRankingHeadOutput(
+            should_act_logit=should_act_logit,
+            should_act_probability=should_act_probability,
+            should_act_available_mask=graph_active_mask,
             candidate_scores=score,
             candidate_probabilities=probabilities,
             predicted_rewards=reward,
