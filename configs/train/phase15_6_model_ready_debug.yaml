@@ -36,7 +36,7 @@ loss:
   privileged_oracle_loss_weight: 0.0
   topology_weight: 0.0
 deterministic_algorithms: true
-device: auto
+device: cpu
 dtype: float32
 num_workers: 0
 checkpoint_every_epochs: 1
