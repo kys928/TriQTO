@@ -46,18 +46,29 @@ class ActionRankingHead(nn.Module):
         )
         self.score = nn.Linear(hidden, 1)
         self.reward = nn.Linear(hidden, 1)
-        self.reset_reward_baseline()
+        self.reset_output_baselines()
 
     def reset_reward_baseline(self) -> None:
-        """Start reward regression at the empirical zero-reward baseline.
-
-        ``TriQTOModel`` applies its generic Xavier initializer after constructing all
-        submodules, so the top-level model calls this method again after that pass.
-        Keeping the policy on the head makes both direct and full-model construction
-        obey the same initialization contract.
-        """
+        """Start reward regression at the empirical zero-reward baseline."""
         nn.init.zeros_(self.reward.weight)
         nn.init.zeros_(self.reward.bias)
+
+    def reset_output_baselines(self) -> None:
+        """Start gate, ranking, and reward outputs at neutral baselines.
+
+        A zero gate logit means probability 0.5, zero candidate scores produce a
+        uniform distribution over eligible candidates, and zero reward is the real
+        data's strong baseline. The top-level model calls this method after its generic
+        Xavier pass so these policies survive full-model construction.
+        """
+        gate_output = self.should_act[-1]
+        if not isinstance(gate_output, nn.Linear):
+            raise TypeError("should-act network must end with a Linear layer")
+        nn.init.zeros_(gate_output.weight)
+        nn.init.zeros_(gate_output.bias)
+        nn.init.zeros_(self.score.weight)
+        nn.init.zeros_(self.score.bias)
+        self.reset_reward_baseline()
 
     def forward(
         self,
