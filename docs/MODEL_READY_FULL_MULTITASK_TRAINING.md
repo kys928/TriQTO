@@ -28,6 +28,24 @@ the natural class distribution. Test rows are not loaded.
 - the source manifest is hash checked before and after training;
 - ranking success is not claimed merely because the trainer completes.
 
+## Objective stability
+
+Diagnosis strength uses a heteroscedastic Student-t likelihood with three degrees
+of freedom. It preserves a learned per-example scale while bounding the influence
+of residuals when the predicted scale becomes small. This replaces the earlier
+Gaussian objective whose mean gradient grew as `error / scale**2`.
+
+Diagnosis class, diagnosis strength, affected-qubit, should-act, candidate-score,
+and reward output layers start at neutral baselines after the model-wide Xavier
+initialization pass. Initial class probabilities are uniform, should-act starts at
+`0.5`, candidate scores are uniform within each eligible set, reward starts at
+zero, and diagnosis strength starts at mean zero with scale `0.5`.
+
+The calibrated smoke and full configurations use global gradient clipping at
+`10.0`. Gradient clipping remains a safety guardrail, not evidence of learning.
+Use `scripts/audit_model_ready_gradient_components.py` to attribute objective
+norms before changing weights or thresholds.
+
 ## Metrics
 
 The runner writes per-epoch, per-task train and validation metrics including:
@@ -58,7 +76,7 @@ caps before the full campaign. The smoke run proves vectorized collation and all
 heads; its metrics are not a scientific result.
 
 ```bash
-TRIQTO_MODEL_READY_ROOT=/path/to/phase12_topology_<id> \
+TRIQTO_MODEL_READY_ROOT=/path/to/phase12_queries_<id> \
 TRIQTO_MODEL_READY_FULL_OUTPUT_ROOT=/path/to/multitask-smoke \
 TRIQTO_TRAINING_CONFIG=configs/train/phase15_6_model_ready_multitask_smoke.yaml \
 TRIQTO_FULL_TRAIN_LIMIT_PER_TASK=32 \
