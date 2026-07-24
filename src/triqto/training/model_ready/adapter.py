@@ -15,6 +15,7 @@ from .graph_inputs import (
     backend_batch,
     born_input,
     born_queries_from_inputs,
+    born_query_outcomes,
     graph_batch,
     parameter_batch,
 )
@@ -80,15 +81,15 @@ def _verify_born_support(
             targets["y_born_target_outcome_bitstrings"]
         ).reshape(-1).tolist()
     ]
-    input_outcomes = [
-        str(value)
-        for value in np.asarray(
-            inputs["x_born_input_outcome_bitstrings"]
-        ).reshape(-1).tolist()
+    query_value = born_query_outcomes(inputs)
+    if query_value is None:
+        raise ValueError("Born target support exists but no x_* query support is present")
+    query_outcomes = [
+        str(value) for value in np.asarray(query_value).reshape(-1).tolist()
     ]
-    if target_outcomes != input_outcomes:
+    if target_outcomes != query_outcomes:
         raise ValueError(
-            "Born target support differs from x_born_input support; refusing "
+            "Born target support differs from x_born_query support; refusing "
             "to feed y_* support into the model"
         )
 
