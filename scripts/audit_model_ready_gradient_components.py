@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -73,7 +72,7 @@ def _representative_records(
     for row in ordered:
         if len(selected) >= batch_size:
             break
-        if selected and row["view_item_id"] == selected[0]["view_item_id"]:
+        if any(row["view_item_id"] == item["view_item_id"] for item in selected):
             continue
         selected.append(row)
     if not selected:
@@ -146,6 +145,8 @@ def _compact_table(report: dict[str, Any]) -> None:
     rows: list[tuple[float, str]] = []
     for state, tasks in report["states"].items():
         for task, payload in tasks.items():
+            if task.startswith("_"):
+                continue
             for component, values in payload["gradient_components"].items():
                 line = (
                     f"{state} {task} {component} "
@@ -238,14 +239,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         "states": states,
     }
     text = json.dumps(report, indent=2, sort_keys=True, allow_nan=False) + "\n"
+    output = None
     if args.output:
         output = Path(args.output).expanduser().resolve()
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(text, encoding="utf-8")
         print(f"Wrote gradient audit: {output}")
     _compact_table(report)
-    print("\nJSON report")
-    print(text, end="")
+    if output is None:
+        print("\nJSON report")
+        print(text, end="")
     return 0
 
 
