@@ -33,6 +33,12 @@ def build_optimizer(model: nn.Module, config: OptimizerConfig) -> torch.optim.Op
 
 
 def finite_gradient_norm(parameters: Iterable[nn.Parameter]) -> float:
+    """Return an exact finite global norm for audit/debug callers.
+
+    This helper intentionally performs a full scan. The hot training path uses
+    ``clip_gradient_norm`` instead, because ``torch.nn.utils.clip_grad_norm_`` already
+    computes the same pre-clip norm while applying clipping.
+    """
     squares = 0.0
     found = False
     for parameter in parameters:
@@ -47,11 +53,36 @@ def finite_gradient_norm(parameters: Iterable[nn.Parameter]) -> float:
 
 
 def clip_gradient_norm(model: nn.Module, maximum: float) -> float:
+    """Clip once and return the pre-clip global norm with one device sync.
+
+    The previous implementation scanned every parameter on the GPU, copied each
+    partial norm to the CPU, and then called ``clip_grad_norm_``, which recomputed the
+    same norm. On CUDA this caused many avoidable synchronizations per optimizer step.
+    """
     if maximum <= 0 or not math.isfinite(maximum):
         raise ValueError("maximum gradient norm must be finite and positive")
-    before = finite_gradient_norm(model.parameters())
-    torch.nn.utils.clip_grad_norm_(model.parameters(), maximum, error_if_nonfinite=True)
+    total = torch.nn.utils.clip_grad_norm_(
+        model.parameters(), maximum, error_if_nonfinite=True
+    )
+    before = float(total.detach().cpu()) if isinstance(total, Tensor) else float(total)
+    if not math.isfinite(before):
+        raise FloatingPointError("Non-finite gradient detected")
     return before
 
 
-__all__ = ["build_optimizer", "clip_gradient_norm", "finite_gradient_norm"]
+def expected_post_clip_gradient_norm(before: float, maximum: float) -> float:
+    """Return the norm implied by PyTorch global-norm clipping without rescanning."""
+    if not math.isfinite(before) or before < 0.0:
+        raise ValueError("before must be finite and nonnegative")
+    if maximum <= 0 or not math.isfinite(maximum):
+        raise ValueError("maximum gradient norm must be finite and positive")
+    coefficient = min(1.0, maximum / (before + 1.0e-6))
+    return before * coefficient
+
+
+__all__ = [
+    "build_optimizer",
+    "clip_gradient_norm",
+    "expected_post_clip_gradient_norm",
+    "finite_gradient_norm",
+]
