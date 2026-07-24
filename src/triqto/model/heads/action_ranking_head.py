@@ -46,6 +46,12 @@ class ActionRankingHead(nn.Module):
         )
         self.score = nn.Linear(hidden, 1)
         self.reward = nn.Linear(hidden, 1)
+        # Real candidate rewards are centered very close to zero. Starting from the
+        # empirical zero baseline avoids order-one random predictions overwhelming
+        # a target whose natural MSE is around 1e-4, while preserving gradients into
+        # the reward layer from the first optimizer step.
+        nn.init.zeros_(self.reward.weight)
+        nn.init.zeros_(self.reward.bias)
 
     def forward(
         self,
