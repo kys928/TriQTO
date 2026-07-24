@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import torch
 
-from triqto.model import ActionCandidateTensorBatch, TriQTOModelConfig
-from triqto.model.heads.action_ranking_head import ActionRankingHead
+from triqto.model import (
+    ActionCandidateTensorBatch,
+    TriQTOModel,
+    TriQTOModelConfig,
+)
 from triqto.model.heads.distortion_head import DistortionHead
 
 
@@ -38,7 +41,7 @@ def test_diagnosis_strength_scale_has_stable_positive_floor() -> None:
     )
     scale = output.strength_log_scale.exp()
     assert torch.isfinite(scale).all()
-    assert float(scale.min()) >= 0.05 - 1.0e-6
+    assert float(scale.detach().min()) >= 0.05 - 1.0e-6
 
     target = torch.ones_like(output.strength_mean)
     error = output.strength_mean - target
@@ -51,9 +54,10 @@ def test_diagnosis_strength_scale_has_stable_positive_floor() -> None:
     assert torch.isfinite(graph.grad).all()
 
 
-def test_action_reward_head_starts_at_zero_baseline() -> None:
+def test_full_model_reward_head_starts_at_zero_baseline() -> None:
     config = _config()
-    head = ActionRankingHead(config)
+    model = TriQTOModel(config)
+    head = model.action_ranking_head
     actions = ActionCandidateTensorBatch(
         candidate_features=torch.zeros(
             (2, config.action_candidate_feature_dim), dtype=torch.float32
