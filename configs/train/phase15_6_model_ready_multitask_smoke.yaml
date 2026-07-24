@@ -1,0 +1,61 @@
+# Vectorized end-to-end smoke run across every published model-ready task.
+schema_version: triqto.training.phase14.v1
+run_name: triqto_phase15_6_model_ready_multitask_smoke
+seed: 2026
+stages:
+  - name: single_task_foundation
+    epochs: 1
+    tasks: [diagnosis, action_ranking, born_prediction]
+  - name: joint_multitask
+    epochs: 1
+    tasks: [joint_multitask]
+  - name: hardware_masked_simulation
+    epochs: 1
+    tasks: [hardware_masked]
+batch_size: 4
+gradient_accumulation_steps: 1
+max_gradient_norm: 1.0
+optimizer:
+  name: adamw
+  learning_rate: 0.0003
+  weight_decay: 0.0001
+  beta1: 0.9
+  beta2: 0.999
+  epsilon: 0.00000001
+  momentum: 0.9
+scheduler:
+  name: constant
+  warmup_steps: 0
+  minimum_learning_rate_ratio: 1.0
+loss:
+  diagnosis_type_weight: 1.0
+  diagnosis_strength_weight: 0.5
+  diagnosis_affected_qubit_weight: 0.5
+  action_selection_weight: 1.0
+  action_rank_distribution_weight: 0.5
+  action_reward_weight: 0.25
+  born_kl_weight: 1.0
+  born_hellinger_weight: 1.0
+  hilbert_to_born_weight: 0.0
+  geometry_weight: 0.1
+  uncertainty_weighting: false
+  privileged_oracle_loss_weight: 0.0
+  topology_weight: 0.0
+deterministic_algorithms: true
+device: cpu
+dtype: float32
+num_workers: 0
+checkpoint_every_epochs: 1
+keep_best_checkpoint: true
+early_stopping_patience: 0
+normalize_action_features: false
+normalize_topology_features: false
+normalize_backend_features: false
+max_items: 10000
+max_nodes_per_batch: 65536
+max_edges_per_batch: 262144
+max_gates_per_batch: 262144
+max_candidates_per_batch: 65536
+max_outcomes_per_batch: 262144
+max_hilbert_amplitudes_per_batch: 1
+topology_loss_weight: 0.0
