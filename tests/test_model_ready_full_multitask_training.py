@@ -35,7 +35,10 @@ def _sha256(path: Path) -> str:
 def _topology_arrays() -> dict[str, np.ndarray]:
     parameter_names = np.asarray([f"p_{index}" for index in range(55)])
     born_names = np.asarray([f"b_{index}" for index in range(55)])
-    combined_names = np.concatenate((parameter_names, born_names))
+    combined_names = np.asarray(
+        [f"parameter_{name}" for name in parameter_names.tolist()]
+        + [f"born_{name}" for name in born_names.tolist()]
+    )
     parameter = np.linspace(-1.0, 0.0, 55, dtype=np.float32)
     born = np.linspace(0.0, 1.0, 55, dtype=np.float32)
     combined = np.concatenate((parameter, born))
