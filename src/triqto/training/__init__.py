@@ -1,4 +1,4 @@
-"""Public Phase 14 deterministic training and latent-extraction APIs."""
+"""Public Phase 14 deterministic training and model-ready APIs."""
 from .callbacks import EarlyStoppingState
 from .checkpoints import (
     capture_rng_state,
@@ -41,6 +41,24 @@ from .latent_extraction import (
     restore_checkpoint_for_latents,
 )
 from .losses import compute_supervised_losses
+from .model_ready import (
+    BORN_TOPOLOGY_ABLATION_DIM,
+    CANONICAL_ALIGNMENT_FEATURE_DIM,
+    CANONICAL_TOPOLOGY_FEATURE_DIM,
+    CANONICAL_TOPOLOGY_INPUT_DIM,
+    MODEL_READY_ADAPTER_VERSION,
+    ModelReadyActionTargets,
+    ModelReadyArtifact,
+    ModelReadyDataset,
+    ModelReadyExample,
+    PARAMETER_TOPOLOGY_ABLATION_DIM,
+    build_model_ready_example,
+    canonical_topology_input,
+    compute_model_ready_action_losses,
+    load_model_ready_artifact,
+    load_model_ready_dataset,
+    select_model_ready_record,
+)
 from .models import (
     CheckpointSummary,
     EpochMetrics,
@@ -60,7 +78,13 @@ from .source import (
 from .trainer import run_training
 
 __all__ = [
+    "BORN_TOPOLOGY_ABLATION_DIM",
+    "CANONICAL_ALIGNMENT_FEATURE_DIM",
+    "CANONICAL_TOPOLOGY_FEATURE_DIM",
+    "CANONICAL_TOPOLOGY_INPUT_DIM",
     "LATENT_EXTRACTION_SCHEMA",
+    "MODEL_READY_ADAPTER_VERSION",
+    "PARAMETER_TOPOLOGY_ABLATION_DIM",
     "CheckpointSummary",
     "CurriculumStageConfig",
     "DeterministicLRScheduler",
@@ -69,6 +93,10 @@ __all__ = [
     "EpochPlan",
     "LatentExtractionConfig",
     "LossConfig",
+    "ModelReadyActionTargets",
+    "ModelReadyArtifact",
+    "ModelReadyDataset",
+    "ModelReadyExample",
     "OptimizerConfig",
     "SchedulerConfig",
     "SupervisedBatch",
@@ -77,11 +105,14 @@ __all__ = [
     "TrainingExample",
     "TrainingRunResult",
     "build_epoch_plan",
+    "build_model_ready_example",
     "build_optimizer",
     "build_training_data_spec",
+    "canonical_topology_input",
     "capture_rng_state",
     "clip_gradient_norm",
     "collate_training_examples",
+    "compute_model_ready_action_losses",
     "compute_supervised_losses",
     "deterministic_budget_batches",
     "extract_checkpoint_latents",
@@ -91,6 +122,8 @@ __all__ = [
     "load_completed_training_view_dataset",
     "load_latent_extraction",
     "load_latent_extraction_config",
+    "load_model_ready_artifact",
+    "load_model_ready_dataset",
     "load_phase7_managed_snapshot",
     "load_training_checkpoint",
     "load_training_config",
@@ -100,6 +133,7 @@ __all__ = [
     "run_training",
     "save_training_checkpoint",
     "save_training_config",
+    "select_model_ready_record",
     "snapshot_managed_files",
     "training_config_from_dict",
     "training_config_to_dict",
