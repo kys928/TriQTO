@@ -52,9 +52,10 @@ def finite_gradient_norm(parameters: Iterable[nn.Parameter]) -> float:
     squared = torch.stack(
         [gradient.double().square().sum() for gradient in gradients]
     ).sum()
-    if not bool(torch.isfinite(squared)):
+    squared_value = float(squared.detach().cpu())
+    if not math.isfinite(squared_value):
         raise FloatingPointError("Non-finite gradient detected")
-    return math.sqrt(float(squared.detach().cpu()))
+    return math.sqrt(squared_value)
 
 
 def clip_gradient_norm(model: nn.Module, maximum: float) -> float:
