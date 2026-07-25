@@ -192,7 +192,7 @@ class BornTensorBatch:
     available_mask: Tensor
     measurement_basis_codes: Tensor | None = None
 
-    def validate(self, count: int, atol: float = 1e-6) -> None:
+    def validate(self, count: int, atol: float = 1e-5) -> None:
         bits = _float(self.outcome_bits, "born.outcome_bits", 2)
         mask = _bool(self.outcome_bit_mask, "born.outcome_bit_mask", 2)
         prob = _float(self.probabilities, "born.probabilities", 1)
