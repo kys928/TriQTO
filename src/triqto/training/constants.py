@@ -3,7 +3,7 @@ from __future__ import annotations
 
 TRAINING_SCHEMA_VERSION = "triqto.training.phase14.v1"
 TRAINING_SOURCE_CONTRACT_VERSION = "triqto.training.phase12_source.v1"
-TRAINING_ADAPTER_VERSION = "triqto.training.phase12_tensor_adapter.v1"
+TRAINING_ADAPTER_VERSION = "triqto.training.phase12_tensor_adapter.v2"
 TRAINING_BATCHING_VERSION = "triqto.training.deterministic_budget_batching.v1"
 TRAINING_LOSS_VERSION = "triqto.training.multitask_loss.v2"
 TRAINING_CURRICULUM_VERSION = "triqto.training.curriculum.v1"
