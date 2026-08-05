@@ -211,19 +211,53 @@ def test_born_prediction_cannot_observe_born_input() -> None:
     model = TriQTOModel(config()).eval()
     first = model(build_batch(born_probabilities=(0.5, 0.5, 0.25, 0.75)))
     second = model(build_batch(born_probabilities=(0.9, 0.1, 0.8, 0.2)))
+
+    diagnosis_head_index = 0
+    born_head_index = 2
+    born_stream_index = 4
+
+    # Born prediction is hard-masked from the Born input stream, so its output
+    # must be exactly invariant when only the observed Born probabilities change.
     assert torch.allclose(
         first.born_prediction.probabilities,
         second.born_prediction.probabilities,
         atol=0.0,
         rtol=0.0,
     )
-    assert not torch.allclose(
-        first.distortion.class_logits,
-        second.distortion.class_logits,
+    assert not bool(
+        first.effective_head_stream_mask[
+            :, born_head_index, born_stream_index
+        ].any()
     )
-    born_head_index = 2
-    born_stream_index = 4
-    assert not bool(first.effective_head_stream_mask[:, born_head_index, born_stream_index].any())
+
+    # Diagnosis is allowed to observe Born evidence. Test that information flow
+    # at the stream and fused-latent levels rather than at the zero-initialized
+    # diagnosis readout, whose neutral baseline intentionally emits zero logits.
+    assert not torch.allclose(
+        first.stream_embeddings[:, born_stream_index, :],
+        second.stream_embeddings[:, born_stream_index, :],
+    )
+    assert bool(
+        first.effective_head_stream_mask[
+            :, diagnosis_head_index, born_stream_index
+        ].all()
+    )
+    assert not torch.allclose(
+        first.head_latents[:, diagnosis_head_index, :],
+        second.head_latents[:, diagnosis_head_index, :],
+    )
+    assert torch.allclose(
+        first.distortion.class_logits,
+        torch.zeros_like(first.distortion.class_logits),
+        atol=0.0,
+        rtol=0.0,
+    )
+    assert torch.allclose(
+        second.distortion.class_logits,
+        torch.zeros_like(second.distortion.class_logits),
+        atol=0.0,
+        rtol=0.0,
+    )
 
 
 def test_hilbert_encoder_is_global_phase_invariant() -> None:
