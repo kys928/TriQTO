@@ -51,7 +51,6 @@ def _nonlinear_estimator(parameters: Mapping[str, Any], seed: int) -> Pipeline:
         C=float(parameters["C"]),
         kernel="rbf",
         gamma=gamma,
-        probability=False,
         shrinking=True,
         tol=1.0e-5,
         cache_size=512.0,
