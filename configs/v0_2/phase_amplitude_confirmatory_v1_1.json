@@ -277,7 +277,9 @@
     "base_evaluator": "scripts/v0_2/train_phase_amplitude_identifiability_probes.py",
     "freeze_script": "scripts/v0_2/freeze_phase_amplitude_confirmatory_protocol_v1_1.py",
     "holdout_generator": "scripts/v0_2/generate_phase_amplitude_confirmatory_holdout.py",
+    "holdout_generator_payload": "scripts/v0_2/confirmatory_payloads/generate_phase_amplitude_confirmatory_holdout.py.zlib.b64",
     "one_shot_evaluator": "scripts/v0_2/evaluate_phase_amplitude_confirmatory_once.py",
+    "one_shot_evaluator_payload": "scripts/v0_2/confirmatory_payloads/evaluate_phase_amplitude_confirmatory_once.py.zlib.b64",
     "relational_feature_runner": "scripts/v0_2/train_phase_amplitude_relational_observable_probes_v2.py"
   },
   "models": {
