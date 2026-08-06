@@ -109,7 +109,9 @@ def validate_protocol(protocol: Mapping[str, Any]) -> None:
     required_implementation = {
         "freeze_script",
         "holdout_generator",
+        "holdout_generator_payload",
         "one_shot_evaluator",
+        "one_shot_evaluator_payload",
         "base_evaluator",
         "relational_feature_runner",
     }
