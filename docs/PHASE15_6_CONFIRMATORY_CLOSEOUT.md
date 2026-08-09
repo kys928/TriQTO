@@ -1,9 +1,9 @@
 # Phase 15.6 confirmatory closeout
 
-**Status:** CLOSED  
-**Study:** `confirm_d4d5b26d35fc64eff27c`  
-**Confirmatory holdout:** `SPENT_CONFIRMATORY`  
-**Future confirmatory reuse:** FORBIDDEN  
+**Status:** CLOSED
+**Study:** `confirm_d4d5b26d35fc64eff27c`
+**Confirmatory holdout:** `SPENT_CONFIRMATORY`
+**Future confirmatory reuse:** FORBIDDEN
 **Future development/postmortem use:** ALLOWED, but only with explicit disclosure that these examples were previously observed in a confirmatory study.
 
 This document permanently closes the one-shot Phase 15.6 phase/amplitude identifiability confirmation. It records the frozen outcome without rewriting the preregistered claims after seeing the holdout labels, preserves the study provenance, and separates confirmatory conclusions from post-hoc development observations.
