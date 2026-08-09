@@ -1,0 +1,19 @@
+{
+  "blinded_fit_sha256": "sha256:dbc552cfc84ecbcf163188d341c17232e5f0786573dcdf7b9e4eeb512af87d23",
+  "blinded_predictions_sha256": "sha256:faae1280bdfd6ceaab85b8c6c773650718c43cf56d91f8a009d00b348690f27e",
+  "completed_at_utc": "2026-08-08T13:14:32.869668+00:00",
+  "confirmatory_metrics_accessed_once": true,
+  "decision_sha256": "sha256:0256f211ef8aaee5f3943b322f93befc8438f456ba283ea0849dfd4621b1ac02",
+  "development_validation_feature_artifacts_accessed": false,
+  "historical_v0_1_test_accessed": false,
+  "holdout_product_id": "sha256:996376802e121c568a2a3c8792d72a576dde4f8d0e2d3807ccb6e5aaeb9322b2",
+  "metrics_sha256": "sha256:96a0ea142c3fc61906411820dcadea9e5f55a01d04405ba8374f5f0dbea04c18",
+  "predictions_sha256": "sha256:6b1e8bdd604a4d1ce757acc7b7b02b8c980257d8c22f55d5ba36a39ac3e73f84",
+  "protocol_sha256": "sha256:d4d5b26d35fc64eff27c5d910440c54ea7881c0ce643411531c2d44f604a0809",
+  "result_bundle": "/workspace/triqto-data/phase15_6_confirmatory_v1_1/confirm_d4d5b26d35fc64eff27c/evaluation",
+  "results_sha256": "sha256:7e7a5cc656e08939bb11316e6b90793a275ab6afb3b3344dd9aee0599eccc5b4",
+  "schema": "triqto.v0_2.phase_amplitude_confirmatory_evaluation.v1",
+  "status": "EVALUATION_COMPLETE",
+  "stratified_metrics_sha256": "sha256:5c6f7f3ab1f45fd0814b834d7f0f3d422ac304527c0a568c5d49db913c643ede",
+  "study_id": "confirm_d4d5b26d35fc64eff27c"
+}
