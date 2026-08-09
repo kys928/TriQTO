@@ -1,0 +1,132 @@
+{
+  "schema": "triqto.v0_2.phase15_6_confirmatory_closeout.v1",
+  "status": "CLOSED",
+  "study_id": "confirm_d4d5b26d35fc64eff27c",
+  "confirmatory_holdout_status": "SPENT_CONFIRMATORY",
+  "holdout_count": 160,
+  "future_use_policy": {
+    "confirmatory_reuse": "FORBIDDEN",
+    "development_postmortem_use": "ALLOWED_WITH_EXPLICIT_PRIOR_CONFIRMATORY_EXPOSURE_LABEL",
+    "future_untouched_holdouts_must_exclude": [
+      "these exact confirmatory entities",
+      "their split-group identities",
+      "direct derivatives that preserve the same source identity"
+    ]
+  },
+  "completion": {
+    "completed_at_utc": "2026-08-08T13:14:32.869668+00:00",
+    "confirmatory_metrics_accessed_once": true,
+    "historical_v0_1_test_accessed": false,
+    "development_validation_feature_artifacts_accessed": false
+  },
+  "provenance": {
+    "protocol_sha256": "sha256:d4d5b26d35fc64eff27c5d910440c54ea7881c0ce643411531c2d44f604a0809",
+    "holdout_product_id": "sha256:996376802e121c568a2a3c8792d72a576dde4f8d0e2d3807ccb6e5aaeb9322b2",
+    "results_sha256": "sha256:7e7a5cc656e08939bb11316e6b90793a275ab6afb3b3344dd9aee0599eccc5b4",
+    "predictions_sha256": "sha256:6b1e8bdd604a4d1ce757acc7b7b02b8c980257d8c22f55d5ba36a39ac3e73f84",
+    "metrics_sha256": "sha256:96a0ea142c3fc61906411820dcadea9e5f55a01d04405ba8374f5f0dbea04c18",
+    "stratified_metrics_sha256": "sha256:5c6f7f3ab1f45fd0814b834d7f0f3d422ac304527c0a568c5d49db913c643ede",
+    "decision_sha256": "sha256:0256f211ef8aaee5f3943b322f93befc8438f456ba283ea0849dfd4621b1ac02",
+    "blinded_predictions_sha256": "sha256:faae1280bdfd6ceaab85b8c6c773650718c43cf56d91f8a009d00b348690f27e",
+    "blinded_fit_sha256": "sha256:dbc552cfc84ecbcf163188d341c17232e5f0786573dcdf7b9e4eeb512af87d23"
+  },
+  "frozen_decisions": {
+    "primary": {
+      "status": "NOT_SUPPORTED",
+      "claim": "Relational Z/X/Y observables provide reproducible phase/amplitude identifiability and materially outperform absolute distorted observables on a new untouched holdout.",
+      "failures": [
+        "linear B_delta macro_f1=0.687695 < 0.7",
+        "linear B_delta amplitude_recall=0.462500 < 0.7",
+        "nonlinear B_delta amplitude_recall=0.562500 < 0.7"
+      ]
+    },
+    "secondary": {
+      "status": "NOT_SUPPORTED",
+      "claim": "Compressed Hilbert summaries add reproducible incremental information beyond relational observables.",
+      "failures": [
+        "linear C_summary-B_delta BA point=-0.056250",
+        "linear exceeds frozen C_summary degradation limit",
+        "No model has C_summary-B_delta BA CI low above zero"
+      ]
+    }
+  },
+  "confirmatory_metrics": {
+    "B_absolute": {
+      "linear": {
+        "balanced_accuracy": 0.5,
+        "macro_f1": 0.3730407523510972,
+        "phase_recall": 0.05,
+        "amplitude_recall": 0.95,
+        "auroc": 0.5678124999999999,
+        "ece": 0.02396824297059039
+      },
+      "nonlinear": {
+        "balanced_accuracy": 0.5,
+        "macro_f1": 0.3333333333333333,
+        "phase_recall": 0.0,
+        "amplitude_recall": 1.0,
+        "auroc": 0.511640625,
+        "ece": 0.006694784555065558
+      }
+    },
+    "B_delta": {
+      "linear": {
+        "balanced_accuracy": 0.70625,
+        "balanced_accuracy_95_ci": [0.6295574602679122, 0.7787126235357267],
+        "macro_f1": 0.6876946717056356,
+        "phase_recall": 0.95,
+        "amplitude_recall": 0.4625,
+        "auroc": 0.85265625,
+        "ece": 0.20054918974361846,
+        "label_shuffle_empirical_p": 0.047619047619047616,
+        "B_delta_minus_B_absolute_balanced_accuracy": 0.20625000000000004,
+        "B_delta_minus_B_absolute_balanced_accuracy_95_ci": [0.11509932933140761, 0.2884724224098765]
+      },
+      "nonlinear": {
+        "balanced_accuracy": 0.7125,
+        "balanced_accuracy_95_ci": [0.6136282797487066, 0.7895810630922643],
+        "macro_f1": 0.7058823529411764,
+        "phase_recall": 0.8625,
+        "amplitude_recall": 0.5625,
+        "auroc": 0.84328125,
+        "ece": 0.14923660012784806,
+        "label_shuffle_empirical_p": 0.047619047619047616,
+        "B_delta_minus_B_absolute_balanced_accuracy": 0.21250000000000002,
+        "B_delta_minus_B_absolute_balanced_accuracy_95_ci": [0.11873218465383881, 0.29134596173825367]
+      }
+    },
+    "C_summary": {
+      "linear": {
+        "balanced_accuracy": 0.65,
+        "macro_f1": 0.6086652690426275,
+        "phase_recall": 0.975,
+        "amplitude_recall": 0.325,
+        "auroc": 0.86203125,
+        "ece": 0.25231267611331937,
+        "C_summary_minus_B_delta_balanced_accuracy": -0.05625000000000002,
+        "C_summary_minus_B_delta_balanced_accuracy_95_ci": [-0.09879594846712389, -0.016953314164648913]
+      },
+      "nonlinear": {
+        "balanced_accuracy": 0.73125,
+        "macro_f1": 0.7245245245245245,
+        "phase_recall": 0.8875,
+        "amplitude_recall": 0.575,
+        "auroc": 0.8540625000000001,
+        "ece": 0.16258228064714828,
+        "C_summary_minus_B_delta_balanced_accuracy": 0.018749999999999933,
+        "C_summary_minus_B_delta_balanced_accuracy_95_ci": [-0.024436215442128168, 0.06563661317567554]
+      }
+    }
+  },
+  "interpretation_boundary": {
+    "confirmatory": [
+      "The preregistered primary claim is NOT_SUPPORTED.",
+      "The preregistered secondary claim is NOT_SUPPORTED.",
+      "B_delta materially outperformed B_absolute in balanced accuracy for both frozen model families, with paired bootstrap intervals above zero and empirical shuffle p=0.047619 for both models.",
+      "B_delta nevertheless failed the frozen balanced class-performance criteria, primarily because amplitude recall was below 0.70.",
+      "C_summary did not demonstrate reproducible incremental value beyond B_delta.",
+      "The historical v0.1 test remained untouched."
+    ],
+    "post_hoc": "Threshold diagnostics, circuit-family dependence, qubit-count dependence, strength/axis interactions, calibration hypotheses, and any architecture implications derived after seeing the confirmatory labels are exploratory development hypotheses only and cannot be represented as confirmatory findings."
+  }
+}
