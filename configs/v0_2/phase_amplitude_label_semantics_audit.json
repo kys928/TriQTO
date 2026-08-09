@@ -1,0 +1,62 @@
+{
+  "schema": "triqto.v0_2.phase_amplitude_label_semantics_audit.v1",
+  "status": "FROZEN_DEVELOPMENT_AUDIT",
+  "purpose": "Test whether coarse phase_like/amplitude_like labels describe the actual final-state phenomenology induced by the frozen RZ/RX/RY distortion mechanisms across circuit contexts.",
+  "scientific_boundary": {
+    "development_only": true,
+    "trains_classifier": false,
+    "changes_model_architecture": false,
+    "changes_labels": false,
+    "historical_v0_1_test_access": "FORBIDDEN",
+    "spent_confirmatory_data_may_be_used_only_if_explicitly_marked": true
+  },
+  "primary_decomposition": {
+    "population_component": "1 - sum_i sqrt(p_clean_i * p_distorted_i)",
+    "phase_component": "sum_i sqrt(p_clean_i * p_distorted_i) - abs(<psi_clean|psi_distorted>)",
+    "total_overlap_loss": "1 - abs(<psi_clean|psi_distorted>)",
+    "identity": "total_overlap_loss = population_component + phase_component",
+    "dominance_log_ratio": "ln((phase_component + epsilon) / (population_component + epsilon))"
+  },
+  "expected_coarse_semantics": {
+    "phase_like": "dominance_log_ratio > 0",
+    "amplitude_like": "dominance_log_ratio < 0"
+  },
+  "secondary_observable_diagnostics": [
+    "Z-basis total-variation distance",
+    "X-basis total-variation distance",
+    "Y-basis total-variation distance",
+    "per-qubit X/Y/Z expectation RMS change",
+    "state infidelity"
+  ],
+  "thresholds": {
+    "epsilon": 1e-12,
+    "negligible_total_overlap_loss": 1e-10,
+    "strong_dominance_ratio": 2.0,
+    "stable_overall_sign_concordance_min": 0.9,
+    "context_dependent_overall_sign_concordance_min": 0.7,
+    "stable_stratum_sign_concordance_min": 0.8,
+    "minimum_stratum_count": 10,
+    "maximum_negligible_fraction_for_stable": 0.1
+  },
+  "bootstrap": {
+    "group_repeats": 2000,
+    "seed": 20260809,
+    "confidence": 0.95
+  },
+  "strata": [
+    "coarse_label",
+    "raw_label",
+    "family",
+    "n_qubits",
+    "strength_key",
+    "phase_sensitive_family",
+    "affected_qubit_signature"
+  ],
+  "decision_policy": {
+    "PHENOMENOLOGICALLY_STABLE": "Both coarse labels have overall expected-sign concordance >= 0.90; every eligible family/qubit/raw-label/strength stratum has expected-sign concordance >= 0.80; expected median dominance direction is correct for both labels; negligible fraction <= 0.10.",
+    "CONTEXT_DEPENDENT": "Both coarse labels have overall expected-sign concordance >= 0.70, but at least one eligible context stratum violates the stable-stratum criterion or shows a direction reversal.",
+    "SEMANTICALLY_UNSTABLE": "Either coarse label has overall expected-sign concordance < 0.70 or its median dominance direction is opposite the claimed phenomenology.",
+    "INSUFFICIENT_EFFECT": "The negligible-effect fraction exceeds 0.10 such that the coarse phenotype is not physically resolved often enough for a stable label claim."
+  },
+  "interpretation_rule": "Injected mechanism labels (for example RZ drift versus RX/RY overrotation) remain distinct from observed-effect labels. A mechanism may be physically well-defined even if its final-state phenotype is context dependent."
+}
