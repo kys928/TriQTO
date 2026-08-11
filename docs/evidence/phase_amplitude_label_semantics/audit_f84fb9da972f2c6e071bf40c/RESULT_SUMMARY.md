@@ -1,11 +1,11 @@
 # Step 2 label-semantics audit result
 
-**Audit ID:** `audit_f84fb9da972f2c6e071bf40c`  
-**Decision:** `CONTEXT_DEPENDENT`  
-**Development-only:** YES  
-**Classifier trained:** NO  
-**Labels changed:** NO  
-**Historical v0.1 test accessed:** NO  
+**Audit ID:** `audit_f84fb9da972f2c6e071bf40c`
+**Decision:** `CONTEXT_DEPENDENT`
+**Development-only:** YES
+**Classifier trained:** NO
+**Labels changed:** NO
+**Historical v0.1 test accessed:** NO
 
 ## Primary result
 
