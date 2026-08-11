@@ -1,0 +1,220 @@
+{
+  "schema": "triqto.v0_2.bdelta_hardware_feasibility_contract.v1",
+  "status": "FROZEN_CONTRACT_AUDIT",
+  "purpose": "Define which Step 3.5 B_delta quantities are legitimate hardware-facing inputs, which require paired diagnostic execution, which are optional small-n diagnostics, and which remain privileged simulator-only labels before Step 5 training data are generated.",
+  "source_step3_5": {
+    "audit_id": "audit_eec59162a060a951d97b80fe",
+    "expected_pair_count": 20130,
+    "expected_counterfactual_count": 20130,
+    "expected_clean_circuit_count": 161,
+    "historical_v0_1_test_access": false,
+    "spent_confirmatory_cohort_access": false
+  },
+  "hardware_measurement_contract": {
+    "native_readout_basis": "Z",
+    "basis_programs": {
+      "Z": {
+        "premeasurement_basis_change": [],
+        "hardware_acquisition_class": "DIRECT_SAMPLER_EXECUTION"
+      },
+      "X": {
+        "premeasurement_basis_change": ["H"],
+        "hardware_acquisition_class": "EXTRA_DIAGNOSTIC_BASIS_EXECUTION"
+      },
+      "Y": {
+        "premeasurement_basis_change": ["Sdg", "H"],
+        "hardware_acquisition_class": "EXTRA_DIAGNOSTIC_BASIS_EXECUTION"
+      }
+    },
+    "paired_reference_basis_program_count_per_logical_instance": 6,
+    "paired_reference_basis_program_count_explanation": "Three basis settings for the observed/current circuit plus the same three basis settings for the paired reference circuit. Shot count is configured separately.",
+    "same_bitstrings_may_derive_local_pauli_expectations": true,
+    "exact_probabilities_available_on_hardware": false,
+    "hardware_evidence_is_empirical_finite_shot": true
+  },
+  "reference_contract": {
+    "reference_kind_required": true,
+    "primary_step5_reference_kind": "paired_hardware_compatible_reference",
+    "reference_kinds": {
+      "paired_hardware_compatible_reference": {
+        "deployability": "HARDWARE_VALID",
+        "definition": "Execute the intended reference circuit and the observed/current circuit on the same backend, with the same physical layout and diagnostic basis policy, within a bounded calibration/time window.",
+        "step5_role": "PRIMARY"
+      },
+      "ideal_simulator_reference": {
+        "deployability": "SIMULATOR_SIDE_INFORMATION",
+        "definition": "Use an exact or noiseless simulator prediction as the reference side.",
+        "step5_role": "SIMULATION_ABLATION_ONLY"
+      },
+      "rolling_hardware_reference": {
+        "deployability": "HARDWARE_POSSIBLE_BUT_DRIFT_SENSITIVE",
+        "definition": "Use a recent historical execution as the reference side.",
+        "step5_role": "FUTURE_ABLATION_ONLY"
+      },
+      "fixed_historical_reference": {
+        "deployability": "DISALLOWED_AS_PRIMARY",
+        "definition": "Use a stale fixed hardware execution without a bounded calibration/time relationship.",
+        "step5_role": "DISALLOWED_PRIMARY"
+      }
+    },
+    "required_reference_metadata": [
+      "reference_kind",
+      "backend_identity",
+      "physical_layout_identity",
+      "observed_execution_timestamp_or_window",
+      "reference_execution_timestamp_or_window",
+      "basis_code",
+      "observed_shots",
+      "reference_shots"
+    ]
+  },
+  "feature_contract": [
+    {
+      "name": "delta_p_z_full_register",
+      "hardware_obtainability": "FINITE_SHOT_SAMPLER_DERIVED",
+      "requires_reference": true,
+      "requires_extra_basis_execution": false,
+      "output_scaling": "2^n_support",
+      "step5_role": "OPTIONAL_SMALL_N_FULL_BDELTA"
+    },
+    {
+      "name": "delta_p_x_full_register",
+      "hardware_obtainability": "FINITE_SHOT_SAMPLER_DERIVED",
+      "requires_reference": true,
+      "requires_extra_basis_execution": true,
+      "output_scaling": "2^n_support",
+      "step5_role": "OPTIONAL_SMALL_N_FULL_BDELTA"
+    },
+    {
+      "name": "delta_p_y_full_register",
+      "hardware_obtainability": "FINITE_SHOT_SAMPLER_DERIVED",
+      "requires_reference": true,
+      "requires_extra_basis_execution": true,
+      "output_scaling": "2^n_support",
+      "step5_role": "OPTIONAL_SMALL_N_FULL_BDELTA"
+    },
+    {
+      "name": "delta_local_z_expectations",
+      "hardware_obtainability": "FINITE_SHOT_SAMPLER_DERIVED",
+      "requires_reference": true,
+      "requires_extra_basis_execution": false,
+      "output_scaling": "O(n)",
+      "step5_role": "PRIMARY_HARDWARE_SCALABLE_CORE"
+    },
+    {
+      "name": "delta_local_x_expectations",
+      "hardware_obtainability": "FINITE_SHOT_SAMPLER_DERIVED",
+      "requires_reference": true,
+      "requires_extra_basis_execution": true,
+      "output_scaling": "O(n)",
+      "step5_role": "PRIMARY_HARDWARE_SCALABLE_CORE"
+    },
+    {
+      "name": "delta_local_y_expectations",
+      "hardware_obtainability": "FINITE_SHOT_SAMPLER_DERIVED",
+      "requires_reference": true,
+      "requires_extra_basis_execution": true,
+      "output_scaling": "O(n)",
+      "step5_role": "PRIMARY_HARDWARE_SCALABLE_CORE"
+    },
+    {
+      "name": "basiswise_sparse_histogram_summaries",
+      "hardware_obtainability": "FINITE_SHOT_SAMPLER_DERIVED",
+      "requires_reference": true,
+      "requires_extra_basis_execution": true,
+      "output_scaling": "BOUNDED_SUMMARY_OUTPUT_WITH_SHOT_DEPENDENCE",
+      "step5_role": "OPTIONAL_HARDWARE_SCALABLE_SUMMARY"
+    },
+    {
+      "name": "statevector",
+      "hardware_obtainability": "PRIVILEGED_SIMULATOR_ONLY",
+      "requires_reference": false,
+      "requires_extra_basis_execution": false,
+      "output_scaling": "2^n_COMPLEX",
+      "step5_role": "TARGET_AUDIT_ONLY"
+    },
+    {
+      "name": "population_component",
+      "hardware_obtainability": "PRIVILEGED_SIMULATOR_LABEL",
+      "requires_reference": false,
+      "requires_extra_basis_execution": false,
+      "output_scaling": "SCALAR",
+      "step5_role": "SUPERVISION_ONLY"
+    },
+    {
+      "name": "phase_component",
+      "hardware_obtainability": "PRIVILEGED_SIMULATOR_LABEL",
+      "requires_reference": false,
+      "requires_extra_basis_execution": false,
+      "output_scaling": "SCALAR",
+      "step5_role": "SUPERVISION_ONLY"
+    },
+    {
+      "name": "effect_present_or_negligible",
+      "hardware_obtainability": "PRIVILEGED_SIMULATOR_LABEL_DURING_STEP5",
+      "requires_reference": false,
+      "requires_extra_basis_execution": false,
+      "output_scaling": "SCALAR",
+      "step5_role": "SUPERVISION_AND_MECHANISM_LOSS_MASK"
+    }
+  ],
+  "scalable_core_ablation": {
+    "enabled": true,
+    "source": "Step 3.5 counterfactual_metrics.csv and pairwise_metrics.csv",
+    "variant": "local_pauli_expectation_delta_only",
+    "counterfactual_signal_score": "mean(0.5*RMS_delta_expectation_X, 0.5*RMS_delta_expectation_Y, 0.5*RMS_delta_expectation_Z)",
+    "pair_separation_score": "mean(0.5*RMS_pair_delta_expectation_X, 0.5*RMS_pair_delta_expectation_Y, 0.5*RMS_pair_delta_expectation_Z)",
+    "relative_separation": "2*pair_separation/(left_signal+right_signal+epsilon)",
+    "minimum_raw_separation": 1e-6,
+    "minimum_relative_separation": 0.25,
+    "numerical_collision_score_max": 1e-10,
+    "primary_evaluation_population": "pairs where both mechanisms are non-negligible under privileged Step 3.5 ground truth",
+    "minimum_effectful_pair_strong_fraction": 0.90,
+    "minimum_effectful_nonterminal_non_q0_strong_fraction": 0.90,
+    "minimum_eligible_stratum_pairs": 100,
+    "severe_stratum_strong_fraction_below": 0.50,
+    "bootstrap_repeats": 2000,
+    "bootstrap_seed": 20260811
+  },
+  "step5_required_fields": [
+    "diagnostic_basis_code",
+    "reference_kind",
+    "reference_available_mask",
+    "observed_shots",
+    "reference_shots",
+    "delta_local_expectations",
+    "delta_local_expectations_mask",
+    "optional_sparse_or_full_distribution_evidence",
+    "optional_distribution_evidence_mask",
+    "effect_present_target",
+    "mechanism_target",
+    "mechanism_loss_mask",
+    "phenomenology_targets",
+    "clean_circuit_group_id"
+  ],
+  "architecture_boundary": {
+    "do_not_modify_model_in_step4": true,
+    "future_input_surface": "DiagnosticTensorBatch -> DiagnosticEncoder",
+    "do_not_reuse_BornTensorBatch_for_signed_B_delta": true,
+    "basis_identity_must_be_explicit": true,
+    "shot_and_reference_uncertainty_must_be_explicit": true
+  },
+  "possible_decisions": [
+    "DEPLOYABLE_WITH_PAIRED_REFERENCE_CORE",
+    "DEPLOYABLE_CONTRACT_CORE_IDENTIFIABILITY_UNPROVEN",
+    "NOT_DEPLOYABLE_AS_DEFINED"
+  ],
+  "decision_policy": {
+    "DEPLOYABLE_WITH_PAIRED_REFERENCE_CORE": "All primary core inputs are hardware-obtainable under the paired-reference contract and the frozen local-expectation-only effectful-pair ablation meets both strong-fraction gates with no severe eligible stratum.",
+    "DEPLOYABLE_CONTRACT_CORE_IDENTIFIABILITY_UNPROVEN": "The acquisition contract is hardware-valid but the local-expectation-only ablation fails at least one identifiability gate; Step 5 must retain additional bounded hardware-valid evidence and may not claim the core is sufficient.",
+    "NOT_DEPLOYABLE_AS_DEFINED": "A required primary input depends on privileged simulator-only information or an undefined/unbounded reference semantics."
+  },
+  "scientific_boundaries": [
+    "No IBM hardware execution occurs in Step 4.",
+    "Exact simulator probabilities are not treated as hardware observations.",
+    "Full-register probability deltas are physically sampleable but are not mandatory scalable inputs because their outcome support grows as 2^n.",
+    "Paired-reference execution is an acquisition contract, not evidence that the reference is noise-free.",
+    "Privileged simulator effect and phenomenology labels may supervise Step 5 but must never enter deployable model inputs.",
+    "Finite-shot robustness is not established by this contract audit; Step 5 and later stages must explicitly inject finite-shot uncertainty."
+  ]
+}
