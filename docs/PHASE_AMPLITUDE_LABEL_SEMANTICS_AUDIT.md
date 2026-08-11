@@ -84,23 +84,6 @@ The first run intentionally targets the existing 280-example phase/amplitude dev
 
 The 160-example confirmatory cohort is now `SPENT_CONFIRMATORY` and may be used for postmortem work, but it must not be silently treated as untouched evidence. If its full exact-state provenance is later included in this audit, that inclusion must be explicitly documented as previously observed confirmatory data. No regeneration should be silently substituted for the original holdout artifact.
 
-## Observed Step 2 result
-
-Audit `audit_f84fb9da972f2c6e071bf40c` completed with frozen decision `CONTEXT_DEPENDENT`.
-
-- `phase_like`: expected-sign concordance `1.0000`, 95% group-bootstrap CI `[1.0000, 1.0000]`, median dominance log-ratio `+19.5601`, negligible fraction `0.0143`.
-- `amplitude_like`: expected-sign concordance `0.8031`, 95% group-bootstrap CI `[0.7338, 0.8672]`, median dominance log-ratio `-3.3807`, negligible fraction `0.0929`.
-- six adequately populated context strata failed the frozen stable criterion: RX overrotation, hardware-efficient ansatz, QAOA-like, 6 qubits, 8 qubits, and strength `0.05`.
-- the historical v0.1 test was not accessed, no classifier was trained, and no labels were rewritten.
-
-The archived result summary and hash-bound evidence live under:
-
-`docs/evidence/phase_amplitude_label_semantics/audit_f84fb9da972f2c6e071bf40c/`
-
-The development conclusion is that mechanism identity and observed phenomenology must not be conflated. The tested RZ-drift cohort is highly phase-dominant under this generator, whereas RX/RY overrotation is only directionally population-dominant overall and becomes mixed, phase-dominant, or negligible in material circuit/state contexts.
-
-The perfect RZ result is specific to the tested injection protocol until the exact insertion/propagation policy is explicitly checked; it must not be generalized to arbitrary in-circuit RZ errors.
-
 ## Run on the pod
 
 After checking out this branch:
@@ -128,6 +111,31 @@ Expected outputs are:
 - `stratified_metrics.csv` — overall and context-stratified semantic statistics;
 - `decision.json` — frozen decision plus group-bootstrap intervals;
 - `audit_complete.json` — hashes, source identity, and completion boundary.
+
+## Observed Step 2 result
+
+Audit `audit_f84fb9da972f2c6e071bf40c` returned `CONTEXT_DEPENDENT` under the frozen decision policy. The exact archived result is documented under:
+
+`docs/evidence/phase_amplitude_label_semantics/audit_f84fb9da972f2c6e071bf40c/`
+
+The development conclusion is that mechanism identity and observed phenomenology must be represented separately. The RZ-drift cohort was exceptionally phase-dominant in this source product, while RX/RY overrotation was only conditionally population-dominant and depended materially on circuit/state context.
+
+## Step 3 v1 insertion-policy finding
+
+The first matched-B-delta Step 3 runner intentionally required the archived distortion to be terminal before using a final-state rotation shortcut. Its preflight inspected all 280 development examples and refused the scientific audit before matched counterfactual generation:
+
+- `280 / 280` source distortions were nonterminal;
+- `140 / 140` RZ-drift examples were nonterminal;
+- `70 / 70` RX-overrotation examples were nonterminal;
+- `70 / 70` RY-overrotation examples were nonterminal;
+- inspected distortion axes matched the raw mechanism labels;
+- no classifier was trained;
+- historical v0.1 test was not accessed;
+- spent confirmatory cohort was not accessed.
+
+This means the final-state shortcut is invalid for this source product. The refusal is a valid audit outcome and must not be weakened by removing the terminality guard. Step 3 v2 therefore requires exact ordered circuit replay at the original intervention index.
+
+An additional implication is that Step 2's 100% expected-sign concordance for the RZ cohort was not produced by a trivial terminal-RZ construction: those RZ perturbations were also mid-circuit and were propagated through later gates. The result remains development- and generator-specific and is not a universal statement about arbitrary RZ errors.
 
 ## Interpretation discipline
 
