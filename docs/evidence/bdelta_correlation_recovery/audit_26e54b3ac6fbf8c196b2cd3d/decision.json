@@ -1,0 +1,15 @@
+{
+  "additional_basis_programs_beyond_step4_v1": 0,
+  "classifier_trained": false,
+  "decision": "CORRELATION_CORE_RECOVERED",
+  "hardware_executed": false,
+  "same_basis_programs_only": true,
+  "schema": "triqto.v0_2.bdelta_correlation_recovery_audit_result.v1",
+  "selected_smallest_passing_variant": "local_plus_pairwise_plus_global_parity",
+  "variant_order": [
+    "local_only",
+    "local_plus_global_parity",
+    "local_plus_pairwise_same_basis",
+    "local_plus_pairwise_plus_global_parity"
+  ]
+}

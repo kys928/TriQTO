@@ -1,0 +1,22 @@
+{
+  "audit_id": "audit_066fbee3308c7e13c3308f17",
+  "classifier_trained": false,
+  "created_at_utc": "2026-08-11T11:18:13.003218+00:00",
+  "decision": "DEPLOYABLE_CONTRACT_CORE_IDENTIFIABILITY_UNPROVEN",
+  "hardware_executed": false,
+  "historical_v0_1_test_accessed": false,
+  "identity": {
+    "config_sha256": "sha256:7361940d980e11e831626fc8774a36ea72d1aec15dcfe0dff275283a97044d76",
+    "runner_sha256": "sha256:a8f542f0844cc4eca83abcfddec70b6d778fcf6857af24218c6039dc6a6f7a1d",
+    "step3_5_source_hashes": {
+      "audit_complete.json": "sha256:91001afda4a37137e22b6f0c25d27d732cdc8e1e8f39b9ad13ace95611d42d04",
+      "counterfactual_metrics.csv": "sha256:0caab519f374b297d74e27dce109252f6af06bc2e7a35d6e6e66eb58338eb594",
+      "decision.json": "sha256:bbeff12675d9887e44fb7e175ada988fd3feb86ec988a88fde110de29ca64172",
+      "pairwise_metrics.csv": "sha256:4ddd8544233d81df1e9b5d4115e3d1aafbad3ff9d237e04fd8966e6a80b3c82e"
+    }
+  },
+  "schema": "triqto.v0_2.bdelta_hardware_feasibility_contract_audit_result.v1",
+  "source_step3_5_audit": "/workspace/triqto-data/step3_5_generalized_bdelta_identifiability/audit_eec59162a060a951d97b80fe",
+  "spent_confirmatory_cohort_accessed": false,
+  "status": "AUDIT_COMPLETE"
+}

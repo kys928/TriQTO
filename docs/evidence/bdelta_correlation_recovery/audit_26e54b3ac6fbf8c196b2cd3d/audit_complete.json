@@ -1,0 +1,22 @@
+{
+  "audit_id": "audit_26e54b3ac6fbf8c196b2cd3d",
+  "classifier_trained": false,
+  "clean_circuit_count": 161,
+  "created_at_utc": "2026-08-11T11:35:30.828143+00:00",
+  "decision": "CORRELATION_CORE_RECOVERED",
+  "generalized_context_count": 6710,
+  "hardware_executed": false,
+  "historical_v0_1_test_accessed": false,
+  "identity": {
+    "config_sha256": "sha256:a0e1fa428e4e5ebfedfdb1724b77eebdcb8099f04aac5561aadc08fc0fd027d9",
+    "runner_sha256": "sha256:ef079c82ae30f37b817c6dbf53a519bde71a22a4e6bc60d611975d5663d8ed45",
+    "source_generation_complete_sha256": "sha256:8ec933249923083b1b392ed3bb9f47253994362cf9836b015acb0f58f8ddd034",
+    "step35_runner_sha256": "sha256:5f007a3248dc16747e0923c9ed5ad97bf70bc525edc25416e4ee814b3d95f58d"
+  },
+  "pair_rows_across_variants": 80520,
+  "schema": "triqto.v0_2.bdelta_correlation_recovery_audit_result.v1",
+  "selected_smallest_passing_variant": "local_plus_pairwise_plus_global_parity",
+  "source_root": "/workspace/triqto-data/phase15_6_pilot_v2/data/v0_2_phase_amplitude_identifiability_pilot/pilot_b446f1ff046ebbc1448d",
+  "spent_confirmatory_cohort_accessed": false,
+  "status": "AUDIT_COMPLETE"
+}

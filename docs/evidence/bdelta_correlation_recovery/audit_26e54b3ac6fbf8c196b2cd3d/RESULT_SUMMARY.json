@@ -1,0 +1,35 @@
+{
+  "audit_id": "audit_26e54b3ac6fbf8c196b2cd3d",
+  "decision": "CORRELATION_CORE_RECOVERED",
+  "selected_smallest_passing_variant": "local_plus_pairwise_plus_global_parity",
+  "additional_basis_programs_beyond_step4_v1": 0,
+  "clean_circuit_count": 161,
+  "generalized_context_count": 6710,
+  "effectful_pair_count": 16006,
+  "selected_variant": {
+    "effectful_strong_pair_fraction": 0.9964388354367112,
+    "effectful_strong_pair_fraction_ci95": [0.9930357263090901, 0.9987936636176236],
+    "effectful_nonterminal_non_q0_strong_pair_fraction": 0.9948329728430666,
+    "ghz_strong_pair_fraction": 0.9613259668508287,
+    "minimum_eligible_stratum_strong_fraction": 0.9613259668508287
+  },
+  "variant_ladder": {
+    "local_only": {"overall": 0.959890041234537, "nonterminal_non_q0": 0.9646719538572458, "ghz": 0.08287292817679558, "pass": false},
+    "local_plus_global_parity": {"overall": 0.9867549668874173, "nonterminal_non_q0": 0.9844989185291997, "ghz": 0.8950276243093923, "pass": false},
+    "local_plus_pairwise_same_basis": {"overall": 0.991378233162564, "nonterminal_non_q0": 0.9914683970199472, "ghz": 0.6850828729281768, "pass": false},
+    "local_plus_pairwise_plus_global_parity": {"overall": 0.9964388354367112, "nonterminal_non_q0": 0.9948329728430666, "ghz": 0.9613259668508287, "pass": true}
+  },
+  "training_dataset_implication": "Step 5 default deployable diagnostic evidence should use signed local expectation deltas plus same-basis pairwise correlation deltas plus global parity deltas, all derived from the same paired Z/X/Y shots. Dense full-register deltas remain optional small-n audit evidence.",
+  "file_hashes": {
+    "uploaded_audit_zip": "sha256:c24f51b0b8945a13b506f3384f48d3999239f57c4fd8b892623f9fff4e43ec0f",
+    "audit_complete.json": "sha256:e6f5c486ca4bc661a1edbc0c3de7ab7544e346bd67d6654559529f72899f9f37",
+    "decision.json": "sha256:8ac17bca5035f01805dadd66f967f267234514c0bb21b89bdf2cf216733d3f81",
+    "variant_results.json": "sha256:87cbd1a8259977f914802a7e220c698fa988b2cecb158f2a1642b18f69a9a0f1",
+    "correlation_variant_summary.csv": "sha256:33985c0967f2b12a2b14b2073e4ddd0bdc58746356d2cfa24bcd7a69b0c108de",
+    "correlation_pair_metrics.csv": "sha256:e91bfaa2fc0f8f5d9ff2a39b20f3a57733933868c00cf5716f713a05639c6403"
+  },
+  "hardware_executed": false,
+  "classifier_trained": false,
+  "historical_v0_1_test_accessed": false,
+  "spent_confirmatory_cohort_accessed": false
+}
