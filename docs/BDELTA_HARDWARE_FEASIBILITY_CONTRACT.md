@@ -1,232 +1,142 @@
-# Step 4 — B-delta hardware-feasibility contract audit
+# Step 4 — B_delta hardware-feasibility contract
 
 ## Purpose
 
-Step 3 and Step 3.5 established that exact clean-relative Z/X/Y `B_delta` evidence is highly informative for matched RZ/RX/RY mechanism separation in noiseless simulation. Step 4 does **not** execute IBM hardware. It asks a narrower design question before Step 5 training data are generated:
+Step 3.5 established that exact clean-relative Z/X/Y `B_delta` remains highly mechanism-separable after removing the fixed-q0 and terminal-only shortcuts. Step 4 asks a different question before Step 5 training data are generated:
 
-> Which parts of `B_delta` can legitimately exist in hardware mode, what extra diagnostic executions do they require, what reference semantics are required, and which quantities must remain privileged simulator-only supervision?
+> Which parts of `B_delta` are legitimate hardware-facing inputs, what reference semantics are required, and what bounded measurement summaries retain enough mechanism information without relying on exponential full-register distributions?
 
-The audit also reuses the completed Step 3.5 pairwise evidence to test a hardware-scalable local-Pauli core before approving it as a mandatory model input.
+This stage performs no QPU execution and no classifier training.
 
-## Current IBM/Qiskit measurement facts used by the contract
+## Hardware acquisition contract
 
-The contract is grounded in current IBM Quantum/Qiskit primitive semantics:
+For one observed/current circuit and one paired reference circuit:
 
-- Runtime `SamplerV2` returns sampled bitstrings/results from submitted measured circuits.
-- IBM/Qiskit computational readout is in the Z basis.
-- X-basis measurement is obtained by applying `H` before Z measurement.
-- Y-basis measurement is obtained by applying `Sdg` then `H` before Z measurement.
-- Runtime `EstimatorV2` can estimate expectation values for Pauli observables directly; equivalently, for the TriQTO diagnostic bundle, local X/Y/Z expectation values can be derived from the same basis-specific Sampler bitstrings used for distribution evidence.
+- Z evidence uses ordinary computational-basis measurement;
+- X evidence uses H before measurement;
+- Y evidence uses Sdg then H before measurement.
 
-Primary source pages:
+The paired acquisition therefore requires six basis-program variants per logical observed/reference pair before shot replication:
 
-- https://quantum.cloud.ibm.com/docs/en/api/qiskit-ibm-runtime/sampler-v2
-- https://quantum.cloud.ibm.com/docs/en/api/qiskit-ibm-runtime/estimator-v2
-- https://qiskit.qotlabs.org/docs/guides/specify-observables-pauli
+- observed Z, X, Y;
+- reference Z, X, Y.
 
-These facts establish **measurement possibility**, not statistical sufficiency or QPU-cost acceptability.
+The same sampled bitstrings may be reused to derive local expectations, same-basis pairwise correlations, global parity, sparse histogram summaries, or full empirical histograms.
 
-## Three basis programs
+Exact probabilities are never treated as hardware observations; hardware evidence is finite-shot empirical evidence.
 
-For one circuit state:
+## Reference contract
 
-```text
-Z evidence: circuit -> measure
-X evidence: circuit -> H on measured qubits -> measure
-Y evidence: circuit -> Sdg, H on measured qubits -> measure
-```
+Every relational feature must carry explicit `reference_kind` metadata. The primary Step 5 reference is `paired_hardware_compatible_reference`:
 
-The primary Step 5 hardware-compatible reference mode is paired acquisition. Therefore one logical observed/reference pair requires six basis-program variants before shot replication:
+- execute intended reference and observed/current circuits on the same backend;
+- use the same physical layout and diagnostic basis policy;
+- keep the executions within a bounded calibration/time relationship;
+- record backend identity, layout identity, time/window, basis code, and shot counts.
 
-```text
-observed/current: Z, X, Y
-paired reference: Z, X, Y
-```
+This does **not** claim the reference execution is noise-free. It only makes the relational meaning explicit and hardware-realizable.
 
-The paired reference is not assumed to be noise-free. It is simply acquired under a contract intended to make the subtraction meaningful: same backend, same physical layout, same basis policy, and a bounded calibration/time relationship.
+Simulator ideal references remain simulation ablations only. Stale fixed historical references are disallowed as the primary Step 5 contract.
 
-## The clean-reference problem
+## Privileged versus deployable quantities
 
-`B_delta` is relational. It cannot exist without defining the reference side.
+Hardware-facing inputs may include only quantities derived from finite-shot Z/X/Y observations plus explicit metadata. Simulator statevectors, population/phase decomposition, and privileged effect/negligible labels may supervise or audit Step 5 but may not enter deployable model inputs.
 
-Step 4 therefore forbids an implicit or unlabeled notion of "clean". Every Step 5 example must carry `reference_kind` and reference metadata.
+Signed relational diagnostic evidence remains a future `DiagnosticTensorBatch -> DiagnosticEncoder` surface. It must not be forced into the existing Born-probability tensor contract.
 
-### Primary Step 5 reference
+## Step 4 v1 — one-local core
 
-`paired_hardware_compatible_reference`
+The first frozen scalable candidate used only signed local X/Y/Z expectation deltas, width O(n).
 
-This means the intended reference circuit and the observed/current circuit are paired under the same hardware context. In simulator development this can be emulated exactly; in later hardware studies both sides would be empirical noisy executions.
+Audit `audit_066fbee3308c7e13c3308f17` returned:
 
-### Other reference kinds
+`DEPLOYABLE_CONTRACT_CORE_IDENTIFIABILITY_UNPROVEN`
 
-- `ideal_simulator_reference`: useful simulation side information/ablation, but not hardware-derived and therefore never allowed to masquerade as hardware mode.
-- `rolling_hardware_reference`: physically possible but vulnerable to calibration/drift confounding; future ablation only.
-- `fixed_historical_reference`: disallowed as a primary contract because a stale baseline can encode backend drift rather than the mechanism of interest.
+The acquisition/reference contract passed, but the one-local core failed a severe GHZ stratum:
 
-## Feature classification
+- effectful pair strong fraction: `0.959890`;
+- effectful nonterminal+non-q0 strong fraction: `0.964672`;
+- GHZ strong fraction: `0.082873` across 362 effectful pairs;
+- GHZ numerical-collision fraction: `0.917127`.
 
-### Primary scalable hardware core
+The corresponding Step 3.5 full basis distributions separated the same GHZ mechanisms strongly, localizing the missing information to joint bitstring correlations rather than invalidating `B_delta` acquisition.
 
-The proposed mandatory core is the signed local expectation-delta vector:
+## Step 4.1 — bounded same-shot correlation recovery
 
-```text
-Delta<X_0 ... X_n-1>
-Delta<Y_0 ... Y_n-1>
-Delta<Z_0 ... Z_n-1>
-```
+Before seeing the Step 4.1 outcome, the following feature ladder and pass gates were frozen:
 
-These are empirical finite-shot quantities and scale as `O(n)` in output width. They retain explicit basis identity and must also carry observed/reference shot counts and masks.
+1. local one-body X/Y/Z deltas;
+2. local + three global basis-parity deltas;
+3. local + all same-basis two-body correlation deltas;
+4. local + pairwise + global parity.
 
-### Optional full `B_delta`
+All additions use the same Z/X/Y bitstrings and therefore add zero basis programs.
 
-The complete full-register probability deltas remain useful for exact simulation and small-qubit diagnostics:
+A variant passes only if:
 
-```text
-Delta p_X(bitstring)
-Delta p_Y(bitstring)
-Delta p_Z(bitstring)
-```
+- overall effectful strong fraction >= 0.90;
+- effectful nonterminal+non-q0 strong fraction >= 0.90;
+- every eligible >=100-pair major stratum >= 0.80;
+- GHZ strong fraction >= 0.90.
 
-They are physically sampleable with Sampler, but their outcome support is `2^n`. Step 4 therefore does not allow dense full-register distributions to become a mandatory scalable hardware interface.
+Audit `audit_26e54b3ac6fbf8c196b2cd3d` returned:
 
-They may be retained in Step 5 as an explicitly masked `OPTIONAL_SMALL_N_FULL_BDELTA` stream for controlled ablations.
+`CORRELATION_CORE_RECOVERED`
 
-### Privileged simulator-only quantities
+The smallest passing variant is:
 
-The following may be used for supervision/audit but never as deployable model inputs:
+`local_plus_pairwise_plus_global_parity`
 
-- statevector;
-- exact Hilbert overlap;
-- population component;
-- phase component;
-- exact effect-present/negligible label derived from privileged state comparison;
-- other exact-state phenomenology targets.
+Observed ladder:
 
-This preserves the Step 3.5 lesson: mechanism and phenomenology remain separate, and negligible injected perturbations should mask mechanism supervision rather than teach the model that zero evidence implies a particular mechanism.
+| Variant | Overall effectful strong | Nonterminal + non-q0 | GHZ | Pass |
+|---|---:|---:|---:|---|
+| local only | 0.959890 | 0.964672 | 0.082873 | no |
+| local + global parity | 0.986755 | 0.984499 | 0.895028 | no |
+| local + same-basis pairwise | 0.991378 | 0.991468 | 0.685083 | no |
+| local + pairwise + global parity | 0.996439 | 0.994833 | 0.961326 | yes |
 
-## Why Step 4 includes a scalable-core ablation
+The selected variant's overall 95% clean-circuit bootstrap interval is `[0.993036, 0.998794]`.
 
-Physical measurability is not enough.
+The result demonstrates complementarity: global parity nearly recovers GHZ by itself but stops just below the frozen 0.90 gate; same-basis pairwise correlations recover a different part of the signal; using both clears all frozen gates.
 
-Step 3.5's separation score used both full-register distribution geometry and local expectation geometry. Before declaring local Pauli deltas the hardware core, Step 4 re-scores the already frozen 20,130 Step 3.5 mechanism pairs using only local expectation differences.
+## Frozen Step 5 diagnostic evidence contract
 
-For each counterfactual:
+The default Step 5 hardware-facing `B_delta` diagnostic representation should contain, for each basis X/Y/Z:
 
-```text
-signal_core = mean(
-    0.5 * RMS(Delta<X_i>),
-    0.5 * RMS(Delta<Y_i>),
-    0.5 * RMS(Delta<Z_i>)
-)
-```
+- signed local expectation deltas;
+- signed same-basis pairwise correlation deltas;
+- signed global parity delta;
+- masks for valid local and pairwise entries under variable qubit count;
+- explicit basis identity;
+- observed and reference shot counts;
+- reference kind and reference-availability mask;
+- backend/layout/time-window metadata required by the paired-reference contract.
 
-For each mechanism pair:
+Dense full-register probability deltas remain optional small-n audit/ablation evidence rather than mandatory training input.
 
-```text
-pair_core = mean(
-    0.5 * RMS(Delta<X_i>_left - Delta<X_i>_right),
-    0.5 * RMS(Delta<Y_i>_left - Delta<Y_i>_right),
-    0.5 * RMS(Delta<Z_i>_left - Delta<Z_i>_right)
-)
-```
+The representation scales as O(n^2), not O(2^n), and requires zero new basis programs beyond the existing paired Z/X/Y acquisition.
 
-The same frozen Step 3 raw and relative separation thresholds are retained:
+## Step 5 supervision contract carried forward from Step 3.5
 
-- raw separation >= `1e-6`;
-- relative separation >= `0.25`;
-- numerical collision <= `1e-10`.
+Step 5 should separately preserve:
 
-The primary population excludes pairs where either mechanism is privileged-ground-truth `negligible`. Those examples remain valuable null/effect supervision, but forcing mechanism identifiability when the intervention produced no meaningful state effect would answer the wrong question.
+- clean/no-distortion controls;
+- observable-effect / negligible supervision from privileged simulator ground truth;
+- mechanism targets with mechanism loss masked when the intervention is privileged-ground-truth negligible;
+- phenomenology targets distinct from mechanism identity;
+- grouping by independent clean circuit so factorial derivatives never cross leakage-sensitive splits.
 
-The scalable core passes only if:
+Step 5 must increase independent clean-circuit diversity rather than treating perturbation derivatives as independent data.
 
-- effectful overall strong-pair fraction >= `0.90`;
-- effectful nonterminal + non-q0 strong-pair fraction >= `0.90`;
-- no eligible stratum with at least 100 pairs has strong-pair fraction below `0.50`.
+## Scientific boundaries
 
-Bootstrap uncertainty is grouped by independent clean circuit, not factorial derivative.
-
-## Possible decisions
-
-### `DEPLOYABLE_WITH_PAIRED_REFERENCE_CORE`
-
-The acquisition/reference contract is hardware-valid and the local-Pauli core retains the frozen identifiability requirements without severe context failure.
-
-### `DEPLOYABLE_CONTRACT_CORE_IDENTIFIABILITY_UNPROVEN`
-
-The measurement/reference contract is physically legitimate, but local Pauli deltas alone lose important mechanism information in at least one frozen criterion. Step 5 must retain additional **hardware-valid bounded evidence** rather than pretending the local core is sufficient.
-
-### `NOT_DEPLOYABLE_AS_DEFINED`
-
-A mandatory input requires simulator-only privileged information or the reference semantics are undefined/not hardware-valid.
-
-## Architecture boundary
-
-Step 4 changes no model architecture.
-
-However, it freezes the future interface direction:
-
-```text
-DiagnosticTensorBatch
-        ->
-DiagnosticEncoder
-```
-
-`B_delta` must not be forced into the existing `BornTensorBatch` probability contract because:
-
-- `B_delta` is signed;
-- it is relational;
-- basis identity is semantically essential;
-- observed/reference shot uncertainty matters;
-- optional full-distribution evidence needs an explicit mask.
-
-The Step 7 adapter should therefore be a dedicated diagnostic stream fused with the circuit graph.
-
-## Step 5 fields frozen by this contract
-
-At minimum:
-
-- `diagnostic_basis_code`;
-- `reference_kind`;
-- `reference_available_mask`;
-- `observed_shots`;
-- `reference_shots`;
-- `delta_local_expectations`;
-- `delta_local_expectations_mask`;
-- optional sparse/full distribution evidence plus mask;
-- `effect_present_target`;
-- `mechanism_target`;
-- `mechanism_loss_mask`;
-- phenomenology targets;
-- `clean_circuit_group_id`.
-
-## Boundaries
-
-Step 4 establishes an acquisition/data contract only.
-
-It does not establish:
+Step 4 establishes a hardware-valid acquisition/reference contract and a noiseless-simulator correlation-core sufficiency result. It does not establish:
 
 - finite-shot robustness;
-- optimal shot allocation;
-- noise robustness;
-- calibration robustness;
-- QPU utility;
-- real-hardware diagnosis accuracy.
+- robustness to realistic hardware noise or calibration drift;
+- adequacy of any particular shot budget;
+- performance on IBM hardware;
+- utility of the final learned TriQTO model.
 
-Those remain later empirical stages.
-
-## Run
-
-```bash
-cd /workspace/triqto
-
-PYTHONPATH=/workspace/triqto/src \
-pytest -q tests/test_bdelta_hardware_feasibility_contract_audit.py
-
-PYTHONPATH=/workspace/triqto/src \
-python -u scripts/v0_2/audit_bdelta_hardware_feasibility_contract.py
-```
-
-Outputs are written under:
-
-`/workspace/triqto-data/step4_bdelta_hardware_feasibility_contract/audit_*`
+Those remain later empirical gates.
