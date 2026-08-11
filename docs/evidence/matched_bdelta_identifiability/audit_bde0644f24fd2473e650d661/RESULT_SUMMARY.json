@@ -1,0 +1,75 @@
+{
+  "audit_id": "audit_bde0644f24fd2473e650d661",
+  "counterfactual_count": 534,
+  "decision": "IDENTIFIABLE",
+  "decision_metrics": {
+    "bad_eligible_strata": [],
+    "different_phenotype_pair_count": 392,
+    "different_phenotype_strong_fraction": 1.0,
+    "different_phenotype_strong_fraction_ci95": [1.0, 1.0],
+    "eligible_stratum_count": 19,
+    "negligible_counterfactual_fraction": 0.018726591760299626,
+    "negligible_counterfactual_fraction_ci95": [0.00749063670411985, 0.031835205992509365],
+    "numerical_collision_fraction": 0.0,
+    "overall_strong_pair_fraction": 1.0,
+    "overall_strong_pair_fraction_ci95": [1.0, 1.0],
+    "severe_nonidentifiable_strata": []
+  },
+  "deduplicated_context_count": 178,
+  "minimum_observed_pair_separation": {
+    "family": "ghz",
+    "n_qubits": 3,
+    "pair_separation_score": 0.0001041449670861,
+    "pair_type": "rx_vs_ry",
+    "relative_separation": 0.6666666645328881,
+    "strength_key": 0.05
+  },
+  "pair_count": 534,
+  "pair_type_summary": {
+    "rx_vs_ry": {
+      "different_phenotype_fraction": 0.5449438202247191,
+      "median_pair_separation_score": 0.012314984621472399,
+      "median_relative_separation": 1.7540252671702894,
+      "numerical_collision_fraction": 0.0,
+      "pair_count": 178,
+      "strong_pair_fraction": 1.0
+    },
+    "rz_vs_rx": {
+      "different_phenotype_fraction": 0.8146067415730337,
+      "median_pair_separation_score": 0.0140935934669452,
+      "median_relative_separation": 1.7783532560189084,
+      "numerical_collision_fraction": 0.0,
+      "pair_count": 178,
+      "strong_pair_fraction": 1.0
+    },
+    "rz_vs_ry": {
+      "different_phenotype_fraction": 0.8426966292134831,
+      "median_pair_separation_score": 0.0131064094666099,
+      "median_relative_separation": 1.8226346811353773,
+      "numerical_collision_fraction": 0.0,
+      "pair_count": 178,
+      "strong_pair_fraction": 1.0
+    }
+  },
+  "phenotype_counts": {
+    "rx_overrotation": {"mixed": 47, "negligible": 6, "phase_dominant": 33, "population_dominant": 92},
+    "ry_overrotation": {"mixed": 39, "negligible": 0, "phase_dominant": 28, "population_dominant": 111},
+    "rz_drift": {"mixed": 0, "negligible": 4, "phase_dominant": 174, "population_dominant": 0}
+  },
+  "replay_validation": {
+    "failure_count": 0,
+    "max_clean_aligned_max_abs_error": 3.3393655763633256e-16,
+    "max_clean_overlap_loss": 2.220446049250313e-16,
+    "max_distorted_aligned_max_abs_error": 3.3706997905829204e-16,
+    "max_distorted_overlap_loss": 2.220446049250313e-16,
+    "valid_count": 280
+  },
+  "scope_limits": [
+    "All 178 matched contexts are terminal-unitary perturbations followed only by measurement markers; earlier in-circuit perturbations with a nontrivial unitary suffix were not tested.",
+    "The archived stratification contains only affected_qubit_signature = 0; arbitrary affected-qubit positions were not tested.",
+    "Exact simulator probabilities were used; finite-shot, noisy-backend and hardware deployability remain untested."
+  ],
+  "schema": "triqto.v0_2.matched_bdelta_replay_identifiability_audit_summary.v1",
+  "scientific_boundary": "Exact replay and exact-probability simulator identifiability only. Finite-shot and hardware deployability remain Step 4.",
+  "source_example_count": 280
+}

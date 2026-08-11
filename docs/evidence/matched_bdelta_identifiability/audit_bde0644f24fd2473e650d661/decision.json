@@ -1,0 +1,32 @@
+{
+  "audit_id": "audit_bde0644f24fd2473e650d661",
+  "bad_eligible_strata": [],
+  "classifier_trained": false,
+  "counterfactual_count": 534,
+  "deduplicated_context_count": 178,
+  "different_phenotype_pair_count": 392,
+  "different_phenotype_strong_fraction": 1.0,
+  "different_phenotype_strong_fraction_ci95": [
+    1.0,
+    1.0
+  ],
+  "eligible_stratum_count": 19,
+  "historical_v0_1_test_accessed": false,
+  "negligible_counterfactual_fraction": 0.018726591760299626,
+  "negligible_counterfactual_fraction_ci95": [
+    0.00749063670411985,
+    0.031835205992509365
+  ],
+  "numerical_collision_fraction": 0.0,
+  "overall_strong_pair_fraction": 1.0,
+  "overall_strong_pair_fraction_ci95": [
+    1.0,
+    1.0
+  ],
+  "pair_count": 534,
+  "schema": "triqto.v0_2.matched_bdelta_replay_identifiability_audit_result.v1",
+  "severe_nonidentifiable_strata": [],
+  "source_example_count": 280,
+  "spent_confirmatory_cohort_accessed": false,
+  "status": "IDENTIFIABLE"
+}
