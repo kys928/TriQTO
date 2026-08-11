@@ -163,3 +163,48 @@ def test_500_root_family_cycle_meets_frozen_minimum() -> None:
     assert min(counts.values()) >= CONFIG["stage_validation"][
         "minimum_family_root_count_at_500_stage"
     ]
+
+
+def test_small_end_to_end_publication_is_pickle_free_and_group_safe(
+    tmp_path: Path, monkeypatch
+) -> None:
+    config = json.loads(json.dumps(CONFIG))
+    config["stage_progression"]["allowed_root_counts"] = [5]
+    config["stage_progression"]["first_stage_root_count"] = 5
+    config_path = tmp_path / "step5_smoke_config.json"
+    config_path.write_text(json.dumps(config), encoding="utf-8")
+    output_parent = tmp_path / "products"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            str(SCRIPT),
+            "--config",
+            str(config_path),
+            "--output-parent",
+            str(output_parent),
+            "--clean-circuit-roots",
+            "5",
+            "--progress-every",
+            "0",
+        ],
+    )
+    MODULE.main()
+
+    pointer = json.loads((output_parent / "current_product.json").read_text(encoding="utf-8"))
+    product = Path(pointer["product_dir"])
+    completion = json.loads((product / "dataset_complete.json").read_text(encoding="utf-8"))
+    validation = json.loads((product / "stage_validation.json").read_text(encoding="utf-8"))
+    assert completion["status"] == "COMPLETE"
+    assert completion["clean_circuit_root_count"] == 5
+    assert completion["example_count"] == 65
+    assert completion["statevectors_persisted_in_example_artifacts"] is False
+    assert validation["clean_group_cross_split_count"] == 0
+    assert validation["clean_control_count"] == 5
+
+    artifacts = sorted((product / "artifacts").rglob("*.npz"))
+    assert len(artifacts) == 65
+    with np.load(artifacts[0], allow_pickle=False) as loaded:
+        assert all("statevector" not in key for key in loaded.files)
+        assert "x__delta_pairwise_correlations" in loaded.files
+        assert "y__mechanism_loss_mask" in loaded.files
