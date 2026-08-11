@@ -1,0 +1,173 @@
+{
+  "bad_strata": [
+    {
+      "coarse_label": "amplitude_like",
+      "expected_sign_concordance": 0.7192982456140351,
+      "mean_phase_component": 0.00025477204422439867,
+      "mean_population_component": 0.0007678036328456412,
+      "mean_total_overlap_loss": 0.00102257567707004,
+      "mean_tv_x": 1.247823954944889e-16,
+      "mean_tv_y": 0.016068114133442564,
+      "mean_tv_z": 0.01387978727353193,
+      "median_dominance_log_ratio": -1.849373904337086,
+      "n": 70,
+      "n_resolved": 57,
+      "negligible_fraction": 0.18571428571428572,
+      "stratum_type": "raw_label",
+      "stratum_value": "rx_overrotation",
+      "strong_dominance_concordance": 0.6140350877192983
+    },
+    {
+      "coarse_label": "amplitude_like",
+      "expected_sign_concordance": 0.5925925925925926,
+      "mean_phase_component": 0.0006820258896296063,
+      "mean_population_component": 0.0007017412592391842,
+      "mean_total_overlap_loss": 0.0013837671488687905,
+      "mean_tv_x": 0.013712664064407586,
+      "mean_tv_y": 0.01656249446581741,
+      "mean_tv_z": 0.020067542371313276,
+      "median_dominance_log_ratio": -0.24544092672466003,
+      "n": 27,
+      "n_resolved": 27,
+      "negligible_fraction": 0.0,
+      "stratum_type": "family",
+      "stratum_value": "hardware_efficient_ansatz",
+      "strong_dominance_concordance": 0.3333333333333333
+    },
+    {
+      "coarse_label": "amplitude_like",
+      "expected_sign_concordance": 0.6818181818181818,
+      "mean_phase_component": 0.0002266283539941839,
+      "mean_population_component": 0.0007974077524755086,
+      "mean_total_overlap_loss": 0.0010240361064696925,
+      "mean_tv_x": 0.001219633306615251,
+      "mean_tv_y": 0.011686515002334107,
+      "mean_tv_z": 0.029602719385132936,
+      "median_dominance_log_ratio": -0.8718294133933358,
+      "n": 22,
+      "n_resolved": 22,
+      "negligible_fraction": 0.0,
+      "stratum_type": "family",
+      "stratum_value": "qaoa_like",
+      "strong_dominance_concordance": 0.5454545454545454
+    },
+    {
+      "coarse_label": "amplitude_like",
+      "expected_sign_concordance": 0.7428571428571429,
+      "mean_phase_component": 0.0001290784424886672,
+      "mean_population_component": 0.0008407506483528954,
+      "mean_total_overlap_loss": 0.0009698290908415626,
+      "mean_tv_x": 0.003703522962466527,
+      "mean_tv_y": 0.01006714314380348,
+      "mean_tv_z": 0.021840839528114185,
+      "median_dominance_log_ratio": -2.906618895036801,
+      "n": 39,
+      "n_resolved": 35,
+      "negligible_fraction": 0.10256410256410253,
+      "stratum_type": "n_qubits",
+      "stratum_value": "6",
+      "strong_dominance_concordance": 0.7142857142857143
+    },
+    {
+      "coarse_label": "amplitude_like",
+      "expected_sign_concordance": 0.7241379310344828,
+      "mean_phase_component": 0.00047131094171262234,
+      "mean_population_component": 0.0009263859124201824,
+      "mean_total_overlap_loss": 0.0013976968541328048,
+      "mean_tv_x": 0.0064291258937944525,
+      "mean_tv_y": 0.012193263738214544,
+      "mean_tv_z": 0.021348596175093073,
+      "median_dominance_log_ratio": -1.0922323002262513,
+      "n": 29,
+      "n_resolved": 29,
+      "negligible_fraction": 0.0,
+      "stratum_type": "n_qubits",
+      "stratum_value": "8",
+      "strong_dominance_concordance": 0.5862068965517241
+    },
+    {
+      "coarse_label": "amplitude_like",
+      "expected_sign_concordance": 0.796875,
+      "mean_phase_component": 4.3659173707259334e-05,
+      "mean_population_component": 0.00020210165115773016,
+      "mean_total_overlap_loss": 0.00024576082486498635,
+      "mean_tv_x": 0.0033984424474449615,
+      "mean_tv_y": 0.00353474806156584,
+      "mean_tv_z": 0.01010774337046156,
+      "median_dominance_log_ratio": -3.940659806492905,
+      "n": 71,
+      "n_resolved": 64,
+      "negligible_fraction": 0.09859154929577463,
+      "stratum_type": "strength_key",
+      "stratum_value": "0.05",
+      "strong_dominance_concordance": 0.71875
+    }
+  ],
+  "bad_strata_count": 6,
+  "bootstrap_95_ci": {
+    "amplitude_like": {
+      "expected_sign_concordance": {
+        "high": 0.867213238856589,
+        "low": 0.7338312801625604
+      },
+      "median_dominance_log_ratio": {
+        "high": -1.9194247447593205,
+        "low": -5.415655863208879
+      }
+    },
+    "phase_like": {
+      "expected_sign_concordance": {
+        "high": 1.0,
+        "low": 1.0
+      },
+      "median_dominance_log_ratio": {
+        "high": 21.071650667394476,
+        "low": 19.560062946735457
+      }
+    }
+  },
+  "coarse_labels_are_not_rewritten_by_this_audit": true,
+  "development_only": true,
+  "eligible_strata_count": 27,
+  "historical_v0_1_test_accessed": false,
+  "interpretation": "The coarse phenotype names are directionally meaningful overall but depend materially on circuit/state context; mechanism and phenomenology should not be conflated.",
+  "overall": {
+    "amplitude_like": {
+      "coarse_label": "amplitude_like",
+      "expected_sign_concordance": 0.8031496062992126,
+      "mean_phase_component": 0.0002314047562108195,
+      "mean_population_component": 0.0009362810082501664,
+      "mean_total_overlap_loss": 0.0011676857644609842,
+      "mean_tv_x": 0.006150068562539126,
+      "mean_tv_y": 0.008034057066721355,
+      "mean_tv_z": 0.01991752268731315,
+      "median_dominance_log_ratio": -3.3807250060279097,
+      "n": 140,
+      "n_resolved": 127,
+      "negligible_fraction": 0.09285714285714286,
+      "stratum_type": "overall",
+      "stratum_value": "ALL",
+      "strong_dominance_concordance": 0.7244094488188977
+    },
+    "phase_like": {
+      "coarse_label": "phase_like",
+      "expected_sign_concordance": 1.0,
+      "mean_phase_component": 0.0012895323012472187,
+      "mean_population_component": 1.1102230246251566e-17,
+      "mean_total_overlap_loss": 0.0012895323012472283,
+      "mean_tv_x": 0.0133747228396613,
+      "mean_tv_y": 0.02525456111259097,
+      "mean_tv_z": 1.6461669721260355e-16,
+      "median_dominance_log_ratio": 19.560062946736167,
+      "n": 140,
+      "n_resolved": 138,
+      "negligible_fraction": 0.014285714285714235,
+      "stratum_type": "overall",
+      "stratum_value": "ALL",
+      "strong_dominance_concordance": 1.0
+    }
+  },
+  "schema": "triqto.v0_2.phase_amplitude_label_semantics_audit_result.v1",
+  "source_product": "/workspace/triqto-data/phase15_6_pilot_v2/data/v0_2_phase_amplitude_identifiability_pilot/pilot_b446f1ff046ebbc1448d",
+  "status": "CONTEXT_DEPENDENT"
+}
