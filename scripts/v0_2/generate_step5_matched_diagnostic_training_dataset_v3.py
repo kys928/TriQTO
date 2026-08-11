@@ -228,7 +228,7 @@ def main() -> None:
         print(f"Family/split Cramer's V: {validation['family_split_cramers_v']:.6f}\nDepth/strength Cramer's V: {validation['depth_strength_cramers_v']:.6f}")
         print(f"Shot/strength Cramer's V: {validation['shot_strength_cramers_v']:.6f}\nShot/depth Cramer's V: {validation['shot_depth_cramers_v']:.6f}\nClean-shot/family Cramer's V: {validation['clean_shot_family_cramers_v']:.6f}")
         print(f"3q train/validation clean roots: {validation['three_qubit_train_root_count']}/{validation['three_qubit_validation_root_count']}")
-        print(f"Product: {product_root}\nNext required gate: full-artifact EDA must return PROMOTION_READY before 1000 roots.")
+        print(f"Product: {product_root}\nNext required gate: full-artifact EDA must return PROMOTION_READY before the next stage.")
     except Exception:
         import shutil
         if staging.exists(): shutil.rmtree(staging,ignore_errors=True)
