@@ -26,6 +26,7 @@ def make_product(root: Path, root_count: int, mutate: bool = False) -> None:
             {
                 "schema": SCHEMA,
                 "status": "COMPLETE",
+                "product_id": f"product-{root_count}",
                 "clean_circuit_root_count": root_count,
             }
         ),
@@ -60,7 +61,7 @@ def make_product(root: Path, root_count: int, mutate: bool = False) -> None:
     write_csv(root / "manifests/example_manifest.csv", examples)
 
 
-def run(previous: Path, current: Path) -> subprocess.CompletedProcess[str]:
+def run(previous: Path, current: Path, output: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [
             sys.executable,
@@ -69,6 +70,8 @@ def run(previous: Path, current: Path) -> subprocess.CompletedProcess[str]:
             str(previous),
             "--current-product-dir",
             str(current),
+            "--output",
+            str(output),
         ],
         text=True,
         capture_output=True,
@@ -79,19 +82,29 @@ def run(previous: Path, current: Path) -> subprocess.CompletedProcess[str]:
 def test_accepts_exact_nested_product(tmp_path: Path) -> None:
     previous = tmp_path / "previous"
     current = tmp_path / "current"
+    output = tmp_path / "nesting.json"
     make_product(previous, 2)
     make_product(current, 4)
-    result = run(previous, current)
+    result = run(previous, current, output)
     assert result.returncode == 0, result.stdout + result.stderr
     assert "Decision: NESTING_VALID" in result.stdout
+    evidence = json.loads(output.read_text(encoding="utf-8"))
+    assert evidence["decision"] == "NESTING_VALID"
+    assert evidence["previous_product_id"] == "product-2"
+    assert evidence["current_product_id"] == "product-4"
+    assert evidence["artifact_hash_mismatch_count"] == 0
 
 
 def test_rejects_changed_prior_artifact(tmp_path: Path) -> None:
     previous = tmp_path / "previous"
     current = tmp_path / "current"
+    output = tmp_path / "nesting.json"
     make_product(previous, 2)
     make_product(current, 4, mutate=True)
-    result = run(previous, current)
+    result = run(previous, current, output)
     assert result.returncode != 0
     assert "Decision: BLOCKED" in result.stdout
     assert "Artifact-hash mismatches: 1" in result.stdout
+    evidence = json.loads(output.read_text(encoding="utf-8"))
+    assert evidence["decision"] == "BLOCKED"
+    assert evidence["artifact_hash_mismatch_count"] == 1
