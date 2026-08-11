@@ -80,9 +80,11 @@ The matched counterfactual phenotype counts reinforce Step 2's separation betwee
 
 Thus the mechanism is strongly identifiable in exact Z/X/Y relational evidence even when RX/RY final-state phenomenology is mixed or phase-dominant.
 
-### Scope limit
+### Scope limits
 
 All 178 matched contexts fall in the `late_75_100` insertion-depth bin because the audited distortion is the last unitary operation before terminal measurement. Therefore Step 3 establishes exact-simulator identifiability for this **terminal-unitary perturbation regime**. It does not establish identifiability for perturbations inserted earlier in a circuit and propagated through a nontrivial unitary suffix.
+
+The archived stratification also contains only `affected_qubit_signature = 0`. Therefore the result does not yet establish that the same mechanism separation holds when the otherwise matched perturbation acts on arbitrary qubit positions.
 
 It also does not establish finite-shot detectability, noisy-backend robustness, or hardware deployability. Those are explicitly deferred to Step 4.
 
