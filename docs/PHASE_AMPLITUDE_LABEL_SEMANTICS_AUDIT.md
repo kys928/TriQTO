@@ -84,6 +84,23 @@ The first run intentionally targets the existing 280-example phase/amplitude dev
 
 The 160-example confirmatory cohort is now `SPENT_CONFIRMATORY` and may be used for postmortem work, but it must not be silently treated as untouched evidence. If its full exact-state provenance is later included in this audit, that inclusion must be explicitly documented as previously observed confirmatory data. No regeneration should be silently substituted for the original holdout artifact.
 
+## Observed Step 2 result
+
+Audit `audit_f84fb9da972f2c6e071bf40c` completed with frozen decision `CONTEXT_DEPENDENT`.
+
+- `phase_like`: expected-sign concordance `1.0000`, 95% group-bootstrap CI `[1.0000, 1.0000]`, median dominance log-ratio `+19.5601`, negligible fraction `0.0143`.
+- `amplitude_like`: expected-sign concordance `0.8031`, 95% group-bootstrap CI `[0.7338, 0.8672]`, median dominance log-ratio `-3.3807`, negligible fraction `0.0929`.
+- six adequately populated context strata failed the frozen stable criterion: RX overrotation, hardware-efficient ansatz, QAOA-like, 6 qubits, 8 qubits, and strength `0.05`.
+- the historical v0.1 test was not accessed, no classifier was trained, and no labels were rewritten.
+
+The archived result summary and hash-bound evidence live under:
+
+`docs/evidence/phase_amplitude_label_semantics/audit_f84fb9da972f2c6e071bf40c/`
+
+The development conclusion is that mechanism identity and observed phenomenology must not be conflated. The tested RZ-drift cohort is highly phase-dominant under this generator, whereas RX/RY overrotation is only directionally population-dominant overall and becomes mixed, phase-dominant, or negligible in material circuit/state contexts.
+
+The perfect RZ result is specific to the tested injection protocol until the exact insertion/propagation policy is explicitly checked; it must not be generalized to arbitrary in-circuit RZ errors.
+
 ## Run on the pod
 
 After checking out this branch:
