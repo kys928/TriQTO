@@ -1,0 +1,108 @@
+{
+  "schema": "triqto.v0_2.generalized_bdelta_identifiability_audit.v1",
+  "status": "FROZEN_DEVELOPMENT_AUDIT",
+  "purpose": "Test whether the matched B_delta identifiability result survives removal of the fixed-q0 and terminal-unitary shortcuts before any TriQTO diagnostic training dataset is approved.",
+  "source": {
+    "product_pointer": "/workspace/triqto-data/phase15_6_pilot_v2/data/v0_2_phase_amplitude_identifiability_pilot/current_product.json",
+    "allowed_splits": ["train", "validation"],
+    "expected_source_examples": 280,
+    "historical_v0_1_test_access": false,
+    "spent_confirmatory_cohort_access": false,
+    "require_all_source_examples_exact_replay_valid": true
+  },
+  "clean_circuit_reconstruction": {
+    "remove_original_audited_distortion_gate": true,
+    "exclude_terminal_measurement_markers": true,
+    "exclude_barriers_from_unitary_depth": true,
+    "deduplicate_by_clean_unitary_sequence": true,
+    "state_overlap_loss_max": 1e-9,
+    "aligned_amplitude_max_abs_error_max": 1e-8
+  },
+  "generalized_factorial": {
+    "affected_qubit_policy": "ALL_QUBITS",
+    "depth_target_fractions": [0.25, 0.5, 0.75, 1.0],
+    "depth_boundary_rule": "ceil(target_fraction * clean_unitary_event_count), clipped to [1,N], then deduplicate repeated boundaries",
+    "depth_bin_rule": "terminal if boundary=N; otherwise early if fraction<=0.34, middle if fraction<=0.67, late otherwise",
+    "strengths": [0.05, 0.15],
+    "mechanisms": ["rz_drift", "rx_overrotation", "ry_overrotation"],
+    "match_on": ["clean_unitary_sequence", "affected_qubit", "insertion_boundary_rank", "strength"],
+    "minimum_distinct_depth_boundaries_per_clean_circuit": 1
+  },
+  "evidence_contract": {
+    "name": "B_delta_generalized_ZXY_exact",
+    "uses_clean_reference": true,
+    "probability_blocks": ["delta_p_Z", "delta_p_X", "delta_p_Y"],
+    "expectation_blocks": ["delta_expectation_Z", "delta_expectation_X", "delta_expectation_Y"],
+    "privileged_state_information_in_evidence": false,
+    "statevectors_used_only_for_counterfactual_generation_and_phenomenology_ground_truth": true
+  },
+  "phenomenology": {
+    "epsilon": 1e-12,
+    "negligible_overlap_loss_floor": 1e-8,
+    "strong_dominance_ratio": 2.0,
+    "continuous_targets": ["population_component", "phase_component", "dominance_log_ratio", "total_overlap_loss"],
+    "descriptive_categories": ["phase_dominant", "mixed", "population_dominant", "negligible"]
+  },
+  "pairwise_identifiability": {
+    "pair_types": ["rz_vs_rx", "rz_vs_ry", "rx_vs_ry"],
+    "separation_score": "mean(TV_X, TV_Y, TV_Z, 0.5*RMS_dExpectation_X, 0.5*RMS_dExpectation_Y, 0.5*RMS_dExpectation_Z)",
+    "relative_separation": "2*pair_separation/(signal_score_left+signal_score_right+epsilon)",
+    "numerical_collision_score_max": 1e-10,
+    "minimum_raw_separation": 1e-6,
+    "minimum_relative_separation": 0.25,
+    "strong_pair_definition": "pair_separation >= minimum_raw_separation and relative_separation >= minimum_relative_separation"
+  },
+  "decision_policy": {
+    "minimum_eligible_stratum_pairs": 12,
+    "bootstrap_repeats": 2000,
+    "bootstrap_seed": 20260811,
+    "IDENTIFIABLE": {
+      "overall_strong_pair_fraction_min": 0.90,
+      "eligible_stratum_strong_pair_fraction_min": 0.80,
+      "different_phenotype_pair_strong_fraction_min": 0.90,
+      "negligible_counterfactual_fraction_max": 0.10,
+      "numerical_collision_fraction_max": 0.01
+    },
+    "CONTEXT_DEPENDENT": {
+      "overall_strong_pair_fraction_min": 0.70,
+      "different_phenotype_pair_strong_fraction_min": 0.70
+    },
+    "NON_IDENTIFIABLE_REGIMES": {
+      "overall_strong_pair_fraction_below": 0.70,
+      "eligible_stratum_strong_pair_fraction_below": 0.50,
+      "numerical_collision_fraction_above": 0.05
+    },
+    "INSUFFICIENT_EFFECT": {
+      "negligible_counterfactual_fraction_above": 0.15
+    },
+    "priority_order": ["INSUFFICIENT_EFFECT", "NON_IDENTIFIABLE_REGIMES", "IDENTIFIABLE", "CONTEXT_DEPENDENT"]
+  },
+  "shortcut_removal_gate": {
+    "minimum_subset_pairs": 100,
+    "nonterminal_strong_pair_fraction_min": 0.90,
+    "non_q0_strong_pair_fraction_min": 0.90,
+    "nonterminal_non_q0_strong_pair_fraction_min": 0.90,
+    "policy": "A base IDENTIFIABLE decision is downgraded to CONTEXT_DEPENDENT if any shortcut-removal subset with sufficient pairs fails its frozen minimum."
+  },
+  "stratification": [
+    "pair_type",
+    "family",
+    "n_qubits",
+    "strength_key",
+    "phase_sensitive_family",
+    "affected_qubit_signature",
+    "qubit_position_class",
+    "insertion_depth_bin",
+    "terminal_insertion",
+    "pair_type_x_depth"
+  ],
+  "scientific_boundaries": [
+    "This is a development identifiability audit, not a confirmatory claim.",
+    "No classifier is trained and no TriQTO architecture is changed.",
+    "The historical v0.1 test and spent Phase 15.6 confirmatory cohort are not accessed.",
+    "All available qubits are tested rather than randomly sampling a potentially favorable affected qubit.",
+    "Repeated depth targets that map to the same physical boundary in short circuits are deduplicated and never counted twice.",
+    "Bootstrap grouping is by underlying clean circuit, not by derived qubit/depth/strength context.",
+    "Exact-probability simulator identifiability does not establish finite-shot or hardware deployability."
+  ]
+}
