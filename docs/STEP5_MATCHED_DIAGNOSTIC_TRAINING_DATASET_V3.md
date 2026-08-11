@@ -1,56 +1,85 @@
 # Step 5 v3 — matched diagnostic training dataset
 
-Step 5 v3 is the second regeneration of the 500-root training-data gate.
+Step 5 v3 is the accepted staged data-generation contract for the first serious TriQTO diagnostic training cohort.
 
-V1 was rejected for family/split aliasing and perfect depth/strength confounding. V2 repaired both and added 3-qubit circuits, but the full-artifact EDA found a remaining acquisition/context alias because the same `root_index + context_index` modular schedule controlled both shot count and hidden affected qubit.
+The staged progression is based on **independent clean-circuit roots**, not derived perturbation examples:
 
-## V3 changes only scheduling
+`500 -> 1000 -> 2000 -> 5000`
 
-All successful V2 contracts remain unchanged:
+Each larger stage must satisfy two gates before promotion:
 
-- within-family nested 80/20 train/validation split;
-- 2q/3q/4q/6q/8q variable-size clean circuits;
-- four early/middle/late/terminal contexts per root;
-- deconfounded 0.05/0.15 strength schedule;
-- matched RZ/RX/RY mechanisms;
-- one clean control per root;
-- Step 4.1 local + same-basis pairwise + global-parity finite-shot `B_delta` core;
-- hidden perturbation absent from graph input;
-- simulator state and phenomenology remain target/audit only.
+1. the full-artifact EDA and scheduling-alias audit returns `PROMOTION_READY`;
+2. the stage-nesting audit proves the entire previous accepted cohort is preserved exactly (`NESTING_VALID`).
 
-V3 independently schedules:
+## History
 
-1. affected qubits from a root-specific deterministic permutation cycle;
-2. intervention shot counts from a separate root-specific deterministic permutation of 512/1024/2048/4096;
-3. clean-control shot counts by within-family occurrence modulo four.
+- v1 500-root candidate: rejected after full EDA found family/split aliasing and perfect depth/strength confounding.
+- v2 500-root candidate: repaired v1 and added 3q, but rejected after deeper EDA found shot-count aliasing with affected-qubit context.
+- v3 500-root candidate: accepted.
+- v3 1000-root candidate: accepted and exactly nested over 500.
+- v3 2000-root candidate: accepted and exactly nested over 1000.
+- v3 5000-root candidate: final Step 5 stage; not yet accepted.
 
-The schedule is deterministic and reproducible, but the independent namespaces prevent acquisition metadata from encoding hidden perturbation location.
+## Current accepted gates
 
-## Frozen association gates
+### 500 roots
 
-The 500-root product refuses publication if:
+Product: `product_85a26bf36d9ed1769b6a5e23`
 
-- shots/strength Cramer's V > 0.10;
-- shots/depth Cramer's V > 0.10;
-- shots/family or shots/split Cramer's V > 0.05;
-- clean-control shots/family or shots/split Cramer's V > 0.10;
-- within any qubit-count stratum, shots/affected-qubit, strength/affected-qubit or depth/affected-qubit Cramer's V > 0.25;
-- any root lacks one of the four intervention shot levels.
+EDA: `audit_3ac00c9b31d1be6c54d7b852`
 
-These gates are in addition to all V2 family/split, depth/strength, 3q, leakage, graph, target and artifact-integrity gates.
+Decision: `PROMOTION_READY`.
 
-## Run
+### 1000 roots
 
-```bash
-PYTHONPATH=/workspace/triqto/src \
-pytest -q tests/test_step5_matched_diagnostic_training_dataset_v3.py
+Product: `product_7fef7da30ee7710d189ed27d`
 
-PYTHONPATH=/workspace/triqto/src \
-python -u scripts/v0_2/generate_step5_matched_diagnostic_training_dataset_v3.py \
-  --clean-circuit-roots 500
+EDA: `audit_9473903073b1ded46f174e4f`
 
-PYTHONPATH=/workspace/triqto/src \
-python -u scripts/v0_2/audit_step5_training_dataset_eda_v3.py
-```
+Decisions: `PROMOTION_READY` + `NESTING_VALID` against the accepted 500-root product.
 
-The 1,000-root stage and Step 6 baselines remain locked until the v3 full-artifact audit returns `PROMOTION_READY`.
+### 2000 roots
+
+Product: `product_502097524aa54c78800fb459`
+
+EDA: `audit_8a20d67048326db847149401`
+
+Decisions: `PROMOTION_READY` + `NESTING_VALID` against the accepted 1000-root product.
+
+The final 5000-root stage is therefore unlocked.
+
+## Core input contract
+
+Primary deployable inputs remain:
+
+- intended/reference clean circuit graph;
+- signed local X/Y/Z expectation deltas;
+- signed same-basis pairwise XX/YY/ZZ correlation deltas;
+- signed global X/Y/Z parity deltas;
+- basis identity;
+- observed/reference shot counts;
+- reference availability/kind;
+- neutral layout/backend metadata.
+
+The hidden injected RZ/RX/RY mechanism never appears in the graph input or deployable metadata. Raw semantic reference-window IDs remain audit/meta-only. Statevectors and privileged exact simulator quantities remain target/audit-only.
+
+## Supervision contract
+
+Targets include:
+
+- effect present / negligible;
+- mechanism RZ/RX/RY;
+- phenomenology phase-dominant / population-dominant / mixed / negligible;
+- privileged continuous state-derived audit targets.
+
+For injected-but-negligible interventions, `mechanism_loss_mask = false` so the model is not trained to hallucinate a mechanism from essentially null evidence.
+
+## Final Step 5 closeout
+
+The 5000-root cohort must pass:
+
+- scheduling-alias gates;
+- full-artifact EDA = `PROMOTION_READY`;
+- exact 2000 -> 5000 nesting = `NESTING_VALID`.
+
+Only then should Step 5 be closed and Step 6 cheap baselines begin.
