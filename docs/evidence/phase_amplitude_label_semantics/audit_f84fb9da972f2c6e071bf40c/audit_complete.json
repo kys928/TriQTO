@@ -1,0 +1,20 @@
+{
+  "audit_id": "audit_f84fb9da972f2c6e071bf40c",
+  "classifier_trained": false,
+  "completed_at_utc": "2026-08-11T08:10:18.122962+00:00",
+  "config_sha256": "sha256:f0bf12c2338ec8cee168ef62d2dd73282e670630e571132eb0f88dc1acbcecd0",
+  "decision_sha256": "sha256:cd90fbcb87bc4aaa8255e7e40fec58110fe9e58a98e82d9549da3ceac55afb02",
+  "decision_status": "CONTEXT_DEPENDENT",
+  "example_metrics_sha256": "sha256:82c73e41b2410b976df9b8d306026707d1c6a85bc42128e47e88519ca18c9be2",
+  "historical_v0_1_test_accessed": false,
+  "labels_changed": false,
+  "maximum_decomposition_closure_error": 2.220446049250313e-16,
+  "schema": "triqto.v0_2.phase_amplitude_label_semantics_audit_result.v1",
+  "source_generation_complete_sha256": "sha256:8ec933249923083b1b392ed3bb9f47253994362cf9836b015acb0f58f8ddd034",
+  "source_manifest_count": 280,
+  "source_manifest_sha256": "sha256:d5dc1d2786d853982fb909123391818b3209995c72560d76d0ab89425bc3c4d5",
+  "source_product": "/workspace/triqto-data/phase15_6_pilot_v2/data/v0_2_phase_amplitude_identifiability_pilot/pilot_b446f1ff046ebbc1448d",
+  "source_product_modified": false,
+  "status": "AUDIT_COMPLETE",
+  "stratified_metrics_sha256": "sha256:bd906bbe44a4be2f3764fe6d693798b01f106ea6fc093b6366bcabbbf9ce6d4a"
+}
