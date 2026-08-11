@@ -1,0 +1,234 @@
+{
+  "schema": "triqto.v0_2.step5_matched_diagnostic_training_dataset.v2",
+  "status": "FROZEN_AFTER_V1_EDA_BEFORE_V2_OUTCOME",
+  "purpose": "Regenerate the first real TriQTO diagnostic training cohorts after the 500-root v1 EDA exposed deterministic family/split aliasing and perfect depth/strength confounding. Preserve the Step 4.1 hardware-valid correlation core while adding 3-qubit clean circuits and stronger self-auditing gates.",
+  "rejected_v1": {
+    "product_id": "product_bb5cbdcd33a591f2f8c97b7c",
+    "decision": "REJECT_FOR_TRAINING_REGENERATE_V2",
+    "reasons": [
+      "family_split_aliasing",
+      "depth_strength_perfect_confound"
+    ],
+    "evidence_doc": "docs/evidence/step5_500_v1_rejected/EDA_SUMMARY.md"
+  },
+  "stage_progression": {
+    "unit": "independent_clean_circuit_roots",
+    "allowed_root_counts": [500, 1000, 2000, 5000],
+    "first_stage_root_count": 500,
+    "nested_root_identity": true,
+    "claim_boundary": "Derived perturbation examples do not count as independent clean-circuit roots. Promotion to the next root count requires the full-artifact EDA gate on the current stage."
+  },
+  "independence_and_splits": {
+    "split_unit": "clean_circuit_group_id",
+    "strategy": "within_family_occurrence_mod_5",
+    "family_occurrence_index_is_zero_based": true,
+    "validation_residue": 0,
+    "modulus": 5,
+    "expected_train_fraction": 0.8,
+    "expected_validation_fraction": 0.2,
+    "require_each_family_in_both_splits": true,
+    "require_exact_family_validation_fraction_at_allowed_stages": true,
+    "test_split_created": false,
+    "historical_v0_1_test_access": false,
+    "spent_confirmatory_cohort_access": false,
+    "all_derivatives_of_one_clean_root_must_share_split": true
+  },
+  "clean_circuit_generation": {
+    "base_seed": 20260811,
+    "qubit_choices": [2, 3, 4, 6, 8],
+    "family_cycle": [
+      "bell_like",
+      "ghz",
+      "ghz",
+      "ghz",
+      "hardware_efficient_ansatz",
+      "hardware_efficient_ansatz",
+      "hardware_efficient_ansatz",
+      "phase_interference",
+      "phase_interference",
+      "phase_interference",
+      "qaoa_like",
+      "qaoa_like",
+      "qaoa_like",
+      "qft_like",
+      "qft_like",
+      "qft_like",
+      "random_shallow",
+      "random_shallow",
+      "random_shallow",
+      "random_shallow"
+    ],
+    "bell_like_forces_two_qubits": true,
+    "clean_unitary_sequence_must_be_unique": true,
+    "minimum_unitary_events": 4,
+    "three_qubit_coverage_required": true
+  },
+  "matched_intervention_design": {
+    "contexts_per_clean_root": 4,
+    "depth_target_fractions": [0.25, 0.5, 0.75, 1.0],
+    "depth_boundary_rule": "ceil(target_fraction * clean_unitary_event_count), clipped to [1,N]",
+    "affected_qubit_rule": "(root_index + context_index) mod n_qubits",
+    "strength_values": [0.05, 0.15],
+    "strength_schedule_policy": "alternate_by_within_family_occurrence_parity",
+    "even_family_occurrence_schedule": [0.05, 0.15, 0.05, 0.15],
+    "odd_family_occurrence_schedule": [0.15, 0.05, 0.15, 0.05],
+    "mechanisms": ["rz_drift", "rx_overrotation", "ry_overrotation"],
+    "matched_on": ["clean_circuit_group_id", "affected_qubit", "insertion_boundary_rank", "strength", "reference_sample"],
+    "clean_controls_per_root": 1,
+    "hidden_intervention_gate_must_not_appear_in_graph_input": true,
+    "graph_input_semantics": "The deployable graph input is the intended/reference clean circuit. The injected mechanism exists only in simulator execution used to produce observed evidence and targets."
+  },
+  "finite_shot_acquisition": {
+    "primary_input_is_empirical_finite_shot": true,
+    "shots_cycle": [512, 1024, 2048, 4096],
+    "observed_and_reference_shots_equal_within_example": true,
+    "basis_codes": {"Z": 0, "X": 1, "Y": 2},
+    "basis_order": ["Z", "X", "Y"],
+    "reference_kind": "paired_hardware_compatible_reference",
+    "simulation_backend_identity": "step5_paired_reference_simulator_emulation_v2",
+    "physical_layout_policy": "identity_logical_to_physical",
+    "reference_sampling_policy": "one independently sampled reference bundle is shared by the three matched mechanisms within a context",
+    "clean_control_policy": "observed and reference are independent finite-shot samples from the same clean state",
+    "exact_probabilities_are_audit_only": true,
+    "raw_reference_window_identifier_role": "META_AUDIT_ONLY_NEVER_MODEL_INPUT",
+    "future_model_facing_reference_timing_features": [
+      "reference_age_seconds",
+      "observed_reference_time_delta_seconds",
+      "same_calibration_window_flag"
+    ]
+  },
+  "deployable_diagnostic_input": {
+    "selected_step4_1_variant": "local_plus_pairwise_plus_global_parity",
+    "basiswise_blocks": [
+      "signed_delta_local_expectations",
+      "signed_delta_same_basis_pairwise_correlations",
+      "signed_delta_global_parity"
+    ],
+    "output_scaling": "O(n^2)",
+    "same_shot_sets_supply_all_blocks": true,
+    "additional_basis_programs_beyond_paired_ZXY": 0,
+    "dense_full_register_probability_deltas": "OPTIONAL_AUDIT_ONLY_NOT_PRIMARY_INPUT",
+    "required_uncertainty_metadata": [
+      "basis_code",
+      "observed_shots",
+      "reference_shots",
+      "reference_kind",
+      "reference_available_mask"
+    ],
+    "required_hardware_metadata_policy": "Only neutral deployable values may enter x__. Raw semantic IDs such as reference-window strings remain meta/audit only."
+  },
+  "graph_input_contract": {
+    "source": "intended_reference_clean_circuit_only",
+    "gate_names": true,
+    "gate_qubit_ptr_and_indices": true,
+    "gate_parameter_ptr_sin_cos": true,
+    "layout_logical_to_physical": true,
+    "forbid_mechanism_label_in_graph": true,
+    "forbid_affected_qubit_in_deployable_graph_metadata": true,
+    "forbid_insertion_depth_in_deployable_graph_metadata": true,
+    "forbid_strength_in_deployable_graph_metadata": true
+  },
+  "privileged_supervision": {
+    "negligible_overlap_loss_floor": 1e-8,
+    "phenomenology_strong_dominance_ratio": 2.0,
+    "epsilon": 1e-12,
+    "effect_present_target": "total_overlap_loss >= negligible_overlap_loss_floor",
+    "mechanism_codes": {"rz_drift": 0, "rx_overrotation": 1, "ry_overrotation": 2, "clean_control": -1},
+    "mechanism_loss_mask": "true only for non-clean examples with effect_present_target=true",
+    "phenomenology_codes": {
+      "phase_dominant": 0,
+      "mixed": 1,
+      "population_dominant": 2,
+      "negligible": 3,
+      "clean_control": 4
+    },
+    "continuous_targets": [
+      "population_component",
+      "phase_component",
+      "dominance_log_ratio",
+      "total_overlap_loss"
+    ],
+    "statevectors_may_be_used_during_generation": true,
+    "statevectors_persist_in_deployable_example_artifacts": false
+  },
+  "example_artifact_contract": {
+    "format": "compressed_npz_pickle_free",
+    "deployable_prefix": "x__",
+    "target_prefix": "y__",
+    "audit_prefix": "audit__",
+    "identity_prefix": "meta__",
+    "primary_deployable_arrays": [
+      "x__graph_gate_names",
+      "x__graph_gate_qubit_ptr",
+      "x__graph_gate_qubit_indices",
+      "x__graph_gate_parameter_ptr",
+      "x__graph_gate_parameter_sin",
+      "x__graph_gate_parameter_cos",
+      "x__layout_logical_to_physical",
+      "x__diagnostic_basis_codes",
+      "x__delta_local_expectations",
+      "x__pair_indices",
+      "x__delta_pairwise_correlations",
+      "x__delta_global_parity",
+      "x__observed_shots",
+      "x__reference_shots",
+      "x__reference_available_mask",
+      "x__reference_kind_code"
+    ],
+    "primary_targets": [
+      "y__clean_control_target",
+      "y__effect_present_target",
+      "y__mechanism_target",
+      "y__mechanism_loss_mask",
+      "y__phenomenology_target",
+      "y__population_component",
+      "y__phase_component",
+      "y__dominance_log_ratio",
+      "y__total_overlap_loss"
+    ]
+  },
+  "stage_validation": {
+    "expected_examples_per_clean_root": 13,
+    "expected_mechanism_examples_per_clean_root": 12,
+    "expected_clean_controls_per_clean_root": 1,
+    "require_no_clean_group_cross_split": true,
+    "require_every_x_array_non_privileged": true,
+    "require_mechanism_loss_mask_false_for_clean_and_negligible": true,
+    "require_graph_hash_identical_across_root_derivatives": true,
+    "require_finite_diagnostic_values": true,
+    "diagnostic_delta_absolute_bound": 2.0000001,
+    "minimum_family_root_count_at_500_stage": 20,
+    "minimum_each_non_bell_qubit_count_at_500_stage": 45,
+    "minimum_three_qubit_train_roots_at_500_stage": 35,
+    "minimum_three_qubit_validation_roots_at_500_stage": 8,
+    "minimum_each_mechanism_count_at_500_stage": 1500,
+    "require_each_family_in_each_split": true,
+    "require_each_depth_strength_cell_in_each_split": true,
+    "require_each_depth_strength_cell_in_each_family": true,
+    "minimum_strength_share_within_each_depth_split_cell": 0.35,
+    "maximum_family_split_cramers_v": 0.05,
+    "maximum_depth_strength_cramers_v": 0.05
+  },
+  "full_artifact_eda": {
+    "required_before_stage_promotion": true,
+    "audit_script": "scripts/v0_2/audit_step5_training_dataset_eda.py",
+    "require_all_artifact_hashes_match_manifest": true,
+    "require_single_pickle_free_schema": true,
+    "require_manifest_target_identity_match": true,
+    "require_all_primary_diagnostics_finite_and_bounded": true,
+    "report_feature_norms_by_split_family_qubits_mechanism_strength_depth": true,
+    "report_empirical_vs_exact_shot_error_by_shots_and_strength": true,
+    "shot_noise_signal_ratio_is_report_only": true,
+    "promotion_decisions": ["PROMOTION_READY", "BLOCKED"]
+  },
+  "scientific_boundaries": [
+    "Step 5 creates train/validation development cohorts only; it does not touch any historical test or spent confirmatory cohort.",
+    "The 500-root v2 stage is a regenerated dataset-quality gate, not a model-performance claim.",
+    "Finite-shot inputs are simulated empirical measurements; Step 5 does not establish noisy-hardware robustness or calibration robustness.",
+    "The hidden simulator intervention never enters the deployable graph or diagnostic metadata.",
+    "Clean controls are distinct from injected-but-negligible interventions even though both have mechanism_loss_mask=false.",
+    "Raw reference-window identifiers are meta/audit-only and must never enter model features.",
+    "Progression to 1000, 2000 and 5000 roots occurs only after the preceding full-artifact EDA returns PROMOTION_READY.",
+    "Step 6 cheap baselines occur after the staged training dataset is accepted; Step 7 architecture training remains later."
+  ]
+}
