@@ -1,0 +1,98 @@
+{
+  "schema": "triqto.v0_2.matched_bdelta_replay_identifiability_audit.v1",
+  "revision": "v3_measurement_tail_semantics",
+  "status": "FROZEN_DEVELOPMENT_AUDIT",
+  "supersedes_for_execution": "triqto.v0_2.matched_bdelta_replay_identifiability_audit.v1",
+  "supersession_reason": "The v2 replay refused all 280 examples before numerical state comparison because terminal measurement events were treated as unsupported unitary replay gates. v3 preserves every scientific threshold and changes only the replay semantics for terminal readout markers.",
+  "source": {
+    "product_pointer": "/workspace/triqto-data/phase15_6_pilot_v2/data/v0_2_phase_amplitude_identifiability_pilot/current_product.json",
+    "allowed_splits": ["train", "validation"],
+    "expected_source_examples": 280,
+    "historical_v0_1_test_access": false,
+    "spent_confirmatory_cohort_access": false
+  },
+  "replay_contract": {
+    "replace_exact_removed_gate_index": true,
+    "require_single_removed_distortion_gate": true,
+    "require_removed_gate_axis_matches_raw_label": true,
+    "require_removed_gate_single_qubit": true,
+    "require_removed_gate_single_parameter": true,
+    "parameter_recovery": "atan2(stored_sin, stored_cos)",
+    "clean_reference": "replay the archived distorted gate sequence with the audited distortion gate removed and terminal measurement markers excluded from unitary statevector propagation",
+    "distorted_validation": "replay the archived unitary sequence with terminal measurement markers excluded from unitary statevector propagation",
+    "measurement_policy": {
+      "measurement_gate_name": "measure",
+      "measurement_events_are_nonunitary_readout_markers": true,
+      "require_no_unitary_gate_after_first_measurement": true,
+      "require_measurement_gate_single_qubit": true,
+      "require_measurement_gate_zero_parameters": true,
+      "exclude_measurement_events_from_statevector_replay": true,
+      "exclude_measurement_events_from_unitary_insertion_depth": true
+    },
+    "matched_counterfactuals": ["rz_drift", "rx_overrotation", "ry_overrotation"],
+    "match_on": ["clean_unitary_sequence", "insertion_index", "affected_qubit", "exact_archived_rotation_angle"],
+    "state_overlap_loss_max": 1e-9,
+    "aligned_amplitude_max_abs_error_max": 1e-8,
+    "require_all_source_examples_replay_valid": true,
+    "unsupported_unitary_gate_policy": "REFUSE"
+  },
+  "evidence_contract": {
+    "name": "B_delta_matched_ZXY_exact_replay",
+    "uses_clean_reference": true,
+    "probability_blocks": ["delta_p_Z", "delta_p_X", "delta_p_Y"],
+    "expectation_blocks": ["delta_expectation_Z", "delta_expectation_X", "delta_expectation_Y"],
+    "privileged_state_information_in_evidence": false,
+    "statevectors_used_only_for_replay_validation_and_phenomenology_ground_truth": true
+  },
+  "phenomenology": {
+    "epsilon": 1e-12,
+    "negligible_overlap_loss_floor": 1e-8,
+    "strong_dominance_ratio": 2.0,
+    "continuous_targets": ["population_component", "phase_component", "dominance_log_ratio", "total_overlap_loss"],
+    "descriptive_categories": ["phase_dominant", "mixed", "population_dominant", "negligible"]
+  },
+  "pairwise_identifiability": {
+    "pair_types": ["rz_vs_rx", "rz_vs_ry", "rx_vs_ry"],
+    "separation_score": "mean(TV_X, TV_Y, TV_Z, 0.5*RMS_dExpectation_X, 0.5*RMS_dExpectation_Y, 0.5*RMS_dExpectation_Z)",
+    "relative_separation": "2*pair_separation/(signal_score_left+signal_score_right+epsilon)",
+    "numerical_collision_score_max": 1e-10,
+    "minimum_raw_separation": 1e-6,
+    "minimum_relative_separation": 0.25,
+    "strong_pair_definition": "pair_separation >= minimum_raw_separation and relative_separation >= minimum_relative_separation"
+  },
+  "decision_policy": {
+    "minimum_eligible_stratum_pairs": 12,
+    "bootstrap_repeats": 2000,
+    "bootstrap_seed": 20260811,
+    "IDENTIFIABLE": {
+      "overall_strong_pair_fraction_min": 0.90,
+      "eligible_stratum_strong_pair_fraction_min": 0.80,
+      "different_phenotype_pair_strong_fraction_min": 0.90,
+      "negligible_counterfactual_fraction_max": 0.10,
+      "numerical_collision_fraction_max": 0.01
+    },
+    "CONTEXT_DEPENDENT": {
+      "overall_strong_pair_fraction_min": 0.70,
+      "different_phenotype_pair_strong_fraction_min": 0.70
+    },
+    "NON_IDENTIFIABLE_REGIMES": {
+      "overall_strong_pair_fraction_below": 0.70,
+      "eligible_stratum_strong_pair_fraction_below": 0.50,
+      "numerical_collision_fraction_above": 0.05
+    },
+    "INSUFFICIENT_EFFECT": {
+      "negligible_counterfactual_fraction_above": 0.15
+    },
+    "priority_order": ["INSUFFICIENT_EFFECT", "NON_IDENTIFIABLE_REGIMES", "IDENTIFIABLE", "CONTEXT_DEPENDENT"]
+  },
+  "stratification": ["family", "n_qubits", "strength_key", "phase_sensitive_family", "affected_qubit_signature", "pair_type", "insertion_depth_fraction_bin"],
+  "scientific_boundaries": [
+    "This is a development identifiability audit, not a confirmatory claim.",
+    "The v1 graph-event terminal refusal and v2 unsupported-measure refusal remain preserved as historical implementation diagnostics.",
+    "Terminal measurement markers are not treated as post-distortion unitary evolution.",
+    "Mechanism identity and observed phenomenology are evaluated separately.",
+    "No classifier is trained and no model architecture is changed.",
+    "Every replayed source example must reproduce both archived clean and distorted pre-measurement statevectors up to global phase before any matched counterfactual is admitted.",
+    "Exact-probability simulator separation does not establish finite-shot or hardware deployability; that remains Step 4."
+  ]
+}
