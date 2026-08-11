@@ -1,0 +1,13 @@
+{
+  "failure_count": 0,
+  "failure_reasons": {},
+  "max_clean_replay_aligned_max_abs_error": 3.3393655763633256e-16,
+  "max_clean_replay_overlap_loss": 2.220446049250313e-16,
+  "max_distorted_replay_aligned_max_abs_error": 3.3706997905829204e-16,
+  "max_distorted_replay_overlap_loss": 2.220446049250313e-16,
+  "replay_valid_count": 280,
+  "schema": "triqto.v0_2.matched_bdelta_replay_identifiability_audit_result.v1",
+  "scientific_gate": "All archived clean and distorted statevectors must be exactly reproduced up to global phase before matched counterfactual generation.",
+  "source_example_count": 280,
+  "status": "PASS"
+}
