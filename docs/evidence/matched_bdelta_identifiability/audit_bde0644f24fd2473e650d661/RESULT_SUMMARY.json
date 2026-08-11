@@ -64,6 +64,7 @@
     "max_distorted_overlap_loss": 2.220446049250313e-16,
     "valid_count": 280
   },
+  "scope_limit": "All 178 matched contexts are terminal-unitary perturbations followed only by measurement markers; earlier in-circuit perturbations with a nontrivial unitary suffix were not tested.",
   "schema": "triqto.v0_2.matched_bdelta_replay_identifiability_audit_summary.v1",
   "scientific_boundary": "Exact replay and exact-probability simulator identifiability only. Finite-shot and hardware deployability remain Step 4.",
   "source_example_count": 280
