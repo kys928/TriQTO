@@ -1,0 +1,120 @@
+{
+  "affected_qubit_values": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "audit_id": "audit_eec59162a060a951d97b80fe",
+  "bad_eligible_strata": [],
+  "base_status_before_shortcut_gate": "CONTEXT_DEPENDENT",
+  "classifier_trained": false,
+  "counterfactual_count": 20130,
+  "deduplicated_clean_circuit_count": 161,
+  "different_phenotype_pair_count": 15467,
+  "different_phenotype_strong_fraction": 0.9998706924419732,
+  "different_phenotype_strong_fraction_ci95": [
+    0.9995826561618087,
+    1.0
+  ],
+  "eligible_stratum_count": 48,
+  "generalized_matched_context_count": 6710,
+  "historical_v0_1_test_accessed": false,
+  "insertion_depth_bins": [
+    "early",
+    "late",
+    "middle",
+    "terminal"
+  ],
+  "negligible_counterfactual_fraction": 0.10243417784401392,
+  "negligible_counterfactual_fraction_ci95": [
+    0.09556204135402653,
+    0.10985185064171263
+  ],
+  "numerical_collision_fraction": 0.0,
+  "overall_strong_pair_fraction": 0.9986587183308495,
+  "overall_strong_pair_fraction_ci95": [
+    0.9976436994508935,
+    0.9994128052482876
+  ],
+  "pair_count": 20130,
+  "pair_type_summary": {
+    "rx_vs_ry": {
+      "median_pair_separation_score": 0.014294453360787367,
+      "median_relative_separation": 1.6581530423008783,
+      "numerical_collision_fraction": 0.0,
+      "pair_count": 6710,
+      "strong_pair_fraction": 0.9979135618479881
+    },
+    "rz_vs_rx": {
+      "median_pair_separation_score": 0.012754494237150246,
+      "median_relative_separation": 1.8538837566075919,
+      "numerical_collision_fraction": 0.0,
+      "pair_count": 6710,
+      "strong_pair_fraction": 0.9985096870342772
+    },
+    "rz_vs_ry": {
+      "median_pair_separation_score": 0.013460025181530966,
+      "median_relative_separation": 1.896272330278012,
+      "numerical_collision_fraction": 0.0,
+      "pair_count": 6710,
+      "strong_pair_fraction": 0.9995529061102831
+    }
+  },
+  "phenotype_counts": {
+    "rx_overrotation": {
+      "mixed": 2042,
+      "negligible": 174,
+      "phase_dominant": 1860,
+      "population_dominant": 2634
+    },
+    "ry_overrotation": {
+      "mixed": 2042,
+      "phase_dominant": 1486,
+      "population_dominant": 3182
+    },
+    "rz_drift": {
+      "mixed": 325,
+      "negligible": 1888,
+      "phase_dominant": 4348,
+      "population_dominant": 149
+    }
+  },
+  "schema": "triqto.v0_2.generalized_bdelta_identifiability_audit_result.v1",
+  "severe_nonidentifiable_strata": [],
+  "shortcut_gate_interpretation": "Base decision retained after the frozen shortcut-removal gate.",
+  "shortcut_removal_gate": {
+    "minimum_subset_pairs": 100,
+    "pass": true,
+    "subsets": {
+      "non_q0": {
+        "eligible": true,
+        "minimum_required": 0.9,
+        "pair_count": 16290,
+        "pass": true,
+        "strong_pair_fraction": 0.9984653161448741
+      },
+      "nonterminal": {
+        "eligible": true,
+        "minimum_required": 0.9,
+        "pair_count": 15084,
+        "pass": true,
+        "strong_pair_fraction": 0.9986077963404932
+      },
+      "nonterminal_non_q0": {
+        "eligible": true,
+        "minimum_required": 0.9,
+        "pair_count": 12210,
+        "pass": true,
+        "strong_pair_fraction": 0.9984438984438985
+      }
+    }
+  },
+  "source_example_count": 280,
+  "spent_confirmatory_cohort_accessed": false,
+  "status": "CONTEXT_DEPENDENT"
+}
