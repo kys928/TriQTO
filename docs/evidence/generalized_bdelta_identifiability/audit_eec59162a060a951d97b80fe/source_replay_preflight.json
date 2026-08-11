@@ -1,0 +1,9 @@
+{
+  "failure_count": 0,
+  "failure_reasons": {},
+  "replay_valid_count": 280,
+  "schema": "triqto.v0_2.generalized_bdelta_identifiability_audit_result.v1",
+  "scientific_gate": "All 280 development source examples must replay exactly under the merged Step 3 v3 measurement-tail semantics before generalized counterfactual generation.",
+  "source_example_count": 280,
+  "status": "PASS"
+}

@@ -1,0 +1,34 @@
+{
+  "audit_id": "audit_eec59162a060a951d97b80fe",
+  "classifier_trained": false,
+  "counterfactual_count": 20130,
+  "created_at_utc": "2026-08-11T10:50:58.817199+00:00",
+  "decision_status": "CONTEXT_DEPENDENT",
+  "deduplicated_clean_circuit_count": 161,
+  "file_hashes": {
+    "clean_circuit_manifest.csv": "sha256:e1fddde0147d8c8c447c97e9628e1ab2347fe9a4ee32fe7a6f20e0d330546e85",
+    "counterfactual_metrics.csv": "sha256:0caab519f374b297d74e27dce109252f6af06bc2e7a35d6e6e66eb58338eb594",
+    "decision.json": "sha256:bbeff12675d9887e44fb7e175ada988fd3feb86ec988a88fde110de29ca64172",
+    "generalized_contexts.csv": "sha256:9ac91edbb8a8077356a8d4aafe94c33ff73daddcfd1a8f87f6a21b1eb94263c4",
+    "pairwise_metrics.csv": "sha256:4ddd8544233d81df1e9b5d4115e3d1aafbad3ff9d237e04fd8966e6a80b3c82e",
+    "source_replay_preflight.csv": "sha256:98f9a97fbdc5f9240fe8659d60989b7542df720ddf246529a12cd96f29a74bba",
+    "source_replay_preflight.json": "sha256:7fdd1aea372859af6d529e328fb74930f99b407aa23a8f81db41c3a95b91e4b4",
+    "stratified_metrics.csv": "sha256:52abb37dff9663b214f1e8328bb700061f42c1ba826ebaa8cfc4efea7206de6a"
+  },
+  "generalized_matched_context_count": 6710,
+  "historical_v0_1_test_accessed": false,
+  "identity": {
+    "config_sha256": "sha256:fd1a2294ff67504d36e8f91091c73f2c1ffe4826cfc8131fbc6ca93a6ede1824",
+    "runner_sha256": "sha256:5f007a3248dc16747e0923c9ed5ad97bf70bc525edc25416e4ee814b3d95f58d",
+    "source_generation_complete_sha256": "sha256:8ec933249923083b1b392ed3bb9f47253994362cf9836b015acb0f58f8ddd034",
+    "source_manifest_sha256": "sha256:d5dc1d2786d853982fb909123391818b3209995c72560d76d0ab89425bc3c4d5",
+    "step3_v3_runner_sha256": "sha256:18a21ffb0c3d326ff4c46e8103305979b905f74352730ec6af0fd96f28063115"
+  },
+  "pair_count": 20130,
+  "schema": "triqto.v0_2.generalized_bdelta_identifiability_audit_result.v1",
+  "scientific_boundary": "Exact noiseless simulator generalized identifiability only. Finite-shot and hardware-feasibility questions remain later gates.",
+  "source_example_count": 280,
+  "source_root": "/workspace/triqto-data/phase15_6_pilot_v2/data/v0_2_phase_amplitude_identifiability_pilot/pilot_b446f1ff046ebbc1448d",
+  "spent_confirmatory_cohort_accessed": false,
+  "status": "AUDIT_COMPLETE"
+}

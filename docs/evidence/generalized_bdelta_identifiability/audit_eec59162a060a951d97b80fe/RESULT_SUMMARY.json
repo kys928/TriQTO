@@ -1,0 +1,66 @@
+{
+  "audit_id": "audit_eec59162a060a951d97b80fe",
+  "base_status_before_shortcut_gate": "CONTEXT_DEPENDENT",
+  "counterfactual_count": 20130,
+  "decision": "CONTEXT_DEPENDENT",
+  "deduplicated_clean_circuit_count": 161,
+  "different_phenotype_strong_fraction": 0.9998706924419732,
+  "file_hashes": {
+    "audit_complete.json": "sha256:91001afda4a37137e22b6f0c25d27d732cdc8e1e8f39b9ad13ace95611d42d04",
+    "clean_circuit_manifest.csv": "sha256:e1fddde0147d8c8c447c97e9628e1ab2347fe9a4ee32fe7a6f20e0d330546e85",
+    "counterfactual_metrics.csv": "sha256:0caab519f374b297d74e27dce109252f6af06bc2e7a35d6e6e66eb58338eb594",
+    "decision.json": "sha256:bbeff12675d9887e44fb7e175ada988fd3feb86ec988a88fde110de29ca64172",
+    "generalized_contexts.csv": "sha256:9ac91edbb8a8077356a8d4aafe94c33ff73daddcfd1a8f87f6a21b1eb94263c4",
+    "pairwise_metrics.csv": "sha256:4ddd8544233d81df1e9b5d4115e3d1aafbad3ff9d237e04fd8966e6a80b3c82e",
+    "source_replay_preflight.json": "sha256:7fdd1aea372859af6d529e328fb74930f99b407aa23a8f81db41c3a95b91e4b4",
+    "stratified_metrics.csv": "sha256:52abb37dff9663b214f1e8328bb700061f42c1ba826ebaa8cfc4efea7206de6a"
+  },
+  "generalized_matched_context_count": 6710,
+  "negligible_breakdown": {
+    "by_depth": {
+      "early": {"count": 1045, "fraction": 0.20758839888756456, "total": 5034},
+      "late": {"count": 249, "fraction": 0.049760191846522785, "total": 5004},
+      "middle": {"count": 702, "fraction": 0.13912009512485138, "total": 5046},
+      "terminal": {"count": 66, "fraction": 0.013079667063020214, "total": 5046}
+    },
+    "by_mechanism": {
+      "rx_overrotation": {"count": 174, "fraction": 0.025931445603576752, "total": 6710},
+      "ry_overrotation": {"count": 0, "fraction": 0.0, "total": 6710},
+      "rz_drift": {"count": 1888, "fraction": 0.281371087928465, "total": 6710}
+    },
+    "by_qubit_position_class": {
+      "first_q0": {"count": 66, "fraction": 0.0171875, "total": 3840},
+      "interior": {"count": 1228, "fraction": 0.09863453815261045, "total": 12450},
+      "last_qN_minus_1": {"count": 768, "fraction": 0.2, "total": 3840}
+    },
+    "rz_by_depth": {
+      "early": {"count": 975, "fraction": 0.5810488676996425, "total": 1678},
+      "late": {"count": 213, "fraction": 0.12769784172661872, "total": 1668},
+      "middle": {"count": 672, "fraction": 0.3995243757431629, "total": 1682},
+      "terminal": {"count": 28, "fraction": 0.016646848989298454, "total": 1682}
+    }
+  },
+  "negligible_counterfactual_fraction": 0.10243417784401392,
+  "negligible_counterfactual_fraction_ci95": [0.09556204135402653, 0.10985185064171263],
+  "numerical_collision_fraction": 0.0,
+  "overall_strong_pair_fraction": 0.9986587183308495,
+  "overall_strong_pair_fraction_ci95": [0.9976436994508935, 0.9994128052482876],
+  "pair_count": 20130,
+  "pair_type_summary": {
+    "rx_vs_ry": {"pair_count": 6710, "strong_pair_fraction": 0.9979135618479881},
+    "rz_vs_rx": {"pair_count": 6710, "strong_pair_fraction": 0.9985096870342772},
+    "rz_vs_ry": {"pair_count": 6710, "strong_pair_fraction": 0.9995529061102831}
+  },
+  "schema": "triqto.v0_2.generalized_bdelta_identifiability_audit_summary.v1",
+  "scientific_interpretation": "Shortcut removal succeeded: nonterminal, non-q0, and nonterminal+non-q0 subsets all exceed 0.998 strong-pair fraction. The frozen CONTEXT_DEPENDENT decision is driven by the 10.243% negligible-effect fraction, concentrated in RZ perturbations at early/middle depths and later qubit positions. These are physically null or near-null interventions rather than broad B_delta separability failure.",
+  "shortcut_removal_gate": {
+    "pass": true,
+    "subsets": {
+      "non_q0": {"pair_count": 16290, "strong_pair_fraction": 0.9984653161448741, "pass": true},
+      "nonterminal": {"pair_count": 15084, "strong_pair_fraction": 0.9986077963404932, "pass": true},
+      "nonterminal_non_q0": {"pair_count": 12210, "strong_pair_fraction": 0.9984438984438985, "pass": true}
+    }
+  },
+  "training_dataset_implication": "Do not force mechanism supervision on privileged-ground-truth negligible interventions. Preserve them as an observable-effect/null/abstention target or mask the mechanism loss for those examples; retain effectful examples for mechanism diagnosis.",
+  "weak_pair_count": 27
+}
