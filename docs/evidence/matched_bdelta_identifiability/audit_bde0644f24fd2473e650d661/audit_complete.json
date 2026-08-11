@@ -1,0 +1,31 @@
+{
+  "audit_id": "audit_bde0644f24fd2473e650d661",
+  "classifier_trained": false,
+  "counterfactual_count": 534,
+  "created_at_utc": "2026-08-11T10:07:32.899160+00:00",
+  "decision_status": "IDENTIFIABLE",
+  "deduplicated_context_count": 178,
+  "file_hashes": {
+    "counterfactual_metrics.csv": "sha256:022cb67a0a8cb47a08408b129e611ee129c1d52d50a35774b1f3bae9ec4101fc",
+    "decision.json": "sha256:527e825e338058d4d7a9103bb79370f22a4b3f178724ef8348967328f11ad9a5",
+    "pairwise_metrics.csv": "sha256:93579821c06cb7075f8cd81d209cd2b7fb7bd635931a4d48ba00ceef553ecff8",
+    "replay_preflight.csv": "sha256:51ffe8635019b8adf9e4823daa71f4065194791b9305841c432e4fa53e6271ec",
+    "replay_preflight.json": "sha256:098e4bdc5ccd41b514bb9d873956f8a420ad32f4ff83aa82695f09e2e5549bea",
+    "stratified_metrics.csv": "sha256:c4ee52c98756a2f58ce55732a6bfb0723c4f4c6e6f95b2e3811abd485261d4c8"
+  },
+  "historical_v0_1_test_accessed": false,
+  "identity": {
+    "config_sha256": "sha256:2bf41fa04eb0a58ccfd60ac22cc67e1eec9d0b446cec21883ea8b66c707ae884",
+    "runner_sha256": "sha256:c6d37b62f31a781127bd4d031f7ed12cffbe59284b8ff06cf5fa9e63fdddcff6",
+    "source_generation_complete_sha256": "sha256:8ec933249923083b1b392ed3bb9f47253994362cf9836b015acb0f58f8ddd034",
+    "source_manifest_sha256": "sha256:d5dc1d2786d853982fb909123391818b3209995c72560d76d0ab89425bc3c4d5",
+    "v1_runner_sha256": "sha256:6b6c66e277b562e4dbaf88d0ab64d60c31cccf3465c0b37ec2b847dc1bd951cb"
+  },
+  "pair_count": 534,
+  "schema": "triqto.v0_2.matched_bdelta_replay_identifiability_audit_result.v1",
+  "scientific_boundary": "Exact replay and exact-probability simulator identifiability only. Finite-shot and hardware deployability remain Step 4.",
+  "source_example_count": 280,
+  "source_root": "/workspace/triqto-data/phase15_6_pilot_v2/data/v0_2_phase_amplitude_identifiability_pilot/pilot_b446f1ff046ebbc1448d",
+  "spent_confirmatory_cohort_accessed": false,
+  "status": "AUDIT_COMPLETE"
+}
