@@ -1,0 +1,89 @@
+{
+  "schema": "triqto.v0_2.bdelta_correlation_recovery_audit.v1",
+  "status": "FROZEN_BEFORE_CORRELATION_OUTCOME",
+  "purpose": "Find the smallest bounded hardware-valid same-shot correlation summary that repairs the GHZ failure of the frozen Step 4 v1 one-local-Pauli core without changing basis-program count.",
+  "source": {
+    "expected_source_examples": 280,
+    "expected_clean_circuits": 161,
+    "expected_generalized_contexts": 6710,
+    "state_overlap_loss_max": 1e-09,
+    "aligned_amplitude_max_abs_error_max": 1e-08,
+    "historical_v0_1_test_access": false,
+    "spent_confirmatory_cohort_access": false
+  },
+  "generalized_factorial": {
+    "depth_target_fractions": [0.25, 0.5, 0.75, 1.0],
+    "strengths": [0.05, 0.15],
+    "mechanisms": ["rz_drift", "rx_overrotation", "ry_overrotation"]
+  },
+  "phenomenology": {
+    "epsilon": 1e-12,
+    "negligible_overlap_loss_floor": 1e-08,
+    "strong_dominance_ratio": 2.0
+  },
+  "variants": [
+    {
+      "name": "local_only",
+      "include_local": true,
+      "include_pairwise": false,
+      "include_global_parity": false,
+      "output_scaling": "O(n)"
+    },
+    {
+      "name": "local_plus_global_parity",
+      "include_local": true,
+      "include_pairwise": false,
+      "include_global_parity": true,
+      "output_scaling": "O(n)+3"
+    },
+    {
+      "name": "local_plus_pairwise_same_basis",
+      "include_local": true,
+      "include_pairwise": true,
+      "include_global_parity": false,
+      "output_scaling": "O(n^2)"
+    },
+    {
+      "name": "local_plus_pairwise_plus_global_parity",
+      "include_local": true,
+      "include_pairwise": true,
+      "include_global_parity": true,
+      "output_scaling": "O(n^2)"
+    }
+  ],
+  "pairwise_thresholds": {
+    "minimum_raw_separation": 1e-06,
+    "minimum_relative_separation": 0.25,
+    "numerical_collision_score_max": 1e-10
+  },
+  "selection_policy": {
+    "choose_first_passing_variant_in_frozen_order": true,
+    "primary_population": "pairs where both mechanisms are non-negligible under privileged simulator ground truth",
+    "minimum_effectful_pair_strong_fraction": 0.9,
+    "minimum_effectful_nonterminal_non_q0_strong_fraction": 0.9,
+    "minimum_every_eligible_stratum_strong_fraction": 0.8,
+    "minimum_ghz_strong_fraction": 0.9,
+    "minimum_eligible_stratum_pairs": 100,
+    "bootstrap_repeats": 2000,
+    "bootstrap_seed": 20260811
+  },
+  "hardware_contract": {
+    "source_bitstrings": "same paired Z/X/Y shot sets already required by Step 4 v1",
+    "additional_basis_programs": 0,
+    "global_parity_definition": "basiswise product of all measured +/-1 eigenvalues; three scalars total",
+    "pairwise_definition": "all same-basis two-qubit products <P_i P_j> for P in {X,Y,Z}, derived from the same bitstrings",
+    "finite_shot_robustness_established_here": false
+  },
+  "possible_decisions": [
+    "CORRELATION_CORE_RECOVERED",
+    "HARDWARE_VALID_CORRELATION_SUMMARIES_INSUFFICIENT"
+  ],
+  "scientific_boundaries": [
+    "Step 4 v1 one-local core failure remains frozen and is not reclassified.",
+    "No QPU execution occurs.",
+    "No classifier is trained.",
+    "No new basis programs are introduced beyond paired Z/X/Y acquisition.",
+    "Exact statevectors are regeneration/audit machinery only and never deployable inputs.",
+    "Finite-shot robustness remains a later empirical gate."
+  ]
+}
