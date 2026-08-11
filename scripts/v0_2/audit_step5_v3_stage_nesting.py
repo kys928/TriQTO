@@ -2,7 +2,7 @@
 """Verify that a larger Step 5 v3 cohort exactly contains the accepted prior stage.
 
 The staged data contract counts independent clean-circuit roots and declares the
-500 -> 1000 -> 2000 -> 5000 sequence nested.  A larger product must therefore
+500 -> 1000 -> 2000 -> 5000 sequence nested. A larger product must therefore
 preserve every prior root and every derivative example byte-for-byte (as bound
 by artifact SHA-256), rather than silently regenerating a different development
 universe under the same root indices.
@@ -17,12 +17,14 @@ from typing import Any
 
 
 PRODUCT_SCHEMA = "triqto.v0_2.step5_matched_diagnostic_training_dataset.v3"
+EVIDENCE_SCHEMA = "triqto.v0_2.step5_v3_stage_nesting.v1"
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--previous-product-dir", type=Path, required=True)
     parser.add_argument("--current-product-dir", type=Path, required=True)
+    parser.add_argument("--output", type=Path)
     return parser.parse_args()
 
 
@@ -97,6 +99,28 @@ def main() -> None:
         or row_mismatch_examples
         or artifact_hash_mismatch_examples
     )
+    decision = "NESTING_VALID" if passed else "BLOCKED"
+    evidence = {
+        "schema": EVIDENCE_SCHEMA,
+        "decision": decision,
+        "previous_product_id": previous_complete.get("product_id"),
+        "current_product_id": current_complete.get("product_id"),
+        "previous_clean_root_count": previous_count,
+        "current_clean_root_count": current_count,
+        "previous_example_count_checked": len(prev_examples),
+        "root_row_mismatch_count": len(root_mismatches),
+        "missing_previous_example_count": len(missing_examples),
+        "example_row_mismatch_count": len(row_mismatch_examples),
+        "artifact_hash_mismatch_count": len(artifact_hash_mismatch_examples),
+        "root_mismatches_first20": root_mismatches[:20],
+        "missing_examples_first20": missing_examples[:20],
+        "row_mismatch_examples_first20": row_mismatch_examples[:20],
+        "artifact_hash_mismatch_examples_first20": artifact_hash_mismatch_examples[:20],
+    }
+    if args.output is not None:
+        output = args.output.expanduser().resolve()
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
     print("TRIQTO STEP 5 V3 STAGE-NESTING AUDIT")
     print(f"Previous roots: {previous_count}")
@@ -106,16 +130,12 @@ def main() -> None:
     print(f"Missing previous examples: {len(missing_examples)}")
     print(f"Example-row mismatches: {len(row_mismatch_examples)}")
     print(f"Artifact-hash mismatches: {len(artifact_hash_mismatch_examples)}")
-    print(f"Decision: {'NESTING_VALID' if passed else 'BLOCKED'}")
+    print(f"Decision: {decision}")
+    if args.output is not None:
+        print(f"Evidence: {args.output.expanduser().resolve()}")
 
     if not passed:
-        details = {
-            "root_mismatches": root_mismatches[:20],
-            "missing_examples": missing_examples[:20],
-            "row_mismatch_examples": row_mismatch_examples[:20],
-            "artifact_hash_mismatch_examples": artifact_hash_mismatch_examples[:20],
-        }
-        print(json.dumps(details, indent=2, sort_keys=True))
+        print(json.dumps(evidence, indent=2, sort_keys=True))
         raise SystemExit(2)
 
 
