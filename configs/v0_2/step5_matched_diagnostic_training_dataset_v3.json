@@ -1,0 +1,47 @@
+{
+  "schema": "triqto.v0_2.step5_matched_diagnostic_training_dataset.v3",
+  "status": "FROZEN_AFTER_V2_EDA_BEFORE_V3_OUTCOME",
+  "purpose": "Preserve the successful Step 5 v2 family/split, depth/strength and 3-qubit repairs while removing the remaining deterministic aliases between finite-shot acquisition metadata and hidden affected-qubit/strength context.",
+  "base_v2_config": "configs/v0_2/step5_matched_diagnostic_training_dataset_v2.json",
+  "rejected_v2": {
+    "product_id": "product_025667cdd6191f70d4a77957",
+    "decision": "REJECT_FOR_TRAINING_REGENERATE_V3",
+    "reasons": [
+      "shot_affected_qubit_alias",
+      "shot_strength_alias",
+      "family_conditioned_clean_control_shot_alias"
+    ],
+    "evidence_doc": "docs/evidence/step5_500_v2_rejected/EDA_SUMMARY.md"
+  },
+  "scheduling": {
+    "base_seed": 20260811,
+    "affected_qubit_policy": "independent_root_specific_permutation_cycle",
+    "affected_qubit_seed_namespace": "step5_v3_affected_schedule",
+    "intervention_shot_policy": "independent_root_specific_permutation",
+    "intervention_shot_seed_namespace": "step5_v3_shot_schedule",
+    "clean_control_shot_policy": "within_family_occurrence_mod_shot_count",
+    "shots": [512, 1024, 2048, 4096],
+    "contexts_per_root": 4
+  },
+  "association_gates": {
+    "maximum_shot_strength_cramers_v": 0.10,
+    "maximum_shot_depth_cramers_v": 0.10,
+    "maximum_shot_family_cramers_v": 0.05,
+    "maximum_shot_split_cramers_v": 0.05,
+    "maximum_clean_shot_family_cramers_v": 0.10,
+    "maximum_clean_shot_split_cramers_v": 0.10,
+    "maximum_per_qubit_count_shot_affected_cramers_v": 0.25,
+    "maximum_per_qubit_count_strength_affected_cramers_v": 0.25,
+    "maximum_per_qubit_count_depth_affected_cramers_v": 0.25,
+    "require_all_four_intervention_shots_per_root": true,
+    "require_all_shot_levels_in_each_family_interventions": true,
+    "require_all_shot_levels_in_each_split_interventions": true,
+    "require_all_shot_levels_in_each_family_clean_controls_when_family_roots_at_least": 8
+  },
+  "scientific_boundaries": [
+    "V1 and V2 products remain immutable rejected data-quality candidates.",
+    "V3 changes scheduling only; the Step 4.1 diagnostic feature contract, hidden-intervention semantics, supervision, family cycle, split policy, depth-strength deconfounding and 3-qubit coverage are unchanged from V2.",
+    "Shot-noise SNR remains report-only and cannot be repaired with privileged exact simulator inputs.",
+    "V3 must regenerate 500 roots and pass the full-artifact promotion EDA before 1,000 roots or Step 6 baselines are unlocked."
+  ]
+}

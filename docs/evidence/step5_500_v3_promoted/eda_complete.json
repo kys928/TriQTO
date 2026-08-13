@@ -1,0 +1,48 @@
+{
+  "artifact_count": 6500,
+  "artifact_issue_count": 0,
+  "audit_id": "audit_3ac00c9b31d1be6c54d7b852",
+  "classifier_trained": false,
+  "created_at_utc": "2026-08-11T16:39:19.988534+00:00",
+  "decision": "PROMOTION_READY",
+  "depth_strength_cramers_v": 0.012,
+  "distinct_array_schema_count": 1,
+  "family_split_cramers_v": 0.0,
+  "family_split_total_variation": 0.0,
+  "gates": {
+    "artifact_hash_schema_target_integrity": true,
+    "depth_strength_cramers_v": true,
+    "diagnostics_finite_and_bounded": true,
+    "every_depth_strength_cell_present": true,
+    "every_family_in_both_splits": true,
+    "family_split_cramers_v": true,
+    "stage_validation_passed": true,
+    "three_qubit_in_both_splits": true
+  },
+  "historical_v0_1_test_accessed": false,
+  "identity": {
+    "config_sha256": "sha256:a345b74303ceda885186877abcf161731ed23d8946007971db95f769d89e7512",
+    "dataset_complete_sha256": "sha256:18c6c37356d5825fe16a4b920c99629fc7e9d1c955ee78a581291790d9f791b5",
+    "product_id": "product_85a26bf36d9ed1769b6a5e23",
+    "runner_sha256": "sha256:ecd52144c57ad7b4308837bc007cdd13d3d1cc2594f8272722d8b8ab28f006f9"
+  },
+  "max_abs_empirical_diagnostics": {
+    "local": 0.29296875,
+    "pairwise": 0.265625,
+    "parity": 0.26171875
+  },
+  "max_abs_exact_audit_diagnostics": {
+    "local": 0.14985911216914677,
+    "pairwise": 0.149769056861343,
+    "parity": 0.14980444297851522
+  },
+  "phenomenology_train_validation_total_variation": 0.015625000000000007,
+  "schema": "triqto.v0_2.step5_training_dataset_eda.v1",
+  "scientific_boundary": "Full-artifact Step 5 dataset-quality EDA only. Exact audit deltas are used to quantify finite-shot noise and never promoted into deployable model inputs.",
+  "shot_noise_is_report_only": true,
+  "source_product": "/workspace/triqto-data/step5_matched_diagnostic_training_v3/product_85a26bf36d9ed1769b6a5e23",
+  "spent_confirmatory_cohort_accessed": false,
+  "status": "AUDIT_COMPLETE",
+  "three_qubit_train_root_count": 72,
+  "three_qubit_validation_root_count": 16
+}
