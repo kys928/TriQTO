@@ -1,0 +1,155 @@
+{
+  "schema": "triqto.v0_2.step7_structured_diagnostic_model.v1",
+  "status": "FROZEN_BEFORE_STEP7_NEURAL_OUTCOME",
+  "purpose": "Test whether structured circuit-graph-conditioned interpretation of finite-shot B_delta diagnostics improves mechanism diagnosis beyond diagnostic-only, graph-only, late-concatenation neural controls, and the frozen Step 6 cheap baselines.",
+  "evidence_status": "DEVELOPMENT_ARCHITECTURE_SELECTION_NOT_CONFIRMATORY",
+  "source_dataset": {
+    "schema": "triqto.v0_2.step5_matched_diagnostic_training_dataset.v3",
+    "product_id": "product_b2d78ad2309b71a55f9bb54f",
+    "clean_circuit_root_count": 5000,
+    "example_count": 65000,
+    "default_product_dir": "/workspace/triqto-data/step5_matched_diagnostic_training_v3/product_b2d78ad2309b71a55f9bb54f",
+    "sampling_frozen": true,
+    "split_membership_frozen": true,
+    "labels_frozen": true,
+    "reference_semantics_frozen": true,
+    "privileged_target_masking_frozen": true
+  },
+  "step6_references": {
+    "linear_benchmark_id": "benchmark_383d4c3070350f0bef6fdb23",
+    "linear_default_dir": "/workspace/triqto-data/step6_cheap_baselines/benchmark_383d4c3070350f0bef6fdb23",
+    "nonlinear_closure_id": "closure_e7de7cdd47142287352f8de8",
+    "nonlinear_default_dir": "/workspace/triqto-data/step6b_nonlinear_sanity/closure_e7de7cdd47142287352f8de8",
+    "linear_diag_full_context_graph_mechanism_ba": 0.4026,
+    "nonlinear_snr_proxy_effect_ba": 0.6313,
+    "exact_diagnostic_qda_mechanism_ba": 0.4876,
+    "adaptive_development_evidence": true
+  },
+  "scientific_boundaries": {
+    "historical_v0_1_test_access": false,
+    "spent_confirmatory_cohort_access": false,
+    "hardware_execution": false,
+    "statevector_as_model_input": false,
+    "exact_diagnostics_as_model_input": false,
+    "injected_mechanism_metadata_as_model_input": false,
+    "affected_qubit_as_model_input": false,
+    "insertion_depth_as_model_input": false,
+    "strength_as_model_input": false,
+    "family_label_as_model_input": false,
+    "raw_reference_window_id_as_model_input": false,
+    "born_encoder_receives_signed_bdelta": false,
+    "step5_validation_is_untouched_test": false,
+    "new_confirmatory_claim_allowed": false
+  },
+  "input_contract": {
+    "graph": "clean intended/reference circuit only",
+    "diagnostic_basis_order": [0, 1, 2],
+    "diagnostic_basis_names": ["Z", "X", "Y"],
+    "local": "signed per-qubit X/Y/Z-compatible B_delta local expectation deltas, reordered to canonical Z/X/Y basis identity",
+    "pairwise": "signed same-basis pairwise B_delta correlations with explicit qubit endpoints",
+    "global": "signed global parity B_delta for Z/X/Y",
+    "acquisition": ["observed_shots", "reference_shots", "reference_available_mask", "reference_kind_code"],
+    "effect_magnitude_features": [
+      "local_rms",
+      "pairwise_rms",
+      "parity_rms",
+      "total_rms",
+      "log2_observed_shots",
+      "inverse_sqrt_observed_shots",
+      "total_rms_times_sqrt_observed_shots",
+      "log2_reference_shots"
+    ]
+  },
+  "model": {
+    "hidden_dim": 64,
+    "graph_message_passing_layers": 3,
+    "residual_mlp_layers": 2,
+    "dropout": 0.1,
+    "layer_norm_eps": 1e-5,
+    "diagnostic_value_expansion": "signed_and_absolute",
+    "structured_local_interaction": "gated node-diagnostic residual interaction",
+    "structured_pair_interaction": "endpoint-geometry plus pair-diagnostic gated interaction",
+    "structured_global_interaction": "graph-embedding plus parity-diagnostic gated interaction",
+    "effect_head_uses_explicit_magnitude_path": true,
+    "mechanism_head_uses_explicit_magnitude_path": false,
+    "effect_uncertainty": "derived Bernoulli predictive entropy; no fabricated uncertainty target",
+    "mechanism_classes": ["rz_drift", "rx_overrotation", "ry_overrotation"]
+  },
+  "variants": {
+    "primary": [
+      "diagnostic_only",
+      "graph_only",
+      "late_concat",
+      "structured_interaction"
+    ],
+    "predeclared_ablations": [
+      "structured_no_magnitude",
+      "structured_no_pairwise",
+      "structured_no_parity"
+    ],
+    "late_concat_role": "matched neural nonlinearity/capacity control without node/pair graph-diagnostic interaction"
+  },
+  "development_split": {
+    "root_group_unit": "clean_circuit_group_id",
+    "fit_rule": "Step 5 training roots with family_occurrence_index mod 5 in {1,2,3}",
+    "selection_rule": "Step 5 training roots with family_occurrence_index mod 5 == 4",
+    "outer_development_validation_rule": "existing Step 5 validation roots with family_occurrence_index mod 5 == 0",
+    "expected_fit_roots": 3000,
+    "expected_selection_roots": 1000,
+    "expected_outer_validation_roots": 1000,
+    "all_13_derivatives_of_root_stay_together": true
+  },
+  "training": {
+    "primary_seeds": [1701, 1702, 1703],
+    "ablation_seeds": [1701],
+    "root_batch_size": 32,
+    "max_epochs": 20,
+    "early_stopping_patience": 4,
+    "early_stopping_min_delta": 0.0005,
+    "optimizer": "AdamW",
+    "learning_rate": 0.0003,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 1.0,
+    "effect_loss": "class-balanced BCEWithLogits over all examples",
+    "mechanism_loss": "class-balanced cross entropy only where mechanism_loss_mask=true",
+    "effect_loss_weight": 1.0,
+    "mechanism_loss_weight": 1.0,
+    "selection_metric_order": ["mechanism_balanced_accuracy", "effect_balanced_accuracy", "earlier_epoch"],
+    "validation_does_not_select_epoch_or_hyperparameters": true
+  },
+  "evaluation": {
+    "primary_metrics": ["balanced_accuracy", "macro_f1"],
+    "effect_secondary_metrics": ["no_effect_recall", "effect_recall", "roc_auc"],
+    "mechanism_secondary_metrics": ["rz_recall", "rx_recall", "ry_recall", "macro_ovr_roc_auc"],
+    "integrated_classes": ["no_effect", "rz_drift", "rx_overrotation", "ry_overrotation"],
+    "seed_aggregation": "mean validation logits across the three frozen primary seeds; individual seeds also reported",
+    "clean_root_bootstrap_replicates": 1000,
+    "bootstrap_seed": 20260814,
+    "confidence_level": 0.95,
+    "primary_paired_comparisons": [
+      ["structured_interaction", "late_concat"],
+      ["structured_interaction", "diagnostic_only"],
+      ["structured_interaction", "graph_only"]
+    ],
+    "step6_reference_comparisons": {
+      "mechanism": "structured_interaction vs Step 6A diag_full_context_graph",
+      "effect": "structured_interaction vs Step 6B diag_snr_proxy_threshold"
+    },
+    "strata": ["family", "n_qubits", "shots", "strength", "insertion_depth_bin"],
+    "minimum_stratum_examples": 30,
+    "single_class_stratum_balanced_accuracy": "undefined_not_reported_as_evidence"
+  },
+  "interpretation_gates": {
+    "structured_interaction_architecture_signal": "mechanism BA paired-clean-root bootstrap CI lower bound for structured_interaction - late_concat is > 0",
+    "graph_information_signal": "structured_interaction mechanism BA exceeds graph_only and diagnostic_only with paired CIs interpreted separately",
+    "effect_path_noninferiority": "structured_interaction effect BA minus Step 6B SNR proxy has paired CI lower bound >= -0.01",
+    "no_architecture_claim_if_late_concat_matches_structured": true,
+    "no_confirmation_claim_from_step7": true,
+    "new_confirmatory_cohort_required_after_architecture_freeze": true
+  },
+  "completion": {
+    "decision_on_completed_run": "STEP7_DEVELOPMENT_BENCHMARK_COMPLETE",
+    "decision_on_contract_failure": "BLOCKED_STEP7_CONTRACT",
+    "step8_not_automatically_unlocked_by_any_single_metric": true
+  }
+}
