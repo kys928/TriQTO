@@ -8,6 +8,8 @@
     "product_id": "product_b2d78ad2309b71a55f9bb54f",
     "clean_circuit_root_count": 5000,
     "example_count": 65000,
+    "train_clean_root_count": 4000,
+    "validation_clean_root_count": 1000,
     "default_product_dir": "/workspace/triqto-data/step5_matched_diagnostic_training_v3/product_b2d78ad2309b71a55f9bb54f",
     "sampling_frozen": true,
     "split_membership_frozen": true,
@@ -114,6 +116,7 @@
     "mechanism_loss": "class-balanced cross entropy only where mechanism_loss_mask=true",
     "effect_loss_weight": 1.0,
     "mechanism_loss_weight": 1.0,
+    "effect_threshold_selection": "maximize minimum class recall on internal selection roots only; tie-break balanced accuracy, macro-F1, then closeness to 0.5",
     "selection_metric_order": ["mechanism_balanced_accuracy", "effect_balanced_accuracy", "earlier_epoch"],
     "validation_does_not_select_epoch_or_hyperparameters": true
   },
