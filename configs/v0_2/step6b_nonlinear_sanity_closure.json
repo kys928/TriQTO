@@ -1,0 +1,101 @@
+{
+  "schema": "triqto.v0_2.step6b_nonlinear_sanity_closure.v1",
+  "status": "FROZEN_AFTER_STEP6A_BEFORE_STEP6B_OUTCOME",
+  "purpose": "Close the cheap-baseline stage with interpretable nonlinear controls so a later TriQTO graph model cannot receive credit merely for generic magnitude or quadratic nonlinearity.",
+  "adaptive_development_disclosure": {
+    "step6a_validation_results_already_observed": true,
+    "reason_for_followup": "Step 6A showed weak signed-linear effect detection, a large exact-diagnostic mechanism gap, and reproducible graph-stat gains. This motivated pre-architecture magnitude and quadratic controls.",
+    "confirmatory_claim_allowed": false,
+    "development_validation_only": true
+  },
+  "source_dataset": {
+    "product_id": "product_b2d78ad2309b71a55f9bb54f",
+    "default_product_dir": "/workspace/triqto-data/step5_matched_diagnostic_training_v3/product_b2d78ad2309b71a55f9bb54f",
+    "sampling_frozen": true,
+    "split_membership_frozen": true,
+    "labels_frozen": true,
+    "reference_semantics_frozen": true,
+    "privileged_target_masking_frozen": true
+  },
+  "source_step6a": {
+    "benchmark_id": "benchmark_383d4c3070350f0bef6fdb23",
+    "default_benchmark_dir": "/workspace/triqto-data/step6_cheap_baselines/benchmark_383d4c3070350f0bef6fdb23",
+    "uploaded_zip_sha256": "sha256:f8e8bc290d28f35c4207f5ab9a4d920fa3d3041a659234bf54cf7eb1b6e0b80c",
+    "linear_reference_baselines": [
+      "graph_stats_only",
+      "diag_full",
+      "diag_full_context_graph",
+      "exact_diag_full_oracle"
+    ]
+  },
+  "tasks": {
+    "effect_detection": "no_effect vs effect on all examples",
+    "mechanism_diagnosis": "RZ/RX/RY only where mechanism_loss_mask=true",
+    "integrated_diagnosis": "effect prediction gates RZ/RX/RY into no_effect/RZ/RX/RY"
+  },
+  "magnitude_threshold_baselines": {
+    "diag_rms_threshold": "RMS of active finite-shot local, pairwise and parity B_delta coordinates",
+    "diag_snr_proxy_threshold": "diag RMS multiplied by sqrt(observed shots), a simple shot-noise-normalized effect score",
+    "exact_diag_rms_threshold_oracle": "privileged exact-diagnostic RMS effect ceiling"
+  },
+  "diagonal_qda": {
+    "variants": [
+      "graph_stats_diag_qda",
+      "diag_full_diag_qda",
+      "diag_full_context_graph_diag_qda",
+      "exact_diag_full_diag_qda_oracle"
+    ],
+    "shrinkage_candidates": [0.01, 0.1, 0.5, 0.9],
+    "variance_floor": 0.001,
+    "standardization": "fit-fold mean/std; zero-variance scale=1",
+    "class_priors": "equal",
+    "covariance": "class-specific diagonal variance shrunk toward unit variance after standardization",
+    "selection_metric": "OOF balanced_accuracy then macro_f1 then larger shrinkage",
+    "binary_threshold_policy": "select from training-root OOF score differences only",
+    "multiclass_prediction": "argmax class log-likelihood score"
+  },
+  "training_only_oof": {
+    "group_unit": "clean_circuit_group_id",
+    "fold_rule": "reuse Step 6A four training-root folds from family_occurrence_index mod 5",
+    "validation_used_for_model_or_threshold_selection": false,
+    "all_derivatives_of_root_share_fold": true
+  },
+  "evaluation": {
+    "root_group_bootstrap_replicates": 1000,
+    "bootstrap_seed": 20260814,
+    "confidence_level": 0.95,
+    "paired_validation_comparisons": [
+      ["diag_rms_threshold", "diag_full"],
+      ["diag_snr_proxy_threshold", "diag_full"],
+      ["graph_stats_diag_qda", "graph_stats_only"],
+      ["diag_full_diag_qda", "diag_full"],
+      ["diag_full_context_graph_diag_qda", "diag_full_context_graph"],
+      ["exact_diag_full_diag_qda_oracle", "exact_diag_full_oracle"],
+      ["exact_diag_full_diag_qda_oracle", "diag_full_context_graph_diag_qda"]
+    ],
+    "stratify_variants": ["diag_snr_proxy_threshold", "diag_full_context_graph_diag_qda"],
+    "strata": ["family", "n_qubits", "shots", "strength", "insertion_depth_bin"],
+    "minimum_stratum_examples": 30
+  },
+  "scientific_boundaries": {
+    "historical_v0_1_test_access": false,
+    "spent_confirmatory_cohort_access": false,
+    "hardware_execution": false,
+    "triqto_architecture_change": false,
+    "graph_neural_network_training": false,
+    "dataset_regeneration_or_relabeling": false,
+    "privileged_oracles_analysis_only": true,
+    "step7_not_automatically_unlocked_by_single_metric": true
+  },
+  "completion": {
+    "decision_on_success": "NONLINEAR_SANITY_CLOSURE_COMPLETE",
+    "decision_on_contract_failure": "BLOCKED_DATA_OR_EVALUATION_CONTRACT",
+    "required_questions": [
+      "Does a direct diagnostic magnitude/SNR score recover effect presence better than signed linear diag_full?",
+      "Does diagonal quadratic nonlinearity materially improve finite-shot mechanism diagnosis?",
+      "Does simple graph context remain useful once a cheap nonlinear classifier is allowed?",
+      "How much exact-diagnostic headroom remains after the nonlinear control?",
+      "Is a dedicated graph architecture still scientifically justified rather than merely a generic nonlinear model?"
+    ]
+  }
+}
