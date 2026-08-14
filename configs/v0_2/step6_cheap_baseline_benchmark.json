@@ -109,7 +109,7 @@
     "expected_training_fold_residues": [1, 2, 3, 4],
     "fold_count": 4,
     "all_derivatives_of_root_share_fold": true,
-    "binary_threshold_candidate_quantiles": 1001,
+    "binary_threshold_candidates": "all valid distinct OOF score boundaries plus endpoint cuts",
     "binary_threshold_selection": "maximize minimum class recall; tie break balanced_accuracy, macro_f1, then closeness to 0.5"
   },
   "evaluation": {
