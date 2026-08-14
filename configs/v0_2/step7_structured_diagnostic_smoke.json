@@ -1,0 +1,40 @@
+{
+  "schema": "triqto.v0_2.step7_structured_diagnostic_smoke.v1",
+  "status": "FROZEN_BEFORE_STEP7_NEURAL_OUTCOME",
+  "source_experiment_config": "configs/v0_2/step7_structured_diagnostic_model.json",
+  "source_product_id": "product_b2d78ad2309b71a55f9bb54f",
+  "fit_roots": 8,
+  "selection_roots_accessed": 0,
+  "outer_validation_roots_accessed": 0,
+  "variants": [
+    "diagnostic_only",
+    "graph_only",
+    "late_concat",
+    "structured_interaction",
+    "structured_no_magnitude",
+    "structured_no_pairwise",
+    "structured_no_parity"
+  ],
+  "seed": 1701,
+  "optimizer": "AdamW",
+  "learning_rate": 0.0003,
+  "weight_decay": 0.0001,
+  "gradient_clip_norm": 1.0,
+  "steps_per_variant": 1,
+  "scientific_metric_claim": false,
+  "required_checks": [
+    "source product identity and manifest hashes",
+    "artifact SHA-256 verification for every smoke example",
+    "clean-root grouping and 13 examples per root",
+    "Step5 graph arrays adapt to Phase13 GraphTensorBatch",
+    "signed diagnostic tensors validate and align to graph nodes/pairs",
+    "all frozen variants forward",
+    "effect and mechanism losses are finite",
+    "mechanism loss uses mechanism_loss_mask only",
+    "backward gradients are finite",
+    "one optimizer step succeeds",
+    "no selection or outer validation roots are accessed"
+  ],
+  "decision_on_success": "STEP7_SMOKE_PASS",
+  "decision_on_failure": "BLOCKED_STEP7_SMOKE"
+}
