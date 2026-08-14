@@ -66,6 +66,10 @@ Mechanism diagnosis remains easier at strength 0.15 (~0.418 BA for context+graph
 
 The exact-vs-finite integrated gap is large, again indicating strong acquisition-noise headroom.
 
+## Stratified-report caveat
+
+Effect-detection strata such as `strength=0` / `clean_control` contain only the `no_effect` class. The current generic stratified helper reports a nominal balanced accuracy by assigning zero recall to the absent class. Those single-class stratum BA values are therefore **undefined for scientific interpretation** and must not be used as evidence. This reporting limitation does not affect any overall validation metric, paired root-bootstrap comparison, model-selection decision, or the conclusions in this document.
+
 ## Step 6 interpretation
 
 Step 6A + 6B jointly support the following development conclusions:
