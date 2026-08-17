@@ -1,0 +1,66 @@
+{
+  "schema": "triqto.v0_2.step9b_hardware_acquisition.v1",
+  "status": "FROZEN_BEFORE_HARDWARE_DRY_RUN",
+  "purpose": "Acquire the same signed paired-reference diagnostic evidence used by the frozen late_concat deployment model from SamplerV2-compatible execution without changing the model, threshold, class semantics, or graph semantics.",
+  "deployment_bundle": {
+    "bundle_id": "deploy_ac536a74b2f8dd571d353a12",
+    "weight_provenance": "post_confirmation_fixed_epoch_refit_development_only",
+    "architecture": "late_concat",
+    "seeds": [1701, 1702, 1703],
+    "checkpoint_sha256": {
+      "seed1701.pt": "sha256:549a64c0be5a6612a2a67b9c60fe20a011a81cff2f3c00d0759e8d0a91e8e42d",
+      "seed1702.pt": "sha256:53339d86313a73358fee0ecbae7874cf8f9cac67dc5f1e34618f7f8f32ed4de7",
+      "seed1703.pt": "sha256:b5f4a7f876816449da8c38948e81b439d9144589b28101c553566c126708dabc"
+    },
+    "effect_threshold": 0.05939410626888275,
+    "mechanism_classes": ["rz_drift", "rx_overrotation", "ry_overrotation"]
+  },
+  "evidence_contract": {
+    "basis_order": ["Z", "X", "Y"],
+    "basis_codes": [0, 1, 2],
+    "delta_sign": "observed_minus_paired_reference",
+    "blocks": [
+      "signed_local_expectation_delta",
+      "signed_same_basis_pairwise_correlation_delta",
+      "signed_global_parity_delta"
+    ],
+    "pair_scope": "all_logical_qubit_pairs",
+    "reference_kind": "paired_hardware_compatible_reference",
+    "reference_kind_code": 0,
+    "classical_register_name": "meas",
+    "qiskit_bitstring_rule": "classical_bit_0_is_rightmost; reverse bitstring to obtain logical q0,q1,... order"
+  },
+  "execution_contract": {
+    "primitive": "qiskit_ibm_runtime.SamplerV2",
+    "primitive_version": 2,
+    "runtime_pin": "0.40.1",
+    "qiskit_pin": "2.1.2",
+    "measurement_program_count": 6,
+    "program_order": ["reference_Z", "reference_X", "reference_Y", "observed_Z", "observed_X", "observed_Y"],
+    "transpile_to_backend_isa": true,
+    "optimization_level": 1,
+    "seed_transpiler": 17091,
+    "explicit_initial_layout_required": true,
+    "same_initial_layout_for_reference_and_observed": true,
+    "measurement_mitigation": false,
+    "dynamical_decoupling": false,
+    "twirling": false
+  },
+  "graph_contract": {
+    "model_graph_source": "intended_reference_circuit_only",
+    "observed_hidden_distortion_exposed_to_graph": false,
+    "step7_graph_feature_builder_reused": true,
+    "statevector_input": false,
+    "exact_diagnostic_input": false
+  },
+  "scientific_boundaries": {
+    "model_weights_changed": false,
+    "architecture_changed": false,
+    "threshold_changed": false,
+    "new_training": false,
+    "step8_confirmatory_reused": false,
+    "step9b_qpu_execution": false,
+    "step9c_dry_run_required_before_qpu": true,
+    "step9d_first_qpu_stage_is_exploratory": true
+  }
+}
