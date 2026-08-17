@@ -18,6 +18,8 @@
     "seed": 1701,
     "archived_step8_selected_epoch": 8,
     "v1_replay_selected_epoch": 19,
+    "exact_checkpoint_reconstruction_supported": false,
+    "deployment_bundle_produced": false,
     "interpretation": "The Step-8 CUDA optimization trajectory was seeded but not configured for deterministic CUDA execution. Exact checkpoint reconstruction is therefore not supported by the evidence. No Step-9A deployment bundle was produced by the failed v1 attempt."
   },
   "development_source": {
