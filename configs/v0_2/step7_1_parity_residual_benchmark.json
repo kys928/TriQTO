@@ -1,0 +1,112 @@
+{
+  "schema": "triqto.v0_2.step7_1_parity_residual_benchmark.v1",
+  "status": "FROZEN_BEFORE_STEP7_1_OUTCOME",
+  "evidence_status": "ADAPTIVE_DEVELOPMENT_FINAL_ARCHITECTURE_REVISION_NOT_CONFIRMATORY",
+  "purpose": "Run one final narrowly motivated development revision after Step 7: test whether adding only an explicit global-parity-to-graph residual interaction to the winning late-concat backbone improves mechanism diagnosis without reviving unsupported local/pair gated interactions.",
+  "source_step7": {
+    "pr": 57,
+    "head_sha": "3f3ab39d5c152a559240150999ae3691388a7efe",
+    "benchmark_id": "benchmark_9989fbf9ef9feeaf283fe23f",
+    "default_benchmark_dir": "/workspace/triqto-data/step7_structured_diagnostic_benchmark/benchmark_9989fbf9ef9feeaf283fe23f",
+    "uploaded_benchmark_zip_sha256": "sha256:96e5c894165d19b35b776c90b40394856123c417ff5f85de4826c593f03a6e3d",
+    "experiment_config_sha256": "sha256:2715c93c0d22e4aff6caf71a5e4c8ae872f5f17c236ab3445808bcefd1895a77",
+    "execution_config_sha256": "sha256:0a73fdba5fa40440780bd3187829f29217b18b60b838687a29a76f1675b9b10f",
+    "late_concat_mechanism_ba": 0.5118,
+    "late_concat_effect_ba": 0.7128,
+    "late_concat_integrated_ba": 0.4614,
+    "structured_minus_late_concat_mechanism_ba": -0.0067,
+    "structured_minus_late_concat_ci": [-0.0120, -0.00165],
+    "full_minus_no_parity_seed1701_mechanism_ba": 0.03199,
+    "full_minus_no_parity_seed1701_ci": [0.02350, 0.04038]
+  },
+  "source_dataset": {
+    "product_id": "product_b2d78ad2309b71a55f9bb54f",
+    "default_product_dir": "/workspace/triqto-data/step5_matched_diagnostic_training_v3/product_b2d78ad2309b71a55f9bb54f",
+    "clean_circuit_root_count": 5000,
+    "example_count": 65000,
+    "sampling_frozen": true,
+    "split_membership_frozen": true,
+    "labels_frozen": true,
+    "reference_semantics_frozen": true,
+    "privileged_target_masking_frozen": true
+  },
+  "scientific_boundaries": {
+    "adaptive_followup_chosen_after_step7_results": true,
+    "historical_v0_1_test_access": false,
+    "spent_confirmatory_cohort_access": false,
+    "new_confirmatory_cohort_access": false,
+    "hardware_execution": false,
+    "statevector_as_model_input": false,
+    "exact_diagnostics_as_model_input": false,
+    "family_label_as_model_input": false,
+    "affected_qubit_as_model_input": false,
+    "insertion_depth_as_model_input": false,
+    "strength_as_model_input": false,
+    "step5_outer_validation_is_untouched_test": false,
+    "confirmation_claim_allowed": false
+  },
+  "architecture": {
+    "champion": "late_concat",
+    "candidate": "late_concat_parity_residual",
+    "diagnostic_ablation": "late_concat_no_parity",
+    "candidate_change": "Keep the exact late-concat graph and diagnostic encoders/fusion. Add one explicit global parity embedding interacting with pooled graph geometry through the existing Step-7 global gate, then add it as a scalar-gated residual to the late-concat representation.",
+    "parity_residual_initialization": "scalar tanh gate initialized at exactly 0 so the candidate begins from the champion representation",
+    "local_graph_diagnostic_interaction": false,
+    "pair_graph_diagnostic_interaction": false,
+    "explicit_pairwise_gated_interaction": false,
+    "pairwise_diagnostics_remain_inside_generic_diagnostic_encoder": true,
+    "effect_magnitude_shot_path_retained": true,
+    "mechanism_head_receives_explicit_magnitude_path": false,
+    "signed_bdelta_through_born_encoder": false,
+    "expected_trainable_parameters_each": 453830
+  },
+  "variants": {
+    "primary": ["late_concat", "late_concat_parity_residual"],
+    "primary_seeds": [1701, 1702, 1703],
+    "diagnostic_ablations": ["late_concat_no_parity"],
+    "ablation_seeds": [1701],
+    "expected_model_runs": 7
+  },
+  "development_split": {
+    "inherit_exact_step7_partitions": true,
+    "fit_roots": 3000,
+    "internal_selection_roots": 1000,
+    "outer_development_validation_roots": 1000,
+    "all_13_derivatives_of_root_stay_together": true
+  },
+  "training": {
+    "inherit_exact_step7_training_contract": true,
+    "optimizer": "AdamW",
+    "learning_rate": 0.0003,
+    "weight_decay": 0.0001,
+    "root_batch_size": 32,
+    "max_epochs": 20,
+    "early_stopping_patience": 4,
+    "early_stopping_min_delta": 0.0005,
+    "gradient_clip_norm": 1.0,
+    "effect_loss_weight": 1.0,
+    "mechanism_loss_weight": 1.0,
+    "checkpoint_selection": "internal selection mechanism BA first, then effect BA, then earlier epoch",
+    "effect_threshold_selection": "internal selection roots only",
+    "outer_validation_selects_nothing": true
+  },
+  "evaluation": {
+    "clean_root_bootstrap_replicates": 1000,
+    "bootstrap_seed": 20260817,
+    "confidence_level": 0.95,
+    "primary_metric": "mechanism_balanced_accuracy",
+    "primary_paired_comparison": ["late_concat_parity_residual", "late_concat"],
+    "secondary_metrics": ["mechanism_macro_f1", "effect_balanced_accuracy", "effect_macro_f1", "integrated_balanced_accuracy"],
+    "compare_to_frozen_step7_late_concat_predictions": true,
+    "champion_rerun_reproducibility_tolerance_ba": 0.01,
+    "candidate_effect_noninferiority_margin_ba": 0.005
+  },
+  "decision": {
+    "candidate_wins": "paired clean-root 95% CI lower bound for mechanism BA(candidate - rerun late_concat) > 0 AND candidate effect BA paired CI lower bound >= -0.005 AND rerun late-concat mechanism BA is within 0.01 absolute BA of frozen Step-7 late-concat",
+    "candidate_fails_or_ties": "freeze late_concat as final development architecture",
+    "candidate_wins_action": "freeze late_concat_parity_residual as final development architecture",
+    "stop_rule": "No further Step 7.x architecture search on this already-inspected development validation cohort after this benchmark. Next scientific stage is a newly generated untouched confirmatory cohort for the selected final architecture.",
+    "completion_decision": "STEP7_1_FINAL_REVISION_COMPLETE",
+    "confirmation_unlocked_automatically": false
+  }
+}
