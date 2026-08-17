@@ -57,7 +57,8 @@ def test_replay_failure_record_preserves_observed_epoch_drift() -> None:
     assert record["seed"] == 1701
     assert record["archived_step8_selected_epoch"] == 8
     assert record["v1_replay_selected_epoch"] == 19
-    assert "not exactly reproducible" in record["interpretation"]
+    assert record["exact_checkpoint_reconstruction_supported"] is False
+    assert record["deployment_bundle_produced"] is False
 
 
 def test_validate_refit_record_accepts_fixed_epoch_with_descriptive_metrics() -> None:
