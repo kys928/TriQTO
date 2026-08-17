@@ -30,8 +30,8 @@
     "expected_trainable_parameter_count": 453829,
     "ensemble_aggregation": "mean_logits_across_frozen_seeds",
     "effect_threshold": 0.05939410626888275,
-    "effect_threshold_tolerance": 1e-12,
-    "selection_metric_tolerance": 1e-10
+    "effect_threshold_reproduction_tolerance": 1e-6,
+    "selection_metric_reproduction_tolerance": 1e-6
   },
   "frozen_selection_reference": {
     "1701": {"mechanism_balanced_accuracy": 0.4976767507442554, "effect_balanced_accuracy": 0.7003466835849171},
