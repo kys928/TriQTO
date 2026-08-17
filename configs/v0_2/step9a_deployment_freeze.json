@@ -1,0 +1,69 @@
+{
+  "schema": "triqto.v0_2.step9a_deployment_freeze.v1",
+  "status": "FROZEN_AFTER_STEP8_CONFIRMATION_BEFORE_DEPLOYMENT_BUNDLE",
+  "purpose": "Reproduce and serialize the already-confirmed Step-8 late_concat ensemble without any new model selection, tuning, architecture search, or confirmatory reuse.",
+  "source_confirmation": {
+    "step8_protocol_commit": "503cac53c2934e2b75c9fed1bddad18dd66b66b0",
+    "step8_result_merge_commit": "e37865cf294416a412acb4b5b8eecfcecff23e3f",
+    "cohort_id": "confirm_653c328159326c605e3f3d98",
+    "evaluation_id": "confirm_eval_e4ef740739a4390bb850c3c0",
+    "evaluation_zip_sha256": "sha256:9dc2941875d1d8e7f74b8476643ac2be31a7b83a7a554984b1965553897b1cf5",
+    "step8_config_sha256": "sha256:afab2c31139748636a7bf5f975212706dc7f037168c5566c78c20de2852f4063",
+    "step7_config_sha256": "sha256:2715c93c0d22e4aff6caf71a5e4c8ae872f5f17c236ab3445808bcefd1895a77",
+    "model_selection_sha256": "sha256:ceeaff1c41edfd2caf013c1c349c172253fca44e2269454677e4456e3fc65456"
+  },
+  "development_source": {
+    "schema": "triqto.v0_2.step5_matched_diagnostic_training_dataset.v3",
+    "product_id": "product_b2d78ad2309b71a55f9bb54f",
+    "default_product_dir": "/workspace/triqto-data/step5_matched_diagnostic_training_v3/product_b2d78ad2309b71a55f9bb54f",
+    "fit_roots": 3000,
+    "selection_roots": 1000,
+    "outer_development_roots_used": false,
+    "spent_step8_confirmatory_cohort_used": false
+  },
+  "frozen_model": {
+    "variant": "late_concat",
+    "mechanism_classes": ["rz_drift", "rx_overrotation", "ry_overrotation"],
+    "mechanism_codes": {"rz_drift": 0, "rx_overrotation": 1, "ry_overrotation": 2},
+    "seeds": [1701, 1702, 1703],
+    "selected_epochs": {"1701": 8, "1702": 11, "1703": 17},
+    "expected_trainable_parameter_count": 453829,
+    "ensemble_aggregation": "mean_logits_across_frozen_seeds",
+    "effect_threshold": 0.05939410626888275,
+    "effect_threshold_tolerance": 1e-12,
+    "selection_metric_tolerance": 1e-10
+  },
+  "frozen_selection_reference": {
+    "1701": {"mechanism_balanced_accuracy": 0.4976767507442554, "effect_balanced_accuracy": 0.7003466835849171},
+    "1702": {"mechanism_balanced_accuracy": 0.5040368066682867, "effect_balanced_accuracy": 0.7104675627848172},
+    "1703": {"mechanism_balanced_accuracy": 0.5055329500908282, "effect_balanced_accuracy": 0.7079409384399256}
+  },
+  "inference_contract": {
+    "diagnostic_basis_order": ["Z", "X", "Y"],
+    "diagnostic_basis_codes": [0, 1, 2],
+    "delta_sign": "observed_minus_paired_reference",
+    "diagnostic_blocks": ["signed_local_expectation_delta", "signed_same_basis_pairwise_correlation_delta", "signed_global_parity_delta"],
+    "reference_kind": "paired_hardware_compatible_reference",
+    "reference_kind_code": 0,
+    "graph_semantics": "intended_reference_clean_circuit_only",
+    "statevector_model_input": false,
+    "exact_diagnostic_model_input": false,
+    "hidden_mechanism_metadata_model_input": false,
+    "effect_prediction": "mean effect logit across seeds compared with frozen effect_threshold",
+    "mechanism_prediction": "argmax of mean mechanism logits across seeds"
+  },
+  "output": {
+    "default_parent": "/workspace/triqto-data/step9a_deployment_bundle",
+    "checkpoint_format": "torch_save_state_dict_cpu",
+    "required_files": ["seed1701.pt", "seed1702.pt", "seed1703.pt", "model_selection.json", "inference_contract.json", "bundle_complete.json"]
+  },
+  "scientific_boundaries": {
+    "new_training_data": false,
+    "new_hyperparameter_selection": false,
+    "new_threshold_selection": false,
+    "architecture_change": false,
+    "spent_confirmatory_reuse": false,
+    "hardware_execution": false,
+    "bundle_may_be_regenerated_from_same_frozen_contract": true
+  }
+}
