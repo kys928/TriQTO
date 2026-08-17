@@ -1,0 +1,97 @@
+{
+  "schema": "triqto.v0_2.step9c_hardware_path_dry_run.v1",
+  "status": "FROZEN_BEFORE_DRY_RUN_EXECUTION",
+  "purpose": "Validate the exact Step-9B compile/Sampler/count-extraction/model-batch path and the frozen Step-9A deployment checkpoints on a local BackendV2/Aer SamplerV2 before any physical QPU execution. This is a plumbing and semantic-equivalence gate, not a model-development or performance-selection stage.",
+  "source_step9b": {
+    "merge_commit": "72af2fa0bc6fd4981abbeefb338ffa0e759fd3f5",
+    "config_schema": "triqto.v0_2.step9b_hardware_acquisition.v1",
+    "config_git_blob_sha": "7b0c0125eb28339b9f46ac2984a4e6817b6aa1fe"
+  },
+  "deployment_bundle": {
+    "bundle_id": "deploy_ac536a74b2f8dd571d353a12",
+    "architecture": "late_concat",
+    "seeds": [1701, 1702, 1703],
+    "checkpoint_sha256": {
+      "seed1701.pt": "sha256:549a64c0be5a6612a2a67b9c60fe20a011a81cff2f3c00d0759e8d0a91e8e42d",
+      "seed1702.pt": "sha256:53339d86313a73358fee0ecbae7874cf8f9cac67dc5f1e34618f7f8f32ed4de7",
+      "seed1703.pt": "sha256:b5f4a7f876816449da8c38948e81b439d9144589b28101c553566c126708dabc"
+    },
+    "effect_threshold": 0.05939410626888275,
+    "mechanism_classes": ["rz_drift", "rx_overrotation", "ry_overrotation"],
+    "expected_trainable_parameter_count": 453829,
+    "weight_provenance": "post_confirmation_fixed_epoch_refit_development_only"
+  },
+  "simulator_backend": {
+    "provider": "qiskit.providers.fake_provider.GenericBackendV2",
+    "sampler": "qiskit_aer.primitives.SamplerV2.from_backend",
+    "num_qubits": 5,
+    "basis_gates": ["id", "rz", "sx", "x", "cx"],
+    "coupling_map": [[0, 1], [1, 0], [1, 2], [2, 1], [2, 3], [3, 2], [3, 4], [4, 3]],
+    "backend_seed": 2026081709,
+    "sampler_seed": 2026081710,
+    "noise_info": true,
+    "shots": 1024,
+    "optimization_level": 1,
+    "seed_transpiler": 17091
+  },
+  "dry_run_cases": [
+    {
+      "case_id": "bell_rz_q0",
+      "family": "bell_like",
+      "n_qubits": 2,
+      "initial_layout": [0, 1],
+      "injected_mechanism_report_only": "rz_drift",
+      "strength": 0.15
+    },
+    {
+      "case_id": "ghz_rx_q1",
+      "family": "ghz",
+      "n_qubits": 3,
+      "initial_layout": [0, 1, 2],
+      "injected_mechanism_report_only": "rx_overrotation",
+      "strength": 0.15
+    },
+    {
+      "case_id": "phase_ry_q0",
+      "family": "phase_interference",
+      "n_qubits": 2,
+      "initial_layout": [1, 2],
+      "injected_mechanism_report_only": "ry_overrotation",
+      "strength": 0.15
+    }
+  ],
+  "pass_gates": {
+    "step9b_identity_verified": true,
+    "deployment_bundle_hashes_verified": true,
+    "all_six_programs_execute_per_case": true,
+    "meas_register_survives_transpilation": true,
+    "realized_shots_equal_requested_per_program": true,
+    "hardware_path_matches_step7_training_adapter_tensors": true,
+    "all_three_frozen_checkpoints_load": true,
+    "all_checkpoint_parameter_counts_match": true,
+    "all_model_outputs_finite": true,
+    "prediction_correctness_is_not_a_gate": true
+  },
+  "scientific_boundaries": {
+    "physical_qpu_execution": false,
+    "new_training": false,
+    "model_weight_change": false,
+    "architecture_change": false,
+    "threshold_change": false,
+    "checkpoint_selection": false,
+    "performance_selection": false,
+    "step8_confirmatory_reuse": false,
+    "injected_mechanism_labels_are_model_inputs": false,
+    "dry_run_predictions_are_confirmatory_evidence": false,
+    "step9d_qpu_pilot_remains_exploratory": true
+  },
+  "output": {
+    "default_parent": "/workspace/triqto-data/step9c_hardware_path_dry_run",
+    "required_files": [
+      "case_results.jsonl",
+      "inference_predictions.csv",
+      "dry_run_summary.json",
+      "dry_run_complete.json"
+    ]
+  }
+}
