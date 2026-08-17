@@ -1,0 +1,129 @@
+{
+  "schema": "triqto.v0_2.step8_untouched_confirmatory.v1",
+  "status": "FROZEN_BEFORE_CONFIRMATORY_COHORT_GENERATION",
+  "evidence_status": "PREDECLARED_CONFIRMATORY_SAME_GENERATOR_REPLICATION",
+  "purpose": "Run a one-shot confirmation of the already-selected late_concat diagnostic architecture on newly generated independent clean-circuit roots from the accepted Step-5 simulator population, without any further architecture search or confirmatory-label-driven tuning.",
+  "source_main_merge": "b7a8bdef7b9bcd440c85157d77b8943d6c1be97e",
+  "final_architecture": {
+    "variant": "late_concat",
+    "selected_by_step7_1": true,
+    "step7_1_pr": 58,
+    "step7_1_benchmark_id": "benchmark_acdea8dffa258412b7566d83",
+    "architecture_search_closed": true,
+    "no_step7_2": true,
+    "signed_bdelta_through_born_encoder": false,
+    "effect_magnitude_shot_path_retained": true,
+    "global_parity_retained_in_generic_diagnostic_encoder": true,
+    "special_local_pair_or_parity_graph_gating": false
+  },
+  "development_source": {
+    "product_id": "product_b2d78ad2309b71a55f9bb54f",
+    "default_product_dir": "/workspace/triqto-data/step5_matched_diagnostic_training_v3/product_b2d78ad2309b71a55f9bb54f",
+    "clean_roots": 5000,
+    "examples": 65000,
+    "step7_fit_roots": 3000,
+    "step7_selection_roots": 1000,
+    "step7_outer_development_roots": 1000,
+    "step7_outer_development_is_not_confirmatory": true
+  },
+  "confirmatory_cohort": {
+    "clean_circuit_roots": 2000,
+    "examples_per_root": 13,
+    "expected_examples": 26000,
+    "split_name": "confirmatory",
+    "generation_root_index_offset": 1000000,
+    "offset_must_be_multiple_of_family_cycle_length": 20,
+    "inherit_step5_v3_family_qubit_strength_depth_and_acquisition_recipe": true,
+    "require_zero_clean_graph_hash_overlap_with_development": true,
+    "require_zero_clean_group_id_overlap_with_development": true,
+    "require_unique_clean_graphs_within_confirmatory": true,
+    "default_output_parent": "/workspace/triqto-data/step8_untouched_confirmatory"
+  },
+  "blinding_and_sealing": {
+    "human_visible_example_manifest_excludes": [
+      "mechanism",
+      "effect_present",
+      "mechanism_loss_mask",
+      "phenomenology",
+      "population_component",
+      "phase_component",
+      "dominance_log_ratio",
+      "total_overlap_loss"
+    ],
+    "sealed_completion_reports_target_summaries": false,
+    "pre_evaluation_target_eda_forbidden": true,
+    "pre_evaluation_model_scoring_forbidden": true,
+    "pre_evaluation_threshold_tuning_on_confirmatory_forbidden": true,
+    "artifact_integrity_validation_during_generation_allowed": true,
+    "design_only_distribution_checks_allowed": true,
+    "cohort_becomes_spent_after_first_completed_evaluation": true
+  },
+  "training": {
+    "architecture_variant": "late_concat",
+    "seeds": [1701, 1702, 1703],
+    "inherit_exact_step7_fit_selection_partition": true,
+    "fit_roots": 3000,
+    "selection_roots": 1000,
+    "step7_outer_development_roots_used_for_training_or_selection": false,
+    "root_batch_size": 32,
+    "max_epochs": 20,
+    "early_stopping_patience": 4,
+    "early_stopping_min_delta": 0.0005,
+    "optimizer": "AdamW",
+    "learning_rate": 0.0003,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 1.0,
+    "effect_loss_weight": 1.0,
+    "mechanism_loss_weight": 1.0,
+    "checkpoint_selection": "development selection mechanism BA first, then effect BA, then earlier epoch",
+    "ensemble": "mean logits across frozen seeds",
+    "effect_threshold_selection": "mean development-selection effect logits only"
+  },
+  "evaluation": {
+    "root_group_bootstrap_replicates": 5000,
+    "bootstrap_seed": 20260817,
+    "confidence_level": 0.95,
+    "primary_task": "mechanism_diagnosis",
+    "primary_metric": "balanced_accuracy",
+    "primary_gate": {
+      "balanced_accuracy_ci_low_strictly_greater_than": 0.45,
+      "minimum_each_mechanism_recall": 0.40,
+      "classes": ["rz_drift", "rx_overrotation", "ry_overrotation"]
+    },
+    "secondary_gates": {
+      "effect_balanced_accuracy_ci_low_strictly_greater_than": 0.65,
+      "integrated_balanced_accuracy_ci_low_strictly_greater_than": 0.40
+    },
+    "development_reference_mechanism_ba": 0.5118,
+    "development_reference_is_descriptive_not_a_confirmation_threshold": true,
+    "report_seed_metrics": true,
+    "report_strata": ["family", "n_qubits", "shots", "strength", "insertion_depth_bin"],
+    "single_class_stratum_balanced_accuracy": "undefined_not_reported_as_evidence"
+  },
+  "decision": {
+    "primary_supported": "ensemble mechanism balanced-accuracy 95% clean-root bootstrap CI lower bound > 0.45 AND each RZ/RX/RY recall >= 0.40",
+    "primary_not_supported": "otherwise",
+    "secondary_effect_supported": "effect balanced-accuracy 95% clean-root bootstrap CI lower bound > 0.65",
+    "secondary_integrated_supported": "integrated balanced-accuracy 95% clean-root bootstrap CI lower bound > 0.40",
+    "no_posthoc_rescue": true,
+    "no_architecture_or_hyperparameter_change_after_confirmatory_labels": true,
+    "failure_does_not_authorize_reuse_as_confirmatory": true,
+    "completion_decision": "STEP8_CONFIRMATORY_EVALUATION_COMPLETE"
+  },
+  "claim_boundary": {
+    "supported_scope": "independent same-generator finite-shot simulator clean-circuit roots under the frozen Step-5 v3 population and paired-reference acquisition contract",
+    "not_supported_by_this_stage": [
+      "real IBM/QPU hardware robustness",
+      "calibration-drift robustness",
+      "out-of-distribution circuit-family generalization",
+      "quantum advantage",
+      "fault tolerance",
+      "universal mechanism identification"
+    ]
+  },
+  "forbidden_access": {
+    "historical_v0_1_test": true,
+    "spent_phase15_6_confirmatory": true,
+    "step8_confirmatory_labels_before_one_shot_evaluation": true
+  }
+}
