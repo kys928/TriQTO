@@ -1,0 +1,81 @@
+{
+  "schema": "triqto.v0_2.step7_full_development_benchmark.v1",
+  "status": "FROZEN_AFTER_SMOKE_BEFORE_FULL_NEURAL_OUTCOME",
+  "evidence_status": "DEVELOPMENT_ARCHITECTURE_SELECTION_NOT_CONFIRMATORY",
+  "experiment_config": {
+    "path": "configs/v0_2/step7_structured_diagnostic_model.json",
+    "sha256": "sha256:2715c93c0d22e4aff6caf71a5e4c8ae872f5f17c236ab3445808bcefd1895a77"
+  },
+  "required_smoke": {
+    "smoke_id": "smoke_185f69415ea6bb082dd93ef7",
+    "decision": "STEP7_SMOKE_PASS",
+    "default_dir": "/workspace/triqto-data/step7_structured_diagnostic_smoke/smoke_185f69415ea6bb082dd93ef7",
+    "uploaded_smoke_complete_sha256": "sha256:4fe46b4c2f3c88f14c00df7d8e6c45fd5d74f06f9d76b415282e3f0a568e85c0",
+    "scientific_metric_claim": false
+  },
+  "source_product_id": "product_b2d78ad2309b71a55f9bb54f",
+  "execution": {
+    "device": "auto_cuda_else_cpu",
+    "materialize_all_artifacts_once_before_training": true,
+    "verify_every_artifact_sha256_during_materialization": true,
+    "fixed_root_blocks": true,
+    "root_batch_size": 32,
+    "root_block_construction": "ascending root index, contiguous blocks; all 13 derivatives remain together",
+    "epoch_order": "shuffle root-block order deterministically by seed and epoch; do not reshuffle examples across root blocks",
+    "selection_order": "fixed deterministic root-block order",
+    "outer_validation_order": "restored to original Step 5 manifest row order before evaluation and Step 6 pairing",
+    "mixed_precision": false,
+    "num_threads": 0,
+    "checkpoint_storage": "best state dict held on CPU in memory; no validation-driven checkpoint mutation",
+    "parameter_count_fairness": "all frozen Step 7 variants must equal the smoke-gate trainable parameter count 453829"
+  },
+  "selection": {
+    "effect_threshold_source": "internal selection roots only",
+    "effect_threshold_rule": "maximize minimum class recall; tie-break balanced accuracy, macro-F1, then closeness to 0.5",
+    "epoch_rule": "mechanism balanced accuracy first, then effect balanced accuracy, then earlier epoch",
+    "early_stopping_patience": 4,
+    "early_stopping_min_delta": 0.0005,
+    "outer_validation_may_not_select_epoch_threshold_or_hyperparameter": true,
+    "primary_ensemble_threshold": "select once from mean selection effect logits across the three frozen primary seeds"
+  },
+  "runs": {
+    "primary_variants": ["diagnostic_only", "graph_only", "late_concat", "structured_interaction"],
+    "primary_seeds": [1701, 1702, 1703],
+    "ablation_variants": ["structured_no_magnitude", "structured_no_pairwise", "structured_no_parity"],
+    "ablation_seeds": [1701],
+    "expected_model_runs": 15
+  },
+  "step6_pairing": {
+    "linear_default_dir": "/workspace/triqto-data/step6_cheap_baselines/benchmark_383d4c3070350f0bef6fdb23",
+    "nonlinear_default_dir": "/workspace/triqto-data/step6b_nonlinear_sanity/closure_e7de7cdd47142287352f8de8",
+    "verify_source_product_and_validation_truth_alignment": true,
+    "mechanism_reference": "diag_full_context_graph",
+    "effect_reference": "diag_snr_proxy_threshold"
+  },
+  "outputs": {
+    "default_parent": "/workspace/triqto-data/step7_structured_diagnostic_benchmark",
+    "files": [
+      "aggregate_metrics.csv",
+      "seed_metrics.csv",
+      "paired_differences.csv",
+      "ablation_metrics.csv",
+      "stratified_metrics.csv",
+      "training_history.csv",
+      "model_selection.json",
+      "decision.json",
+      "validation_predictions.npz",
+      "benchmark_complete.json"
+    ]
+  },
+  "scientific_boundaries": {
+    "historical_v0_1_test_access": false,
+    "spent_confirmatory_cohort_access": false,
+    "new_confirmatory_cohort_access": false,
+    "hardware_execution": false,
+    "exact_diagnostics_as_model_input": false,
+    "statevector_as_model_input": false,
+    "family_or_intervention_metadata_as_model_input": false,
+    "step7_outer_validation_is_development_evidence": true,
+    "step8_not_automatically_unlocked": true
+  }
+}
