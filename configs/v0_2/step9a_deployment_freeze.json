@@ -1,7 +1,7 @@
 {
-  "schema": "triqto.v0_2.step9a_deployment_freeze.v1",
-  "status": "FROZEN_AFTER_STEP8_CONFIRMATION_BEFORE_DEPLOYMENT_BUNDLE",
-  "purpose": "Reproduce and serialize the already-confirmed Step-8 late_concat ensemble without any new model selection, tuning, architecture search, or confirmatory reuse.",
+  "schema": "triqto.v0_2.step9a_deployment_freeze.v2",
+  "status": "FROZEN_POST_CONFIRMATION_FIXED_EPOCH_REFIT",
+  "purpose": "Create one immutable deployment ensemble after Step 8 by refitting the confirmed late_concat architecture on development data for the already-archived Step-8 epoch schedule. This does not claim to reconstruct the exact Step-8 checkpoint weights, which were not serialized and were shown not to be exactly replayable on CUDA.",
   "source_confirmation": {
     "step8_protocol_commit": "503cac53c2934e2b75c9fed1bddad18dd66b66b0",
     "step8_result_merge_commit": "e37865cf294416a412acb4b5b8eecfcecff23e3f",
@@ -11,6 +11,14 @@
     "step8_config_sha256": "sha256:afab2c31139748636a7bf5f975212706dc7f037168c5566c78c20de2852f4063",
     "step7_config_sha256": "sha256:2715c93c0d22e4aff6caf71a5e4c8ae872f5f17c236ab3445808bcefd1895a77",
     "model_selection_sha256": "sha256:ceeaff1c41edfd2caf013c1c349c172253fca44e2269454677e4456e3fc65456"
+  },
+  "replay_failure_record": {
+    "step9a_v1_merge_commit": "aa5275a68b8dc51ba9ddf498a1b2e1d2813c9925",
+    "device": "cuda",
+    "seed": 1701,
+    "archived_step8_selected_epoch": 8,
+    "v1_replay_selected_epoch": 19,
+    "interpretation": "The Step-8 CUDA optimization trajectory was seeded but not configured for deterministic CUDA execution. Exact checkpoint reconstruction is therefore not supported by the evidence. No Step-9A deployment bundle was produced by the failed v1 attempt."
   },
   "development_source": {
     "schema": "triqto.v0_2.step5_matched_diagnostic_training_dataset.v3",
@@ -26,17 +34,30 @@
     "mechanism_classes": ["rz_drift", "rx_overrotation", "ry_overrotation"],
     "mechanism_codes": {"rz_drift": 0, "rx_overrotation": 1, "ry_overrotation": 2},
     "seeds": [1701, 1702, 1703],
-    "selected_epochs": {"1701": 8, "1702": 11, "1703": 17},
+    "fixed_training_epochs": {"1701": 8, "1702": 11, "1703": 17},
+    "fixed_epoch_source": "archived_step8_selected_epochs",
     "expected_trainable_parameter_count": 453829,
     "ensemble_aggregation": "mean_logits_across_frozen_seeds",
-    "effect_threshold": 0.05939410626888275,
-    "effect_threshold_reproduction_tolerance": 1e-6,
-    "selection_metric_reproduction_tolerance": 1e-6
+    "deployment_effect_threshold": 0.05939410626888275,
+    "deployment_effect_threshold_source": "archived_step8_model_selection",
+    "current_refit_may_select_epoch": false,
+    "current_refit_may_select_threshold": false,
+    "exact_step8_checkpoint_weights_claimed": false
   },
-  "frozen_selection_reference": {
+  "archived_step8_selection_reference_descriptive_only": {
     "1701": {"mechanism_balanced_accuracy": 0.4976767507442554, "effect_balanced_accuracy": 0.7003466835849171},
     "1702": {"mechanism_balanced_accuracy": 0.5040368066682867, "effect_balanced_accuracy": 0.7104675627848172},
     "1703": {"mechanism_balanced_accuracy": 0.5055329500908282, "effect_balanced_accuracy": 0.7079409384399256}
+  },
+  "refit_policy": {
+    "train_exactly_fixed_epochs": true,
+    "evaluate_selection_once_after_fixed_epoch": true,
+    "selection_metrics_are_descriptive_only": true,
+    "refit_selection_threshold_is_descriptive_only": true,
+    "deployment_threshold_remains_archived_step8_value": true,
+    "checkpoint_hashes_define_weight_identity": true,
+    "allow_second_successful_bundle_in_output_parent": false,
+    "bundle_once_created_is_authoritative_for_step9b_and_step9d": true
   },
   "inference_contract": {
     "diagnostic_basis_order": ["Z", "X", "Y"],
@@ -49,8 +70,8 @@
     "statevector_model_input": false,
     "exact_diagnostic_model_input": false,
     "hidden_mechanism_metadata_model_input": false,
-    "effect_prediction": "mean effect logit across seeds compared with frozen effect_threshold",
-    "mechanism_prediction": "argmax of mean mechanism logits across seeds"
+    "effect_prediction": "mean effect logit across deployment-refit seeds compared with archived Step-8 effect threshold",
+    "mechanism_prediction": "argmax of mean mechanism logits across deployment-refit seeds"
   },
   "output": {
     "default_parent": "/workspace/triqto-data/step9a_deployment_bundle",
@@ -60,10 +81,12 @@
   "scientific_boundaries": {
     "new_training_data": false,
     "new_hyperparameter_selection": false,
+    "new_epoch_selection": false,
     "new_threshold_selection": false,
     "architecture_change": false,
     "spent_confirmatory_reuse": false,
     "hardware_execution": false,
-    "bundle_may_be_regenerated_from_same_frozen_contract": true
+    "post_confirmation_fixed_epoch_refit": true,
+    "exact_step8_weights_reconstructed": false
   }
 }
