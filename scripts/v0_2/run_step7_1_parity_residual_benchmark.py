@@ -233,41 +233,27 @@ def main() -> None:
         ensemble_threshold, _, _ = step7._metrics_binary(selection_set.effect_truth, selection_effect_logits)
         selections[f"{variant}__ensemble"] = {"selection_effect_threshold": ensemble_threshold, "aggregation": "mean_logits_across_frozen_primary_seeds", "seeds": primary_seeds}
         metric_rows, boots, predictions = step7.bootstrap_rows(
-            name=variant,
-            truth=outer_set,
-            effect_logits=outer_effect_logits,
-            mechanism_logits=outer_mechanism_logits,
-            threshold=ensemble_threshold,
-            replicates=replicates,
-            seed=bootstrap_seed,
-            confidence=confidence,
+            name=variant, truth=outer_set, effect_logits=outer_effect_logits, mechanism_logits=outer_mechanism_logits,
+            threshold=ensemble_threshold, replicates=replicates, seed=bootstrap_seed, confidence=confidence,
         )
         aggregate_metrics.extend(metric_rows)
         for task, boot in boots.items(): primary_boot[task][variant] = boot
         aggregate_payload[variant] = {
-            "effect_logits": outer_effect_logits.astype(np.float32),
-            "mechanism_logits": outer_mechanism_logits.astype(np.float32),
-            "effect_pred": predictions["effect_pred"].astype(np.int8),
-            "mechanism_pred_all": predictions["mechanism_pred_all"].astype(np.int8),
+            "effect_logits": outer_effect_logits.astype(np.float32), "mechanism_logits": outer_mechanism_logits.astype(np.float32),
+            "effect_pred": predictions["effect_pred"].astype(np.int8), "mechanism_pred_all": predictions["mechanism_pred_all"].astype(np.int8),
             "threshold": float(ensemble_threshold),
         }
         stratified_metrics.extend(step7.stratified_metric_rows(
-            name=variant,
-            outer=outer_set,
-            rows=rows,
-            effect_pred=predictions["effect_pred"],
-            mechanism_pred_all=predictions["mechanism_pred_all"],
-            strata=experiment["evaluation"]["strata"],
+            name=variant, outer=outer_set, rows=rows, effect_pred=predictions["effect_pred"],
+            mechanism_pred_all=predictions["mechanism_pred_all"], strata=experiment["evaluation"]["strata"],
             minimum=int(experiment["evaluation"]["minimum_stratum_examples"]),
         ))
         for seed in primary_seeds:
             threshold = float(selections[f"{variant}__seed{seed}"]["selection_effect_threshold"])
             seed_metrics.extend(step7.simple_metric_rows(
-                prefix=f"{variant}__seed{seed}",
-                truth=outer_predictions[(variant, seed)],
+                prefix=f"{variant}__seed{seed}", truth=outer_predictions[(variant, seed)],
                 effect_logits=outer_predictions[(variant, seed)].effect_logits,
-                mechanism_logits=outer_predictions[(variant, seed)].mechanism_logits,
-                threshold=threshold,
+                mechanism_logits=outer_predictions[(variant, seed)].mechanism_logits, threshold=threshold,
             ))
 
     pair = [tuple(config["evaluation"]["primary_paired_comparison"])]
@@ -275,19 +261,13 @@ def main() -> None:
         paired_rows.extend(baseline.paired_difference_rows(task, pair, boot, confidence))
 
     frozen_rows, frozen_boots, _ = step7.bootstrap_rows(
-        name="frozen_step7_late_concat",
-        truth=frozen_outer,
-        effect_logits=frozen_outer.effect_logits,
-        mechanism_logits=frozen_outer.mechanism_logits,
-        threshold=frozen_threshold,
-        replicates=replicates,
-        seed=bootstrap_seed,
-        confidence=confidence,
+        name="frozen_step7_late_concat", truth=frozen_outer, effect_logits=frozen_outer.effect_logits,
+        mechanism_logits=frozen_outer.mechanism_logits, threshold=frozen_threshold, replicates=replicates,
+        seed=bootstrap_seed, confidence=confidence,
     )
     aggregate_metrics.extend(frozen_rows)
     for task in ("effect_detection", "mechanism_diagnosis", "integrated_diagnosis"):
-        comparison_boot = dict(primary_boot[task])
-        comparison_boot["frozen_step7_late_concat"] = frozen_boots[task]
+        comparison_boot = dict(primary_boot[task]); comparison_boot["frozen_step7_late_concat"] = frozen_boots[task]
         paired_rows.extend(baseline.paired_difference_rows(
             task,
             [("late_concat", "frozen_step7_late_concat"), ("late_concat_parity_residual", "frozen_step7_late_concat")],
@@ -299,23 +279,25 @@ def main() -> None:
     champion_seed = outer_predictions[("late_concat", seed)]
     champion_threshold = float(selections[f"late_concat__seed{seed}"]["selection_effect_threshold"])
     champion_rows, champion_boots, _ = step7.bootstrap_rows(
-        name=f"late_concat__seed{seed}", truth=champion_seed,
-        effect_logits=champion_seed.effect_logits, mechanism_logits=champion_seed.mechanism_logits,
-        threshold=champion_threshold, replicates=replicates, seed=bootstrap_seed, confidence=confidence,
+        name=f"late_concat__seed{seed}", truth=champion_seed, effect_logits=champion_seed.effect_logits,
+        mechanism_logits=champion_seed.mechanism_logits, threshold=champion_threshold, replicates=replicates,
+        seed=bootstrap_seed, confidence=confidence,
     )
     ablation_metrics.extend(champion_rows)
     for variant in ablations:
         outer_set = outer_predictions[(variant, seed)]
         threshold = float(selections[f"{variant}__seed{seed}"]["selection_effect_threshold"])
         rows_out, boots, _ = step7.bootstrap_rows(
-            name=f"{variant}__seed{seed}", truth=outer_set,
-            effect_logits=outer_set.effect_logits, mechanism_logits=outer_set.mechanism_logits,
-            threshold=threshold, replicates=replicates, seed=bootstrap_seed, confidence=confidence,
+            name=f"{variant}__seed{seed}", truth=outer_set, effect_logits=outer_set.effect_logits,
+            mechanism_logits=outer_set.mechanism_logits, threshold=threshold, replicates=replicates,
+            seed=bootstrap_seed, confidence=confidence,
         )
         ablation_metrics.extend(rows_out)
         for task in champion_boots:
             comparison = {f"late_concat__seed{seed}": champion_boots[task], f"{variant}__seed{seed}": boots[task]}
-            paired_rows.extend(baseline.paired_difference_rows(task, [(f"late_concat__seed{seed}", f"{variant}__seed{seed}")], comparison, confidence))
+            paired_rows.extend(baseline.paired_difference_rows(
+                task, [(f"late_concat__seed{seed}", f"{variant}__seed{seed}")], comparison, confidence
+            ))
 
     lookup = {(row["task"], row["left"], row["right"], row["metric"]): row for row in paired_rows}
     architecture = lookup[("mechanism_diagnosis", "late_concat_parity_residual", "late_concat", "balanced_accuracy")]
@@ -323,7 +305,7 @@ def main() -> None:
     frozen_repro = lookup[("mechanism_diagnosis", "late_concat", "frozen_step7_late_concat", "balanced_accuracy")]
     reproducibility_tolerance = float(config["evaluation"]["champion_rerun_reproducibility_tolerance_ba"])
     candidate_effect_margin = float(config["evaluation"]["candidate_effect_noninferiority_margin_ba"])
-    reproducible = abs(float(frozen_repro["difference"])) <= reproducibility_tolerance
+    reproducible = abs(float(frozen_repro["mean_bootstrap_difference"])) <= reproducibility_tolerance
     architecture_positive = float(architecture["ci_low"]) > 0.0
     effect_noninferior = float(effect["ci_low"]) >= -candidate_effect_margin
     candidate_wins = reproducible and architecture_positive and effect_noninferior
@@ -338,19 +320,15 @@ def main() -> None:
     }
 
     identity = {
-        "schema": SCHEMA,
-        "config_sha256": baseline.sha256_file(config_path),
+        "schema": SCHEMA, "config_sha256": baseline.sha256_file(config_path),
         "experiment_config_sha256": baseline.sha256_file(experiment_path),
         "runner_sha256": baseline.sha256_file(Path(__file__).resolve()),
-        "source_product_id": source_complete["product_id"],
-        "source_step7_benchmark_id": step7_marker["benchmark_id"],
+        "source_product_id": source_complete["product_id"], "source_step7_benchmark_id": step7_marker["benchmark_id"],
     }
     benchmark_id = "benchmark_" + hashlib.sha256(baseline.canonical_json(identity).encode("utf-8")).hexdigest()[:24]
-    output_parent.mkdir(parents=True, exist_ok=True)
-    output = output_parent / benchmark_id
+    output_parent.mkdir(parents=True, exist_ok=True); output = output_parent / benchmark_id
     if output.exists(): raise RuntimeError(f"refusing to overwrite Step 7.1 benchmark {output}")
-    staging = output_parent / f".{benchmark_id}.staging-{uuid.uuid4().hex}"
-    staging.mkdir()
+    staging = output_parent / f".{benchmark_id}.staging-{uuid.uuid4().hex}"; staging.mkdir()
     baseline.write_csv(staging / "aggregate_metrics.csv", aggregate_metrics)
     baseline.write_csv(staging / "seed_metrics.csv", seed_metrics)
     baseline.write_csv(staging / "paired_differences.csv", paired_rows)
@@ -359,17 +337,11 @@ def main() -> None:
     baseline.write_csv(staging / "training_history.csv", histories)
     baseline.atomic_json(staging / "model_selection.json", selections)
     baseline.atomic_json(staging / "decision.json", {
-        "schema": SCHEMA,
-        "decision": config["decision"]["completion_decision"],
-        "evidence_status": config["evidence_status"],
-        "interpretation_flags": flags,
-        "selected_final_development_architecture": selected_final,
-        "stop_rule": config["decision"]["stop_rule"],
-        "outer_validation_used_for_selection": False,
-        "historical_v0_1_test_accessed": False,
-        "spent_confirmatory_cohort_accessed": False,
-        "new_confirmatory_cohort_accessed": False,
-        "hardware_executed": False,
+        "schema": SCHEMA, "decision": config["decision"]["completion_decision"], "evidence_status": config["evidence_status"],
+        "interpretation_flags": flags, "selected_final_development_architecture": selected_final,
+        "stop_rule": config["decision"]["stop_rule"], "outer_validation_used_for_selection": False,
+        "historical_v0_1_test_accessed": False, "spent_confirmatory_cohort_accessed": False,
+        "new_confirmatory_cohort_accessed": False, "hardware_executed": False,
         "confirmation_unlocked_automatically": False,
     })
     payload: dict[str, np.ndarray] = {
@@ -390,42 +362,25 @@ def main() -> None:
     np.savez_compressed(staging / "validation_predictions.npz", **payload)
     files = ["aggregate_metrics.csv", "seed_metrics.csv", "paired_differences.csv", "ablation_metrics.csv", "stratified_metrics.csv", "training_history.csv", "model_selection.json", "decision.json", "validation_predictions.npz"]
     completion = {
-        "schema": SCHEMA,
-        "status": "COMPLETE",
-        "benchmark_id": benchmark_id,
-        "identity": identity,
-        "source_product_id": source_complete["product_id"],
-        "source_step7_benchmark_id": step7_marker["benchmark_id"],
-        "fit_roots": len(fit_roots),
-        "selection_roots": len(selection_roots),
-        "outer_development_validation_roots": len(outer_roots),
-        "model_runs": int(config["variants"]["expected_model_runs"]),
-        "primary_variants": primary,
-        "primary_seeds": primary_seeds,
-        "ablation_variants": ablations,
-        "ablation_seeds": ablation_seeds,
-        "selected_final_development_architecture": selected_final,
-        "interpretation_flags": flags,
-        "evidence_status": config["evidence_status"],
-        "historical_v0_1_test_accessed": False,
-        "spent_confirmatory_cohort_accessed": False,
-        "new_confirmatory_cohort_accessed": False,
-        "hardware_executed": False,
+        "schema": SCHEMA, "status": "COMPLETE", "benchmark_id": benchmark_id, "identity": identity,
+        "source_product_id": source_complete["product_id"], "source_step7_benchmark_id": step7_marker["benchmark_id"],
+        "fit_roots": len(fit_roots), "selection_roots": len(selection_roots),
+        "outer_development_validation_roots": len(outer_roots), "model_runs": int(config["variants"]["expected_model_runs"]),
+        "primary_variants": primary, "primary_seeds": primary_seeds, "ablation_variants": ablations,
+        "ablation_seeds": ablation_seeds, "selected_final_development_architecture": selected_final,
+        "interpretation_flags": flags, "evidence_status": config["evidence_status"],
+        "historical_v0_1_test_accessed": False, "spent_confirmatory_cohort_accessed": False,
+        "new_confirmatory_cohort_accessed": False, "hardware_executed": False,
         "confirmation_unlocked_automatically": False,
         "file_hashes": {name: baseline.sha256_file(staging / name) for name in files},
     }
-    baseline.atomic_json(staging / "benchmark_complete.json", completion)
-    os.replace(staging, output)
+    baseline.atomic_json(staging / "benchmark_complete.json", completion); os.replace(staging, output)
 
     metric_lookup = {(row["task"], row["baseline"]): row for row in aggregate_metrics}
     print("\nTRIQTO STEP 7.1 FINAL PARITY-RESIDUAL REVISION COMPLETE\n")
     print(f"Decision: {config['decision']['completion_decision']}")
     for variant in primary:
-        print(
-            f"{variant}: effect_BA={float(metric_lookup[('effect_detection', variant)]['balanced_accuracy']):.4f} "
-            f"mechanism_BA={float(metric_lookup[('mechanism_diagnosis', variant)]['balanced_accuracy']):.4f} "
-            f"integrated_BA={float(metric_lookup[('integrated_diagnosis', variant)]['balanced_accuracy']):.4f}"
-        )
+        print(f"{variant}: effect_BA={float(metric_lookup[('effect_detection', variant)]['balanced_accuracy']):.4f} mechanism_BA={float(metric_lookup[('mechanism_diagnosis', variant)]['balanced_accuracy']):.4f} integrated_BA={float(metric_lookup[('integrated_diagnosis', variant)]['balanced_accuracy']):.4f}")
     print(f"Champion rerun reproducible: {'YES' if reproducible else 'NO'}")
     print(f"Parity-residual mechanism architecture signal: {'YES' if architecture_positive else 'NO'}")
     print(f"Parity-residual effect noninferior: {'YES' if effect_noninferior else 'NO'}")
