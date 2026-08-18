@@ -1,7 +1,8 @@
 {
   "schema": "triqto.v0_2.step9d_exploratory_qpu_pilot.v1",
-  "status": "FROZEN_BEFORE_PHYSICAL_QPU_EXECUTION",
-  "purpose": "Run one small exploratory IBM-QPU transfer pilot through the frozen Step-9B acquisition path and frozen Step-9A deployment ensemble, without retraining, retuning, threshold changes, mitigation changes, or confirmatory interpretation.",
+  "status": "SUPERSEDED_BEFORE_PHYSICAL_QPU_EXECUTION",
+  "superseded_by": "configs/v0_2/step9d_exploratory_qpu_pilot_v2.json",
+  "purpose": "Historical frozen Step-9D v1 protocol. Superseded before any physical-QPU execution because it did not fail-close on software-version drift or bind execution to an explicit IBM Quantum instance plan.",
   "source_step9c": {
     "merge_commit": "5ce7fc6d63272347e92a2eced2f2a4393ec613cf",
     "config_schema": "triqto.v0_2.step9c_hardware_path_dry_run.v1",
