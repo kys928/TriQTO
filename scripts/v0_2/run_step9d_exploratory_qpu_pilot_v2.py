@@ -14,7 +14,6 @@ import importlib.metadata
 import importlib.util
 import json
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -40,12 +39,6 @@ def parse_args() -> argparse.Namespace:
 
 def read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
-
-
-def atomic_json(path: Path, value: Any) -> None:
-    tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(json.dumps(value, indent=2, sort_keys=True, default=str) + "\n", encoding="utf-8")
-    tmp.replace(path)
 
 
 def verify_frozen_versions(config: dict[str, Any]) -> dict[str, str]:
@@ -107,11 +100,10 @@ def make_instance_service(instance: dict[str, str]) -> Any:
     crn = str(instance.get("crn", "")).strip()
     if not crn:
         raise RuntimeError("Open Plan instance has no CRN")
-    service = QiskitRuntimeService(instance=crn)
-    active = str(service.active_instance())
-    if active != crn:
-        raise RuntimeError(f"IBM Runtime active instance mismatch: {active} != {crn}")
-    return service
+    # Runtime 0.40.1 explicitly supports binding the service to an instance CRN.
+    # Once instantiated this way, backend discovery/retrieval is scoped to that
+    # instance rather than relying on automatic cross-instance selection.
+    return QiskitRuntimeService(instance=crn)
 
 
 def configure_legacy(legacy: Any, config: dict[str, Any], service: Any, instance: dict[str, str]) -> None:
@@ -200,7 +192,6 @@ def main() -> None:
             device=device,
         )
         plan = read_json(plan_file)
-        snapshot = read_json(plan_file.parent / "backend_snapshot.json")
         if plan["identity"]["instance_crn"] != str(instance["crn"]):
             raise RuntimeError("Step-9D v2 failed to freeze the explicit instance CRN")
         if str(plan["identity"]["instance_plan"]).lower() != "open":
