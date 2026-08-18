@@ -1,0 +1,135 @@
+{
+  "schema": "triqto.v0_2.step9d_exploratory_qpu_pilot.v2",
+  "status": "FROZEN_BEFORE_PHYSICAL_QPU_EXECUTION",
+  "purpose": "Run one small exploratory IBM-QPU transfer pilot through the frozen Step-9B acquisition path and frozen Step-9A deployment ensemble, while fail-closing on software drift and binding planning/execution to one explicit free Open Plan IBM Quantum instance.",
+  "supersedes": "triqto.v0_2.step9d_exploratory_qpu_pilot.v1",
+  "source_step9c": {
+    "merge_commit": "5ce7fc6d63272347e92a2eced2f2a4393ec613cf",
+    "config_schema": "triqto.v0_2.step9c_hardware_path_dry_run.v1",
+    "config_git_blob_sha": "a4d20a20b992e13491bd7725a3a1b6570d429b0f",
+    "successful_run_id": "dryrun_e2af1f01746a772332ae2255",
+    "dry_run_complete_sha256": "sha256:3cbfebde28efc9be67c7bae2d6bc9544c37ab38346c5c981f2e84e3e01a2f1de",
+    "dry_run_zip_sha256": "sha256:95d63333fb49f5c4dea12f27c07cd89b1fa115577dec63e416a9f0d0072c7c86"
+  },
+  "deployment_bundle": {
+    "bundle_id": "deploy_ac536a74b2f8dd571d353a12",
+    "architecture": "late_concat",
+    "seeds": [1701, 1702, 1703],
+    "checkpoint_sha256": {
+      "seed1701.pt": "sha256:549a64c0be5a6612a2a67b9c60fe20a011a81cff2f3c00d0759e8d0a91e8e42d",
+      "seed1702.pt": "sha256:53339d86313a73358fee0ecbae7874cf8f9cac67dc5f1e34618f7f8f32ed4de7",
+      "seed1703.pt": "sha256:b5f4a7f876816449da8c38948e81b439d9144589b28101c553566c126708dabc"
+    },
+    "effect_threshold": 0.05939410626888275,
+    "mechanism_classes": ["rz_drift", "rx_overrotation", "ry_overrotation"],
+    "expected_trainable_parameter_count": 453829,
+    "weight_provenance": "post_confirmation_fixed_epoch_refit_development_only"
+  },
+  "software_environment": {
+    "fail_closed_on_version_drift": true,
+    "qiskit": "2.1.2",
+    "qiskit_aer": "0.17.1",
+    "qiskit_ibm_runtime": "0.40.1"
+  },
+  "instance_policy": {
+    "allowed_plans": ["open"],
+    "paid_plan_execution_allowed": false,
+    "explicit_instance_required": true,
+    "freeze_instance_crn_in_plan_identity": true,
+    "freeze_instance_name_in_plan_identity": true,
+    "freeze_instance_plan_in_plan_identity": true,
+    "multiple_open_instances_require_explicit_instance_name": true
+  },
+  "backend_selection": {
+    "service_filter": {
+      "simulator": false,
+      "operational": true,
+      "min_num_qubits": 3
+    },
+    "mode": "quality_first_best_connected_three_qubit_chain_within_frozen_open_instance",
+    "two_qubit_gate_preference": ["cz", "ecr"],
+    "chain_score_order": [
+      "max_two_qubit_error",
+      "mean_two_qubit_error",
+      "mean_readout_error",
+      "pending_jobs",
+      "backend_name",
+      "physical_chain"
+    ],
+    "reject_missing_error_metrics": true,
+    "reject_error_equal_one_as_stale": true,
+    "backend_name_override_allowed": true,
+    "one_backend_for_entire_pilot": true,
+    "one_three_qubit_chain_for_entire_pilot": true
+  },
+  "execution": {
+    "primitive": "qiskit_ibm_runtime.SamplerV2",
+    "runtime_pin": "0.40.1",
+    "qiskit_pin": "2.1.2",
+    "aer_pin": "0.17.1",
+    "execution_mode": "single_job",
+    "shots_per_program": 4096,
+    "case_count": 12,
+    "programs_per_case": 6,
+    "total_programs": 72,
+    "total_executions": 294912,
+    "optimization_level": 1,
+    "seed_transpiler": 17091,
+    "max_execution_time_seconds": 300,
+    "measurement_mitigation": false,
+    "dynamical_decoupling": false,
+    "twirling": false,
+    "require_no_routing_permutation": true,
+    "require_meas_register": true,
+    "explicit_confirmation_token": "STEP9D_EXPLORATORY_QPU"
+  },
+  "pilot_design": {
+    "families": ["bell_like", "ghz", "phase_interference"],
+    "conditions_per_family": ["clean", "rz_drift", "rx_overrotation", "ry_overrotation"],
+    "distortion_strength": 0.15,
+    "bell_and_phase_logical_layout": [0, 1],
+    "ghz_logical_layout": [0, 1, 2],
+    "bell_and_phase_affected_logical_qubit": 0,
+    "ghz_affected_logical_qubit": 1,
+    "clean_observed_equals_reference": true,
+    "known_injected_labels_are_report_only_and_never_model_inputs": true
+  },
+  "report_only_metrics": [
+    "clean_effect_false_positive_count",
+    "distorted_effect_detection_count",
+    "distorted_mechanism_accuracy",
+    "mechanism_confusion_matrix",
+    "per_family_predictions",
+    "diagnostic_rms",
+    "backend_calibration_snapshot",
+    "qpu_usage_seconds"
+  ],
+  "scientific_boundaries": {
+    "exploratory_only": true,
+    "confirmatory_claim": false,
+    "new_training": false,
+    "model_weight_change": false,
+    "architecture_change": false,
+    "threshold_change": false,
+    "checkpoint_selection": false,
+    "shot_count_selection_from_qpu_results": false,
+    "backend_selection_from_model_predictions": false,
+    "measurement_mitigation_adaptation": false,
+    "step8_confirmatory_reuse": false,
+    "qpu_results_may_be_used_for_posthoc_diagnosis_only_after_the_frozen_pilot_is_recorded": true,
+    "reruns_are_new_exploratory_attempts_not_replacements_for_prior_attempts": true
+  },
+  "output": {
+    "default_parent": "/workspace/triqto-data/step9d_exploratory_qpu_pilot",
+    "required_plan_files": ["pilot_plan.json", "backend_snapshot.json"],
+    "required_execution_files": [
+      "pilot_plan.json",
+      "backend_snapshot.json",
+      "physical_access_started.json",
+      "case_results.jsonl",
+      "predictions.csv",
+      "pilot_summary.json",
+      "pilot_complete.json"
+    ]
+  }
+}
