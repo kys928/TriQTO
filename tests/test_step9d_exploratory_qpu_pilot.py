@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -16,11 +17,21 @@ from triqto.hardware.qpu_pilot import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-CONFIG = ROOT / "configs" / "v0_2" / "step9d_exploratory_qpu_pilot.json"
+CONFIG = ROOT / "configs" / "v0_2" / "step9d_exploratory_qpu_pilot_v2.json"
+V1_CONFIG = ROOT / "configs" / "v0_2" / "step9d_exploratory_qpu_pilot.json"
+V2_RUNNER = ROOT / "scripts" / "v0_2" / "run_step9d_exploratory_qpu_pilot_v2.py"
 
 
 def load_config() -> dict:
     return json.loads(CONFIG.read_text(encoding="utf-8"))
+
+
+def load_v2_runner_module():
+    spec = importlib.util.spec_from_file_location("step9d_v2_test_module", V2_RUNNER)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 class DummyTarget:
@@ -78,21 +89,56 @@ class DummyService:
         raise KeyError(name)
 
 
-def test_step9d_protocol_is_frozen_exploratory_and_small() -> None:
+def test_step9d_v1_is_superseded_and_v2_is_frozen_open_only() -> None:
+    v1 = json.loads(V1_CONFIG.read_text(encoding="utf-8"))
+    assert v1["status"] == "SUPERSEDED_BEFORE_PHYSICAL_QPU_EXECUTION"
+    assert v1["superseded_by"].endswith("step9d_exploratory_qpu_pilot_v2.json")
+
     cfg = load_config()
-    assert cfg["schema"] == "triqto.v0_2.step9d_exploratory_qpu_pilot.v1"
+    assert cfg["schema"] == "triqto.v0_2.step9d_exploratory_qpu_pilot.v2"
     assert cfg["status"] == "FROZEN_BEFORE_PHYSICAL_QPU_EXECUTION"
+    assert cfg["instance_policy"]["allowed_plans"] == ["open"]
+    assert cfg["instance_policy"]["paid_plan_execution_allowed"] is False
+    assert cfg["software_environment"] == {
+        "fail_closed_on_version_drift": True,
+        "qiskit": "2.1.2",
+        "qiskit_aer": "0.17.1",
+        "qiskit_ibm_runtime": "0.40.1",
+    }
     assert cfg["scientific_boundaries"]["exploratory_only"] is True
     assert cfg["scientific_boundaries"]["confirmatory_claim"] is False
-    assert cfg["scientific_boundaries"]["new_training"] is False
-    assert cfg["scientific_boundaries"]["threshold_change"] is False
     execution = cfg["execution"]
     assert execution["case_count"] == 12
     assert execution["programs_per_case"] == 6
     assert execution["total_programs"] == 72
     assert execution["shots_per_program"] == 4096
     assert execution["total_executions"] == 72 * 4096
+    assert execution["max_execution_time_seconds"] == 300
     assert execution["explicit_confirmation_token"] == "STEP9D_EXPLORATORY_QPU"
+
+
+def test_v2_open_instance_selection_rejects_paid_and_ambiguous() -> None:
+    runner = load_v2_runner_module()
+    rows = [
+        {"name": "free-main", "crn": "crn:open", "plan": "open"},
+        {"name": "paid", "crn": "crn:paid", "plan": "pay-as-you-go"},
+    ]
+    assert runner.select_open_instance(rows, None)["crn"] == "crn:open"
+    assert runner.select_open_instance(rows, "free-main")["crn"] == "crn:open"
+    with pytest.raises(RuntimeError, match="did not identify exactly one Open Plan"):
+        runner.select_open_instance(rows, "paid")
+    with pytest.raises(RuntimeError, match="requires one explicit Open Plan instance"):
+        runner.select_open_instance(rows + [{"name": "free-2", "crn": "crn:open2", "plan": "Open"}], None)
+
+
+def test_v2_version_guard_matches_frozen_environment() -> None:
+    runner = load_v2_runner_module()
+    actual = runner.verify_frozen_versions(load_config())
+    assert actual == {
+        "qiskit": "2.1.2",
+        "qiskit_aer": "0.17.1",
+        "qiskit_ibm_runtime": "0.40.1",
+    }
 
 
 def test_backend_selection_prefers_calibration_quality_before_queue() -> None:
@@ -166,44 +212,22 @@ def test_all_72_programs_compile_on_local_backend_with_no_routing_permutation() 
     )
 
 
-def test_descriptive_metrics_do_not_create_confirmatory_interpretation() -> None:
+def test_descriptive_metrics_and_v2_runner_remain_exploratory_and_confirmed() -> None:
     rows = [
-        {
-            "expected_effect": False,
-            "expected_mechanism": None,
-            "prediction": {"effect_present": True, "mechanism_prediction": "rz_drift"},
-        },
-        {
-            "expected_effect": True,
-            "expected_mechanism": "rz_drift",
-            "prediction": {"effect_present": True, "mechanism_prediction": "rz_drift"},
-        },
-        {
-            "expected_effect": True,
-            "expected_mechanism": "rx_overrotation",
-            "prediction": {"effect_present": False, "mechanism_prediction": "ry_overrotation"},
-        },
-        {
-            "expected_effect": True,
-            "expected_mechanism": "ry_overrotation",
-            "prediction": {"effect_present": True, "mechanism_prediction": "ry_overrotation"},
-        },
+        {"expected_effect": False, "expected_mechanism": None, "prediction": {"effect_present": True, "mechanism_prediction": "rz_drift"}},
+        {"expected_effect": True, "expected_mechanism": "rz_drift", "prediction": {"effect_present": True, "mechanism_prediction": "rz_drift"}},
+        {"expected_effect": True, "expected_mechanism": "rx_overrotation", "prediction": {"effect_present": False, "mechanism_prediction": "ry_overrotation"}},
+        {"expected_effect": True, "expected_mechanism": "ry_overrotation", "prediction": {"effect_present": True, "mechanism_prediction": "ry_overrotation"}},
     ]
-    metrics = descriptive_pilot_metrics(
-        rows, ["rz_drift", "rx_overrotation", "ry_overrotation"]
-    )
+    metrics = descriptive_pilot_metrics(rows, ["rz_drift", "rx_overrotation", "ry_overrotation"])
     assert metrics["clean_effect_false_positive_count"] == 1
     assert metrics["distorted_effect_detection_count"] == 2
     assert metrics["distorted_mechanism_correct_count"] == 2
     assert metrics["confirmatory_interpretation_allowed"] is False
 
-
-def test_runner_requires_plan_and_explicit_confirmation_for_physical_execution() -> None:
-    source = (ROOT / "scripts" / "v0_2" / "run_step9d_exploratory_qpu_pilot.py").read_text(
-        encoding="utf-8"
-    )
+    source = V2_RUNNER.read_text(encoding="utf-8")
     assert "--execute-physical-qpu" in source
     assert "--confirmation-token" in source
-    assert "physical QPU execution requires --plan-file" in source
-    assert "STEP9D_PHYSICAL_QPU_ACCESS_STARTED" in source
-    assert "result_may_not_be_described_as_confirmatory" in source
+    assert "instance_crn" in source
+    assert "paid-plan execution is forbidden" in source
+    assert "software drift" in source
