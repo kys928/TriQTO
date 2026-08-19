@@ -1,0 +1,66 @@
+{
+  "backend_name": "ibm_marrakesh",
+  "backend_version": "1.0.21",
+  "case_count": 12,
+  "confirmatory_claim": false,
+  "descriptive_metrics": {
+    "clean_case_count": 3,
+    "clean_effect_false_positive_count": 0,
+    "confirmatory_interpretation_allowed": false,
+    "distorted_case_count": 9,
+    "distorted_effect_detection_count": 7,
+    "distorted_effect_detection_fraction": 0.7777777777777778,
+    "distorted_mechanism_accuracy": 0.4444444444444444,
+    "distorted_mechanism_correct_count": 4,
+    "mechanism_confusion_matrix": {
+      "rx_overrotation": {
+        "rx_overrotation": 2,
+        "ry_overrotation": 0,
+        "rz_drift": 1
+      },
+      "ry_overrotation": {
+        "rx_overrotation": 1,
+        "ry_overrotation": 1,
+        "rz_drift": 1
+      },
+      "rz_drift": {
+        "rx_overrotation": 1,
+        "ry_overrotation": 1,
+        "rz_drift": 1
+      }
+    }
+  },
+  "exploratory_only": true,
+  "job_id": "da2oii43jnrc73ae6m6g",
+  "job_metrics": {
+    "bss": {
+      "seconds": 80
+    },
+    "caller": "qiskit_ibm_runtime~sampler.py",
+    "qiskit_version": "qiskit_ibm_runtime-0.40.1,qiskit-2.1.2*,qiskit_aer-0.17.1*",
+    "timestamps": {
+      "created": "2026-08-19T10:45:28.87093Z",
+      "finished": "2026-08-19T10:48:31.777743Z",
+      "running": "2026-08-19T10:45:35.769523Z"
+    },
+    "usage": {
+      "quantum_seconds": 80,
+      "seconds": 80,
+      "status": "complete"
+    }
+  },
+  "model_weights_changed": false,
+  "new_training_performed": false,
+  "physical_chain": [
+    13,
+    14,
+    15
+  ],
+  "plan_id": "qpuplan_0a679d301262372d3db8c3b5",
+  "program_count": 72,
+  "schema": "triqto.v0_2.step9d_exploratory_qpu_pilot.v2",
+  "shots_per_program": 4096,
+  "status": "STEP9D_EXPLORATORY_QPU_PILOT_COMPLETE",
+  "threshold_changed": false,
+  "total_executions": 294912
+}

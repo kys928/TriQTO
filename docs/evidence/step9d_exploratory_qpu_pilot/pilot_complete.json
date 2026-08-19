@@ -1,0 +1,77 @@
+{
+  "backend_name": "ibm_marrakesh",
+  "backend_version": "1.0.21",
+  "case_count": 12,
+  "confirmatory_claim": false,
+  "descriptive_metrics": {
+    "clean_case_count": 3,
+    "clean_effect_false_positive_count": 0,
+    "confirmatory_interpretation_allowed": false,
+    "distorted_case_count": 9,
+    "distorted_effect_detection_count": 7,
+    "distorted_effect_detection_fraction": 0.7777777777777778,
+    "distorted_mechanism_accuracy": 0.4444444444444444,
+    "distorted_mechanism_correct_count": 4,
+    "mechanism_confusion_matrix": {
+      "rx_overrotation": {
+        "rx_overrotation": 2,
+        "ry_overrotation": 0,
+        "rz_drift": 1
+      },
+      "ry_overrotation": {
+        "rx_overrotation": 1,
+        "ry_overrotation": 1,
+        "rz_drift": 1
+      },
+      "rz_drift": {
+        "rx_overrotation": 1,
+        "ry_overrotation": 1,
+        "rz_drift": 1
+      }
+    }
+  },
+  "exploratory_only": true,
+  "file_hashes": {
+    "backend_snapshot.json": "sha256:b92f97f18d2167e284f1baf4d0add26906a936d7f407db5d49df260b78fee841",
+    "case_results.jsonl": "sha256:6021841bf6b4776b65bfa07a61444957ff47557946d6e186d07cb492e4e5e5cd",
+    "physical_access_started.json": "sha256:3f041d6c7d57f2d8b6352927d2e4bfa0286063dfa3e417225d9a702a09839d6b",
+    "pilot_plan.json": "sha256:61b3e9729e9ce5c91122692db07325ef717ff090d9b3aab0ae0b5894a36ccd2d",
+    "pilot_summary.json": "sha256:28638fb29f6c574a6fc9f445847c3713d6ba99a131577fec656575b11820b7f0",
+    "predictions.csv": "sha256:565a2dcc008661cbd515c569ee843132b35ebc28dd8616e474319ecf8316c14a",
+    "submitted_circuits.qpy": "sha256:51a2918ddf09407035f5c8356d140af384f2001e636c35cf8687544ad8c014c8"
+  },
+  "job_id": "da2oii43jnrc73ae6m6g",
+  "job_metrics": {
+    "bss": {
+      "seconds": 80
+    },
+    "caller": "qiskit_ibm_runtime~sampler.py",
+    "qiskit_version": "qiskit_ibm_runtime-0.40.1,qiskit-2.1.2*,qiskit_aer-0.17.1*",
+    "timestamps": {
+      "created": "2026-08-19T10:45:28.87093Z",
+      "finished": "2026-08-19T10:48:31.777743Z",
+      "running": "2026-08-19T10:45:35.769523Z"
+    },
+    "usage": {
+      "quantum_seconds": 80,
+      "seconds": 80,
+      "status": "complete"
+    }
+  },
+  "model_weights_changed": false,
+  "new_training_performed": false,
+  "physical_chain": [
+    13,
+    14,
+    15
+  ],
+  "physical_qpu_executed": true,
+  "plan_id": "qpuplan_0a679d301262372d3db8c3b5",
+  "program_count": 72,
+  "result_may_not_be_described_as_confirmatory": true,
+  "schema": "triqto.v0_2.step9d_exploratory_qpu_pilot.v2",
+  "shots_per_program": 4096,
+  "status": "STEP9D_EXPLORATORY_QPU_PILOT_COMPLETE",
+  "threshold_changed": false,
+  "total_executions": 294912
+}

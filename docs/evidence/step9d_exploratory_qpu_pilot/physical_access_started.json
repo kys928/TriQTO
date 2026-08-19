@@ -1,0 +1,10 @@
+{
+  "backend_name": "ibm_marrakesh",
+  "exploratory_only": true,
+  "plan_id": "qpuplan_0a679d301262372d3db8c3b5",
+  "program_count": 72,
+  "schema": "triqto.v0_2.step9d_exploratory_qpu_pilot.v2",
+  "shots_per_program": 4096,
+  "status": "STEP9D_PHYSICAL_QPU_ACCESS_STARTED",
+  "total_executions": 294912
+}

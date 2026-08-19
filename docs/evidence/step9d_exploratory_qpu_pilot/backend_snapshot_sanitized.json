@@ -1,0 +1,67 @@
+{
+  "backend_name": "ibm_marrakesh",
+  "backend_version": "1.0.21",
+  "candidate_ranking": [
+    {
+      "backend_name": "ibm_marrakesh",
+      "backend_version": "1.0.21",
+      "edge_errors": [0.0014015883245398209, 0.0015182700787061687],
+      "max_two_qubit_error": 0.0015182700787061687,
+      "mean_readout_error": 0.0123291015625,
+      "mean_two_qubit_error": 0.0014599292016229948,
+      "pending_jobs": 15,
+      "physical_chain": [13, 14, 15],
+      "readout_errors": [0.007568359375, 0.01220703125, 0.0172119140625],
+      "score_tuple": [0.0015182700787061687, 0.0014599292016229948, 0.0123291015625, 15, "ibm_marrakesh", [13, 14, 15]],
+      "two_qubit_gate": "cz"
+    },
+    {
+      "backend_name": "ibm_fez",
+      "backend_version": "1.3.37",
+      "edge_errors": [0.0016464679129509774, 0.0018246351839331099],
+      "max_two_qubit_error": 0.0018246351839331099,
+      "mean_readout_error": 0.005940755208333333,
+      "mean_two_qubit_error": 0.0017355515484420436,
+      "pending_jobs": 20,
+      "physical_chain": [8, 9, 10],
+      "readout_errors": [0.0054931640625, 0.007080078125, 0.0052490234375],
+      "score_tuple": [0.0018246351839331099, 0.0017355515484420436, 0.005940755208333333, 20, "ibm_fez", [8, 9, 10]],
+      "two_qubit_gate": "cz"
+    },
+    {
+      "backend_name": "ibm_kingston",
+      "backend_version": "1.0.0",
+      "edge_errors": [0.0018142349311945916, 0.002299282676321124],
+      "max_two_qubit_error": 0.002299282676321124,
+      "mean_readout_error": 0.007649739583333333,
+      "mean_two_qubit_error": 0.0020567588037578577,
+      "pending_jobs": 29,
+      "physical_chain": [105, 106, 107],
+      "readout_errors": [0.00537109375, 0.012451171875, 0.005126953125],
+      "score_tuple": [0.002299282676321124, 0.0020567588037578577, 0.007649739583333333, 29, "ibm_kingston", [105, 106, 107]],
+      "two_qubit_gate": "cz"
+    }
+  ],
+  "instance": {
+    "crn_sha256": "sha256:34ac4d57ceac894bb2555767b9860326064a9c72479cb6d9eed72fee5d7888a2",
+    "name": "open-instance",
+    "plan": "open"
+  },
+  "num_qubits": 156,
+  "processor_type": {"family": "Heron", "revision": "2"},
+  "properties_last_update_date": "2026-08-19T10:05:38+00:00",
+  "selected_chain": {
+    "backend_name": "ibm_marrakesh",
+    "backend_version": "1.0.21",
+    "edge_errors": [0.0014015883245398209, 0.0015182700787061687],
+    "max_two_qubit_error": 0.0015182700787061687,
+    "mean_readout_error": 0.0123291015625,
+    "mean_two_qubit_error": 0.0014599292016229948,
+    "pending_jobs": 15,
+    "physical_chain": [13, 14, 15],
+    "readout_errors": [0.007568359375, 0.01220703125, 0.0172119140625],
+    "score_tuple": [0.0015182700787061687, 0.0014599292016229948, 0.0123291015625, 15, "ibm_marrakesh", [13, 14, 15]],
+    "two_qubit_gate": "cz"
+  },
+  "status": {"operational": true, "pending_jobs": 15, "status_msg": "active"}
+}
