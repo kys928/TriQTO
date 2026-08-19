@@ -1,1 +1,230 @@
-__FROM_LOCAL_UPLOAD__
+{
+  "analysis": "step9d_raw_training_coverage_v1",
+  "cases": {
+    "bell_like__rx_overrotation": {
+      "expected_mechanism": "rx_overrotation",
+      "family": "bell_like",
+      "hardware_vector_l2": 0.04158425127645841,
+      "hardware_vs_ideal_cosine": 0.20133293584194312,
+      "ideal_vector_l2": 2.7194799110210365e-16,
+      "n_qubits": 2,
+      "probes": {
+        "hardware_vs_finite_all": {
+          "active_dimensions": 12,
+          "centroid_distances_z": {
+            "rx_overrotation": 0.9473189250141162,
+            "ry_overrotation": 1.0249215541649823,
+            "rz_drift": 0.8977370910691592
+          },
+          "class_counts": {
+            "rx_overrotation": 998,
+            "ry_overrotation": 1000,
+            "rz_drift": 750
+          },
+          "expected_mechanism_nearest_rank": 1,
+          "nearest_centroid_label": "rz_drift",
+          "nearest_distance_z": 0.4262570790222592,
+          "nearest_examples": [
+            {
+              "affected_qubit": "0",
+              "distance_z": 0.4262570790222592,
+              "example_id": "sha256:52a372a123ef5bc0446837502bb36b81183457545f5ceea8e3ca38bd8f809389",
+              "insertion_depth_bin": "early",
+              "mechanism": "rx_overrotation",
+              "shots": "4096",
+              "split": "train",
+              "strength": "0.05"
+            }
+          ],
+          "nearest_expected_distance_z": 0.4262570790222592,
+          "nearest_label": "rx_overrotation",
+          "nearest_other_distance_z": 0.7097753583309944,
+          "query_nn_ood_percentile": 0.6550218340611353,
+          "top_k": 25,
+          "top_k_counts": {
+            "rx_overrotation": 10,
+            "ry_overrotation": 4,
+            "rz_drift": 11
+          },
+          "top_k_majority_fraction": 0.44,
+          "top_k_majority_label": "rz_drift",
+          "training_count": 2748
+        }
+      },
+      "strength": 0.15
+    },
+    "phase_interference__rx_overrotation": {
+      "expected_mechanism": "rx_overrotation",
+      "family": "phase_interference",
+      "hardware_vector_l2": 0.14369661749759116,
+      "hardware_vs_ideal_cosine": 0.9412462770897674,
+      "ideal_vector_l2": 0.19254137617452383,
+      "n_qubits": 2,
+      "probes": {
+        "hardware_vs_finite_all": {
+          "active_dimensions": 12,
+          "expected_mechanism_nearest_rank": 10,
+          "nearest_label": "rz_drift",
+          "query_nn_ood_percentile": 24.10196987253766,
+          "top_k": 25,
+          "top_k_counts": {
+            "rx_overrotation": 1,
+            "ry_overrotation": 9,
+            "rz_drift": 15
+          },
+          "top_k_majority_fraction": 0.6,
+          "top_k_majority_label": "rz_drift",
+          "training_count": 1726
+        },
+        "ideal_vs_exact_all": {
+          "active_dimensions": 12,
+          "expected_mechanism_nearest_rank": 8,
+          "nearest_label": "rz_drift",
+          "query_nn_ood_percentile": 60.4287369640788,
+          "top_k": 25,
+          "top_k_counts": {
+            "rx_overrotation": 3,
+            "ry_overrotation": 1,
+            "rz_drift": 21
+          },
+          "top_k_majority_fraction": 0.84,
+          "top_k_majority_label": "rz_drift",
+          "training_count": 1726
+        },
+        "ideal_vs_exact_strength_0_15": {
+          "active_dimensions": 12,
+          "expected_mechanism_nearest_rank": 8,
+          "nearest_label": "rz_drift",
+          "query_nn_ood_percentile": 41.48319814600232,
+          "top_k": 25,
+          "top_k_counts": {
+            "rx_overrotation": 3,
+            "ry_overrotation": 1,
+            "rz_drift": 21
+          },
+          "top_k_majority_fraction": 0.84,
+          "top_k_majority_label": "rz_drift",
+          "training_count": 863
+        }
+      },
+      "strength": 0.15
+    },
+    "phase_interference__ry_overrotation": {
+      "expected_mechanism": "ry_overrotation",
+      "family": "phase_interference",
+      "hardware_vector_l2": 0.1484286657013391,
+      "hardware_vs_ideal_cosine": 0.9429101684688551,
+      "ideal_vector_l2": 0.22891561728034276,
+      "n_qubits": 2,
+      "probes": {
+        "hardware_vs_finite_all": {
+          "active_dimensions": 12,
+          "expected_mechanism_nearest_rank": 23,
+          "nearest_label": "rz_drift",
+          "query_nn_ood_percentile": 30.70683661645423,
+          "top_k": 25,
+          "top_k_counts": {
+            "rx_overrotation": 4,
+            "ry_overrotation": 2,
+            "rz_drift": 19
+          },
+          "top_k_majority_fraction": 0.76,
+          "top_k_majority_label": "rz_drift",
+          "training_count": 1726
+        },
+        "ideal_vs_exact_all": {
+          "active_dimensions": 12,
+          "expected_mechanism_nearest_rank": 39,
+          "nearest_label": "rz_drift",
+          "query_nn_ood_percentile": 70.33603707995366,
+          "top_k": 25,
+          "top_k_counts": {
+            "rz_drift": 25
+          },
+          "top_k_majority_fraction": 1.0,
+          "top_k_majority_label": "rz_drift",
+          "training_count": 1726
+        },
+        "ideal_vs_exact_strength_0_15": {
+          "active_dimensions": 12,
+          "expected_mechanism_nearest_rank": 39,
+          "nearest_label": "rz_drift",
+          "query_nn_ood_percentile": 56.89455388180765,
+          "top_k": 25,
+          "top_k_counts": {
+            "rz_drift": 25
+          },
+          "top_k_majority_fraction": 1.0,
+          "top_k_majority_label": "rz_drift",
+          "training_count": 863
+        }
+      },
+      "strength": 0.15
+    },
+    "phase_interference__rz_drift": {
+      "expected_mechanism": "rz_drift",
+      "family": "phase_interference",
+      "hardware_vector_l2": 0.19411989404530428,
+      "hardware_vs_ideal_cosine": 0.9889168933086758,
+      "ideal_vector_l2": 0.1482930784846235,
+      "n_qubits": 2,
+      "probes": {
+        "hardware_vs_finite_all": {
+          "active_dimensions": 12,
+          "expected_mechanism_nearest_rank": 7,
+          "nearest_label": "ry_overrotation",
+          "query_nn_ood_percentile": 57.76361529548089,
+          "top_k": 25,
+          "top_k_counts": {
+            "rx_overrotation": 6,
+            "ry_overrotation": 13,
+            "rz_drift": 6
+          },
+          "top_k_majority_fraction": 0.52,
+          "top_k_majority_label": "ry_overrotation",
+          "training_count": 1726
+        },
+        "ideal_vs_exact_all": {
+          "active_dimensions": 12,
+          "expected_mechanism_nearest_rank": 101,
+          "nearest_label": "ry_overrotation",
+          "query_nn_ood_percentile": 92.58400926998841,
+          "top_k": 25,
+          "top_k_counts": {
+            "rx_overrotation": 5,
+            "ry_overrotation": 20
+          },
+          "top_k_majority_fraction": 0.8,
+          "top_k_majority_label": "ry_overrotation",
+          "training_count": 1726
+        },
+        "ideal_vs_exact_strength_0_15": {
+          "active_dimensions": 12,
+          "expected_mechanism_nearest_rank": 26,
+          "nearest_label": "ry_overrotation",
+          "query_nn_ood_percentile": 84.24101969872537,
+          "top_k": 25,
+          "top_k_counts": {
+            "rx_overrotation": 10,
+            "ry_overrotation": 15
+          },
+          "top_k_majority_fraction": 0.6,
+          "top_k_majority_label": "ry_overrotation",
+          "training_count": 863
+        }
+      },
+      "strength": 0.15
+    }
+  },
+  "distance_definition": "Euclidean distance after per-subset feature standardization; dimensions with training std <= 1e-10 are excluded.",
+  "ood_definition": "Percentile of query nearest-neighbor distance relative to Step-5 leave-one-out nearest-neighbor distances in the same standardized subset.",
+  "scientific_boundary": {
+    "confirmatory_interpretation": false,
+    "posthoc_only": true,
+    "qpu_submission": false,
+    "retraining": false,
+    "threshold_change": false,
+    "weight_change": false
+  },
+  "step5_product_id": "product_b2d78ad2309b71a55f9bb54f"
+}
