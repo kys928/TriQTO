@@ -1,0 +1,131 @@
+{
+  "analysis": "step9d_phase_posthoc_counterfactual_v1",
+  "cases": {
+    "phase_interference__rx_overrotation": {
+      "expected_mechanism": "rx_overrotation",
+      "hardware": {
+        "effect_probability": 0.9454813563245348,
+        "mechanism_prediction": "rz_drift",
+        "mechanism_probabilities": [0.8705817367841228, 0.08098073057973049, 0.0484375326361467]
+      },
+      "hardware_diagnostic_l2": 0.14369661749759116,
+      "hardware_vs_ideal_diagnostic_cosine": 0.9412462770897673,
+      "hardware_vs_ideal_l2_error": 0.07507964362459595,
+      "hardware_zero_graph": {
+        "mean_mechanism_logits": [2.2471291224161782, -1.6598697106043498, -1.4312708973884583],
+        "mechanism_code": 0,
+        "mechanism_prediction": "rz_drift",
+        "mechanism_probabilities": [0.9566044981790097, 0.01922845475603521, 0.02416704706495504],
+        "seed_mechanism_logits": {
+          "1701": [2.2505943775177, -2.1571733951568604, -1.1108183860778809],
+          "1702": [1.8156652450561523, -1.539148211479187, -2.39927339553833],
+          "1703": [2.6751277446746826, -1.283287525177002, -0.7837209105491638]
+        }
+      },
+      "ideal_diagnostic_l2": 0.19254137575626373,
+      "ideal_same_graph": {
+        "effect_probability": 0.9900044697354038,
+        "mechanism_prediction": "rz_drift",
+        "mechanism_probabilities": [0.9393166231499462, 0.04098361016882628, 0.019699766681227405]
+      },
+      "ideal_zero_graph": {
+        "mean_mechanism_logits": [2.6909664471944175, -1.932028333346049, -1.6869468688964844],
+        "mechanism_code": 0,
+        "mechanism_prediction": "rz_drift",
+        "mechanism_probabilities": [0.9781148220836763, 0.009608347842979209, 0.012276830073344533],
+        "seed_mechanism_logits": {
+          "1701": [2.5491819381713867, -2.3787825107574463, -1.1934643983840942],
+          "1702": [2.1365485191345215, -1.9683016538619995, -2.744570016860962],
+          "1703": [3.3871688842773438, -1.4490008354187012, -1.122806191444397]
+        }
+      }
+    },
+    "phase_interference__ry_overrotation": {
+      "expected_mechanism": "ry_overrotation",
+      "hardware": {
+        "effect_probability": 0.9624676097655236,
+        "mechanism_prediction": "rz_drift",
+        "mechanism_probabilities": [0.7955288481729087, 0.15135613072272755, 0.053115021104363745]
+      },
+      "hardware_diagnostic_l2": 0.1484286657013391,
+      "hardware_vs_ideal_diagnostic_cosine": 0.9429101683694158,
+      "hardware_vs_ideal_l2_error": 0.10177280498759936,
+      "hardware_zero_graph": {
+        "mean_mechanism_logits": [2.6666131814320884, -1.6356383959452312, -1.7665741046269734],
+        "mechanism_code": 0,
+        "mechanism_prediction": "rz_drift",
+        "mechanism_probabilities": [0.9752152763238645, 0.013202506071557606, 0.011582217604577843],
+        "seed_mechanism_logits": {
+          "1701": [2.4300174713134766, -2.2991409301757812, -1.1679364442825317],
+          "1702": [1.694472312927246, -1.6088787317276, -2.2712807655334473],
+          "1703": [3.875349760055542, -0.998895525932312, -1.8605051040649414]
+        }
+      },
+      "ideal_diagnostic_l2": 0.22891561171087593,
+      "ideal_same_graph": {
+        "effect_probability": 0.9961567920284468,
+        "mechanism_prediction": "rz_drift",
+        "mechanism_probabilities": [0.8835186590270324, 0.08642393026489481, 0.03005741070807282]
+      },
+      "ideal_zero_graph": {
+        "mean_mechanism_logits": [2.7855180899302163, -2.0418777068456015, -1.7374897400538127],
+        "mechanism_code": 0,
+        "mechanism_prediction": "rz_drift",
+        "mechanism_probabilities": [0.9814855823771335, 0.007859095531224434, 0.010655322091642045],
+        "seed_mechanism_logits": {
+          "1701": [2.7780981063842773, -2.5473077297210693, -1.0948494672775269],
+          "1702": [1.8306679725646973, -1.96393883228302, -2.5286080837249756],
+          "1703": [3.747788190841675, -1.6143865585327148, -1.5890116691589355]
+        }
+      }
+    },
+    "phase_interference__rz_drift": {
+      "expected_mechanism": "rz_drift",
+      "hardware": {
+        "effect_probability": 0.9509935959201432,
+        "mechanism_prediction": "ry_overrotation",
+        "mechanism_probabilities": [0.12604999429886474, 0.27749589273032915, 0.5964541129708061]
+      },
+      "hardware_diagnostic_l2": 0.19411989404530428,
+      "hardware_vs_ideal_diagnostic_cosine": 0.9889168933086757,
+      "hardware_vs_ideal_l2_error": 0.05232769848734101,
+      "hardware_zero_graph": {
+        "mean_mechanism_logits": [-1.5312960545221965, -1.1362765332063038, 2.282508929570516],
+        "mechanism_code": 2,
+        "mechanism_prediction": "ry_overrotation",
+        "mechanism_probabilities": [0.020917449372744028, 0.031050137296912212, 0.9480324133303437],
+        "seed_mechanism_logits": {
+          "1701": [-2.1302740573883057, -2.173316240310669, 1.3257474899291992],
+          "1702": [-1.051697015762329, -0.2711036503314972, 3.3631772994995117],
+          "1703": [-1.4119170904159546, -0.9644097089767456, 2.158601999282837]
+        }
+      },
+      "ideal_diagnostic_l2": 0.14829307535627725,
+      "ideal_same_graph": {
+        "effect_probability": 0.8041179254617913,
+        "mechanism_prediction": "ry_overrotation",
+        "mechanism_probabilities": [0.1467897616576199, 0.31066478473555087, 0.5425454536068292]
+      },
+      "ideal_zero_graph": {
+        "mean_mechanism_logits": [-1.457731564839681, -0.9232801347970963, 2.145979642868042],
+        "mechanism_code": 2,
+        "mechanism_prediction": "ry_overrotation",
+        "mechanism_probabilities": [0.025354440959204076, 0.04326765380269071, 0.9313779052381053],
+        "seed_mechanism_logits": {
+          "1701": [-2.066004991531372, -1.949702262878418, 1.2825489044189453],
+          "1702": [-1.10190749168396, -0.1320355385541916, 3.3375425338745117],
+          "1703": [-1.205282211303711, -0.6881026029586792, 1.817847490310669]
+        }
+      }
+    }
+  },
+  "mechanism_classes": ["rz_drift", "rx_overrotation", "ry_overrotation"],
+  "scientific_boundary": {
+    "confirmatory_interpretation": false,
+    "posthoc_only": true,
+    "qpu_submission": false,
+    "retraining": false,
+    "threshold_change": false,
+    "weight_change": false
+  }
+}
