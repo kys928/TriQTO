@@ -1,0 +1,66 @@
+{
+  "analysis": "step9d_raw_training_coverage_v1_summary",
+  "source_result_sha256": "58a331b351f4bd9c9a1eceb411d408789e65ef34dcd875b69ef6cf8ea8acca09",
+  "step5_product_id": "product_b2d78ad2309b71a55f9bb54f",
+  "distance_definition": "Euclidean distance after per-subset feature standardization; dimensions with training std <= 1e-10 are excluded.",
+  "ood_definition": "Percentile of query nearest-neighbor distance relative to Step-5 leave-one-out nearest-neighbor distances in the same standardized subset.",
+  "phase_ideal_exact_all": {
+    "rz_drift": {
+      "nearest_label": "ry_overrotation",
+      "top25_majority_label": "ry_overrotation",
+      "top25_counts": {"ry_overrotation": 20, "rx_overrotation": 5},
+      "expected_mechanism_nearest_rank": 101,
+      "ood_percentile": 92.58400926998841
+    },
+    "rx_overrotation": {
+      "nearest_label": "rz_drift",
+      "top25_majority_label": "rz_drift",
+      "top25_counts": {"rz_drift": 21, "rx_overrotation": 3, "ry_overrotation": 1},
+      "expected_mechanism_nearest_rank": 8,
+      "ood_percentile": 60.4287369640788
+    },
+    "ry_overrotation": {
+      "nearest_label": "rz_drift",
+      "top25_majority_label": "rz_drift",
+      "top25_counts": {"rz_drift": 25},
+      "expected_mechanism_nearest_rank": 39,
+      "ood_percentile": 70.33603707995366
+    }
+  },
+  "phase_hardware_finite_all": {
+    "rz_drift": {
+      "nearest_label": "ry_overrotation",
+      "top25_majority_label": "ry_overrotation",
+      "expected_mechanism_nearest_rank": 7,
+      "ood_percentile": 57.76361529548089
+    },
+    "rx_overrotation": {
+      "nearest_label": "rz_drift",
+      "top25_majority_label": "rz_drift",
+      "expected_mechanism_nearest_rank": 10,
+      "ood_percentile": 24.10196987253766
+    },
+    "ry_overrotation": {
+      "nearest_label": "rz_drift",
+      "top25_majority_label": "rz_drift",
+      "expected_mechanism_nearest_rank": 23,
+      "ood_percentile": 30.70683661645423
+    }
+  },
+  "controls_ideal_exact_all": {
+    "bell_like__rz_drift": {"nearest_label": "rz_drift", "top25_majority_label": "rz_drift", "top25_fraction": 0.84, "true_rank": 1, "ood_percentile": 23.144104803493452},
+    "bell_like__rx_overrotation": {"nearest_label": "rz_drift", "top25_majority_label": "rz_drift", "top25_fraction": 0.72, "true_rank": 4, "ood_percentile": 19.65065502183406},
+    "bell_like__ry_overrotation": {"nearest_label": "ry_overrotation", "top25_majority_label": "ry_overrotation", "top25_fraction": 1.0, "true_rank": 1, "ood_percentile": 86.3901018922853},
+    "ghz__rz_drift": {"nearest_label": "rz_drift", "top25_majority_label": "rz_drift", "top25_fraction": 1.0, "true_rank": 1, "ood_percentile": 36.73232908458864},
+    "ghz__rx_overrotation": {"nearest_label": "rx_overrotation", "top25_majority_label": "rx_overrotation", "top25_fraction": 0.88, "true_rank": 1, "ood_percentile": 32.039397450753185},
+    "ghz__ry_overrotation": {"nearest_label": "ry_overrotation", "top25_majority_label": "rx_overrotation", "top25_fraction": 0.8, "true_rank": 1, "ood_percentile": 34.47276940903824}
+  },
+  "scientific_boundary": {
+    "posthoc_only": true,
+    "qpu_submission": false,
+    "retraining": false,
+    "weight_change": false,
+    "threshold_change": false,
+    "confirmatory_interpretation": false
+  }
+}
