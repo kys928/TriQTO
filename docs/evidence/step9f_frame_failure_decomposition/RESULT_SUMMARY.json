@@ -1,0 +1,41 @@
+{
+  "analysis": "step9f_zero_qpu_frame_failure_decomposition_v1",
+  "artifact_sha256": "242a720fc1173cac9db7dc41f4d1e1eeae09caa0b42ba657514bb6a34c91fdc0",
+  "log_sha256": "5ce3ad8c529b23156b9255d6fde2586066ab3c416a6440f40f047f8f24f0dc9b",
+  "step5_product_id": "product_b2d78ad2309b71a55f9bb54f",
+  "context_counts": {
+    "matched": 116,
+    "train": 87,
+    "validation": 29
+  },
+  "diagnostic_interpretation": {
+    "probe_linearity": "LOW_STRENGTH_DIRECTION_IS_APPROXIMATELY_LINEAR",
+    "probe_snr": "SIMULATED_PROBE_SNR_RECOVERS_AT_SOME_FROZEN_BUDGET",
+    "tier1_domain_coverage": "STEP9D_QPU_CONTEXT_IS_EXTREME_IN_TIER1_FEATURE_DISTANCE",
+    "tier1_estimator_specificity": "NEIGHBOR_TRANSFER_DOES_NOT_MATERIALLY_RESCUE_TIER1"
+  },
+  "cheapest_passing_probe_cell_euclidean": {
+    "probe_strength": 0.15,
+    "shots_per_basis_per_axis": 2048,
+    "balanced_accuracy": 0.8362068965517241,
+    "balanced_accuracy_95_ci": [0.7868773946360154, 0.8817169540229884],
+    "minimum_mechanism_recall": 0.7844827586206896,
+    "frame_median_cosine_to_exact_0p15": 0.8543845614819618
+  },
+  "tier1_coverage": {
+    "validation_nearest_distance_median": 2.9293875734344863,
+    "validation_nearest_distance_p90": 3.9215399854491304,
+    "validation_nearest_distance_max": 5.547166925856746,
+    "qpu_nearest_distance": 12.056613652855484,
+    "qpu_distance_percentile_vs_validation": 100.0,
+    "validation_max_kernel_similarity_median": 0.9070618595135017,
+    "validation_max_kernel_similarity_min": 0.7048447349249636,
+    "qpu_max_kernel_similarity": 0.19160033506387936
+  },
+  "decision": {
+    "triqto_retraining_authorized": false,
+    "new_qpu_submission_authorized": false,
+    "next_audit": "deployment-domain simulator coverage bridge for circuit-only local-frame prediction",
+    "fallback": "known-axis hardware-valid probe frame at a frozen SNR-qualified budget"
+  }
+}
