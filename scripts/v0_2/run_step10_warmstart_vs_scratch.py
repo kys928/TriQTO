@@ -433,7 +433,7 @@ def _train_seed(
             best_eligible_epoch = epoch
             stale = 0
             improved = True
-        elif best_eligible_state is not None:
+        elif eligible and best_eligible_state is not None:
             stale += 1
 
         row: dict[str, Any] = {
