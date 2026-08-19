@@ -1,0 +1,82 @@
+{
+  "analysis": "step9d_posthoc_context_conditioned_identifiability_audit_v1",
+  "exact_artifact": {
+    "filename": "context_identifiability_v1.json",
+    "sha256": "2e1f314eb14217c736785aede3c418a8303109299ab5b1178e9f5c1b5e4d245d"
+  },
+  "scientific_boundary": {
+    "posthoc_only": true,
+    "qpu_submission": false,
+    "retraining": false,
+    "weight_change": false,
+    "threshold_change": false,
+    "confirmatory_interpretation": false,
+    "simulator_privileged_local_frame": true
+  },
+  "matched_context_count": 116,
+  "predeclared_gate": {
+    "balanced_accuracy_minimum": 0.8,
+    "cluster_bootstrap_95_lower_minimum": 0.75,
+    "minimum_mechanism_recall": 0.7,
+    "qpu_alignment_rule": "A Step-5-passing decoder must also classify all three frozen Step-9D phase QPU cases correctly."
+  },
+  "exact_local_frame_geometry": {
+    "minimum_pairwise_angle_deg": {
+      "minimum": 1.8011451424894227,
+      "p10": 6.177966020854709,
+      "median": 66.72443806315349,
+      "fraction_below_15_deg": 0.12931034482758622,
+      "fraction_below_30_deg": 0.14655172413793102
+    },
+    "exact_self_correct": {
+      "rz_drift": 116,
+      "rx_overrotation": 116,
+      "ry_overrotation": 116
+    }
+  },
+  "step5_finite_shot_local_oracle": {
+    "cosine": {
+      "balanced_accuracy": 0.8735632183908045,
+      "cluster_bootstrap_95_ci": [0.8362068965517242, 0.9080],
+      "recall": {
+        "rz_drift": 0.9655172413793104,
+        "rx_overrotation": 0.7758620689655172,
+        "ry_overrotation": 0.8793103448275862
+      },
+      "subset_4096_shot_balanced_accuracy": 0.9615,
+      "passed": true
+    },
+    "euclidean": {
+      "balanced_accuracy": 0.9310344827586207,
+      "cluster_bootstrap_95_ci": [0.9022988505747126, 0.9598],
+      "recall": {
+        "rz_drift": 0.9568965517241379,
+        "rx_overrotation": 0.8793103448275862,
+        "ry_overrotation": 0.9568965517241379
+      },
+      "subset_4096_shot_balanced_accuracy": 0.9872,
+      "passed": true
+    }
+  },
+  "step9d_phase_qpu_local_oracle": {
+    "cosine_correct": "3/3",
+    "euclidean_correct": "3/3",
+    "mapping": {
+      "rz_drift": "rz_drift",
+      "rx_overrotation": "rx_overrotation",
+      "ry_overrotation": "ry_overrotation"
+    },
+    "cosine_own_alignment": {
+      "rz_drift": 0.988917,
+      "rx_overrotation": 0.941246,
+      "ry_overrotation": 0.942910
+    }
+  },
+  "decision_gate": {
+    "status": "LOCAL_RESPONSE_FRAME_SUFFICIENT_IN_TARGETED_AUDIT__SIMULATOR_PRIVILEGED",
+    "passing_step5_decoders": ["cosine", "euclidean"],
+    "passing_step5_and_qpu_decoders": ["cosine", "euclidean"],
+    "hardware_deployable_frame_demonstrated": false,
+    "next_action": "Do not retrain yet. Design and test a hardware-valid approximation to the local response frame from deployable circuit/context information."
+  }
+}
