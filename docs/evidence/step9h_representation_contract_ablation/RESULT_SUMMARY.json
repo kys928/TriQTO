@@ -1,0 +1,46 @@
+{
+  "analysis": "step9h_representation_contract_ablation_v1",
+  "artifact_sha256": {
+    "representation_contract_ablation_v1.json": "bf4a4bc4e26a280f1899c08e93f3bf37c6d974a68a24800cc5f36b6c5795ba53",
+    "representation_contract_ablation_v1.log": "4adeeb11ff1bc97cb8106ab624d8120214540eb8f4c76c256179cceb3b019e81"
+  },
+  "bridge_contexts": {
+    "train": 192,
+    "validation": 48
+  },
+  "results": {
+    "r0_current_step7_information": {
+      "feature_dimension": 326,
+      "euclidean_balanced_accuracy": 0.9583333333333334,
+      "euclidean_ci95": [0.9166666666666666, 0.9930555555555555],
+      "minimum_recall": 0.9375,
+      "gate_pass": true,
+      "frozen_qpu_correct": "3/3",
+      "full_targeted_pass": true
+    },
+    "r1_plus_gate_level_phasor": {
+      "feature_dimension": 374,
+      "euclidean_balanced_accuracy": 0.9652777777777777,
+      "euclidean_ci95": [0.9305555555555557, 0.9930555555555555],
+      "minimum_recall": 0.9375,
+      "gate_pass": true,
+      "frozen_qpu_correct": "3/3",
+      "full_targeted_pass": true
+    },
+    "r2_plus_candidate_local_context": {
+      "feature_dimension": 411,
+      "euclidean_balanced_accuracy": 0.9652777777777777,
+      "euclidean_ci95": [0.9375, 0.9930555555555555],
+      "minimum_recall": 0.9375,
+      "gate_pass": true,
+      "frozen_qpu_correct": "3/3",
+      "full_targeted_pass": true
+    }
+  },
+  "decision_gate": {
+    "status": "CURRENT_STEP7_GRAPH_INFORMATION_IS_SUFFICIENT__COVERAGE_IS_PRIMARY_GAP",
+    "architecture_implication": "no graph-information contract change demonstrated necessary",
+    "checkpoint_implication": "prefer leakage-safe deployment-domain training-data redesign and warm-start reuse of the frozen checkpoint as the first training experiment"
+  },
+  "qualification": "Targeted phase-mechanism result only. The next training design must also preserve legacy Step-5 validation because Step 9G showed naive combined support can degrade that domain."
+}
