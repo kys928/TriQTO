@@ -1,0 +1,13 @@
+case_id,family,condition,expected_effect,expected_mechanism,effect_probability,effect_present,mechanism_prediction,diagnostic_rms
+bell_like__clean,bell_like,clean,False,,0.31014683034043583,False,rx_overrotation,0.011337872594594955
+bell_like__rz_drift,bell_like,rz_drift,True,rz_drift,0.43449125937611244,False,rx_overrotation,0.01944459229707718
+bell_like__rx_overrotation,bell_like,rx_overrotation,True,rx_overrotation,0.2858185853216795,False,rx_overrotation,0.012004339136183262
+bell_like__ry_overrotation,bell_like,ry_overrotation,True,ry_overrotation,0.9797365594431101,True,ry_overrotation,0.0636066421866417
+ghz__clean,ghz,clean,False,,0.4960279679430314,False,rx_overrotation,0.016094598919153214
+ghz__rz_drift,ghz,rz_drift,True,rz_drift,0.875000155023789,True,rz_drift,0.029735371470451355
+ghz__rx_overrotation,ghz,rx_overrotation,True,rx_overrotation,0.5511077211797119,True,rx_overrotation,0.017984211444854736
+ghz__ry_overrotation,ghz,ry_overrotation,True,ry_overrotation,0.6067093290782217,True,rx_overrotation,0.021450528874993324
+phase_interference__clean,phase_interference,clean,False,,0.5067852075586478,False,ry_overrotation,0.026283791288733482
+phase_interference__rz_drift,phase_interference,rz_drift,True,rz_drift,0.9509935959201432,True,ry_overrotation,0.05603758618235588
+phase_interference__rx_overrotation,phase_interference,rx_overrotation,True,rx_overrotation,0.9454813563245348,True,rz_drift,0.04148164018988609
+phase_interference__ry_overrotation,phase_interference,ry_overrotation,True,ry_overrotation,0.9624676097655236,True,rz_drift,0.042847663164138794
