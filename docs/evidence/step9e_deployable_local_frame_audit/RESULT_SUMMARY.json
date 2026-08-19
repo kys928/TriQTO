@@ -1,0 +1,128 @@
+{
+  "analysis": "step9e_posthoc_deployable_local_response_frame_audit_v1",
+  "status": "NO_DEPLOYABLE_LOCAL_FRAME_DEMONSTRATED__DO_NOT_RETRAIN",
+  "scientific_boundary": {
+    "posthoc_only": true,
+    "qpu_submission": false,
+    "triqto_checkpoint_retraining": false,
+    "triqto_weight_change": false,
+    "triqto_threshold_change": false
+  },
+  "returned_artifacts": {
+    "deployable_local_frame_v1.json": {
+      "sha256": "0037914e10f0a8dac3bab00f57839e899a7f12a7b3f43a32a69c38211ba363d7",
+      "bytes": 24691
+    },
+    "deployable_local_frame_v1.log": {
+      "sha256": "f9a1fe6c293940b7c5851e1e2b910d1d61fb2cc4bf443f6e2a50d642c3befa56",
+      "bytes": 1828
+    }
+  },
+  "step5_product_id": "product_b2d78ad2309b71a55f9bb54f",
+  "matched_contexts": 116,
+  "train_contexts": 87,
+  "validation_contexts": 29,
+  "frozen_gate": {
+    "balanced_accuracy_minimum": 0.8,
+    "cluster_bootstrap_95_lower_minimum": 0.75,
+    "minimum_mechanism_recall": 0.7
+  },
+  "tier1_circuit_only": {
+    "frame_alignment": {
+      "median_cosine_all": 0.6703736480784829,
+      "p10_cosine_all": -0.7730788938077113,
+      "median_cosine_by_mechanism": {
+        "rz_drift": 0.5890605114456209,
+        "rx_overrotation": 0.7125140238514832,
+        "ry_overrotation": 0.5666694659450958
+      }
+    },
+    "step5_cosine": {
+      "balanced_accuracy": 0.5977011494252874,
+      "ci95": [0.4942528735632184, 0.7011494252873564],
+      "recalls": {
+        "rz_drift": 0.6551724137931034,
+        "rx_overrotation": 0.5172413793103449,
+        "ry_overrotation": 0.6206896551724138
+      },
+      "gate_passed": false
+    },
+    "step5_euclidean": {
+      "balanced_accuracy": 0.5977011494252873,
+      "ci95": [0.4942528735632184, 0.7011494252873564],
+      "recalls": {
+        "rz_drift": 0.5862068965517241,
+        "rx_overrotation": 0.5517241379310345,
+        "ry_overrotation": 0.6551724137931034
+      },
+      "gate_passed": false
+    },
+    "frozen_qpu": {
+      "cosine_correct": 1,
+      "euclidean_correct": 0,
+      "case_count": 3,
+      "predicted_frame_exact_median_cosine": -3.7826145633151752e-16
+    }
+  },
+  "tier2_circuit_plus_born_context": {
+    "frame_alignment": {
+      "median_cosine_all": 0.4319188753832783,
+      "p10_cosine_all": -0.7476125590075386,
+      "median_cosine_by_mechanism": {
+        "rz_drift": 0.7009127383624436,
+        "rx_overrotation": 0.40611003364540166,
+        "ry_overrotation": 0.400932936102987
+      }
+    },
+    "step5_cosine": {
+      "balanced_accuracy": 0.5057471264367815,
+      "ci95": [0.42528735632183906, 0.5977011494252873],
+      "gate_passed": false
+    },
+    "step5_euclidean": {
+      "balanced_accuracy": 0.5057471264367815,
+      "ci95": [0.40229885057471265, 0.6091954022988505],
+      "gate_passed": false
+    },
+    "frozen_qpu": {
+      "cosine_correct": 0,
+      "euclidean_correct": 0,
+      "case_count": 3,
+      "predicted_frame_exact_median_cosine": -0.3194801876294195
+    }
+  },
+  "tier3_cheap_probe_frame": {
+    "protocol": {
+      "probe_strength": 0.05,
+      "target_strength": 0.15,
+      "probe_shots_per_basis_per_axis": 512,
+      "additional_observed_probe_programs_per_candidate_context": 9
+    },
+    "frame_alignment": {
+      "median_cosine_all": 0.1886921501736712,
+      "p10_cosine_all": -0.3646446812394449,
+      "median_cosine_by_mechanism": {
+        "rz_drift": 0.18251202277028408,
+        "rx_overrotation": 0.2442424827474731,
+        "ry_overrotation": 0.1228332062828635
+      }
+    },
+    "step5_cosine": {
+      "balanced_accuracy": 0.5287356321839081,
+      "ci95": [0.4482758620689655, 0.6091954022988505],
+      "recalls": {
+        "rz_drift": 0.3793103448275862,
+        "rx_overrotation": 0.7241379310344828,
+        "ry_overrotation": 0.4827586206896552
+      },
+      "gate_passed": false
+    },
+    "step5_euclidean": {
+      "balanced_accuracy": 0.4482758620689655,
+      "ci95": [0.3908045977011494, 0.5172413793103449],
+      "gate_passed": false
+    },
+    "frozen_qpu_probe_validation_available": false
+  },
+  "hard_next_action": "Do not retrain. Decompose the failure into frame-approximation error versus finite-shot probe SNR/nonlinearity before changing TriQTO or authorizing any new QPU acquisition."
+}
