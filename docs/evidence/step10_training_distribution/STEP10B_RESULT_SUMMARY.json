@@ -1,0 +1,78 @@
+{
+  "schema": "triqto.v0_2.step10b_result_summary.v1",
+  "status": "FROZEN_POSTHOC_AUDIT",
+  "benchmark_id": "benchmark_0971e5bb2ec77c2a1bb550d8",
+  "official_decision": "NO_INITIALIZATION_PASSES_FULL_DUAL_DOMAIN_GATE",
+  "audit_bundle_sha256": "sha256:26aab8b957f3d06d583b347b4095a381c3efbae33d39af9ac0fe52359054d640",
+  "integrity": {
+    "zip_crc_pass": true,
+    "all_included_declared_result_hashes_match": true,
+    "training_history_rows": 126,
+    "runs": 6,
+    "epochs_per_run_including_epoch0": 21,
+    "trained_epochs_total": 120,
+    "optimizer_steps_per_trained_epoch": 188,
+    "optimizer_blocks_per_domain_per_epoch": 94,
+    "finite_training_metrics": true,
+    "warnings_or_tracebacks_in_log": false,
+    "outer_predictions_finite": true,
+    "warm_scratch_truth_and_bootstrap_alignment": true,
+    "original_bootstrap_groups": 1000,
+    "bridge_bootstrap_parent_groups": 60
+  },
+  "warm_start": {
+    "selected_epochs": {"1701": 19, "1702": 17, "1703": 18},
+    "bridge_mechanism_balanced_accuracy": 0.7796768617036548,
+    "bridge_mechanism_ci_low": 0.7612315163644704,
+    "bridge_minimum_mechanism_recall": 0.7425191370911621,
+    "bridge_recalls": {
+      "rz_drift": 0.79453125,
+      "rx_overrotation": 0.7425191370911621,
+      "ry_overrotation": 0.801980198019802
+    },
+    "original_mechanism_ba_drop_vs_step9a": -0.004571090738086481,
+    "original_effect_ba_drop_vs_step9a": -0.0025309769625325718,
+    "original_retention_gate_pass": true,
+    "bridge_gate_pass": false,
+    "full_gate_pass": false
+  },
+  "scratch": {
+    "selected_epochs": {"1701": 20, "1702": 20, "1703": 20},
+    "bridge_mechanism_balanced_accuracy": 0.7740111149633396,
+    "bridge_mechanism_ci_low": 0.755703769640933,
+    "bridge_minimum_mechanism_recall": 0.7432150313152401,
+    "bridge_recalls": {
+      "rz_drift": 0.74765625,
+      "rx_overrotation": 0.7432150313152401,
+      "ry_overrotation": 0.8311620635747785
+    },
+    "original_mechanism_ba_drop_vs_step9a": -0.003276533039468732,
+    "original_effect_ba_drop_vs_step9a": 0.0051324175270699435,
+    "original_retention_gate_pass": true,
+    "bridge_gate_pass": false,
+    "full_gate_pass": false
+  },
+  "paired_primary_comparison": {
+    "metric": "bridge mechanism balanced accuracy, scratch minus warm_start",
+    "mean_bootstrap_difference": -0.005690667099218045,
+    "ci_low": -0.012470021666859645,
+    "ci_high": 0.0019181342728533445,
+    "interpretation": "No statistically clear primary-metric superiority for either initialization."
+  },
+  "selection_behavior": {
+    "current_runner_selects_best_retention_eligible_checkpoint_not_last_epoch": true,
+    "warm_start_selected_before_epoch_ceiling_for_all_three_seeds": true,
+    "scratch_selected_at_epoch_ceiling_for_all_three_seeds": true
+  },
+  "posthoc_engineering_recommendation": {
+    "architecture_change_indicated": false,
+    "dataset_contract_change_indicated": false,
+    "atomic_best_checkpoint_persistence_recommended": true,
+    "full_resume_checkpointing_recommended": true,
+    "longer_max_epoch_ceiling_worth_a_separately_frozen_followup": true,
+    "change_learning_rate_now": false,
+    "change_gradient_clip_now": false,
+    "change_domain_balance_now": false,
+    "note": "Any follow-up motivated by Step 10B must be treated as a new development stage; the Step 10B outer cohorts are spent."
+  }
+}
