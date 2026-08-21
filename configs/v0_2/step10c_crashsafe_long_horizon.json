@@ -1,0 +1,158 @@
+{
+  "schema": "triqto.v0_2.step10c_crashsafe_long_horizon.v1",
+  "status": "FROZEN_BEFORE_STEP10C_TRAINING_OUTCOME",
+  "purpose": "Repeat the Step-10B dual-initialization development benchmark with a larger optimization ceiling and crash-safe persistence, while keeping architecture, data mixture, optimizer, selection rule, and gates fixed and evaluating only on a fresh untouched outer cohort.",
+  "step10b_reference": {
+    "benchmark_id": "benchmark_0971e5bb2ec77c2a1bb550d8",
+    "official_decision": "NO_INITIALIZATION_PASSES_FULL_DUAL_DOMAIN_GATE",
+    "audit_bundle_sha256": "sha256:26aab8b957f3d06d583b347b4095a381c3efbae33d39af9ac0fe52359054d640",
+    "outer_cohort_spent": true
+  },
+  "architecture": {
+    "variant": "late_concat",
+    "expected_trainable_parameter_count": 453829,
+    "graph_information_contract_change": false,
+    "input_shape_change": false,
+    "architecture_change": false
+  },
+  "initializations": ["warm_start", "scratch"],
+  "seeds": [1701, 1702, 1703],
+  "warm_start": {
+    "default_bundle_parent": "/workspace/triqto-data/step9a_deployment_bundle",
+    "checkpoint_names": {
+      "1701": "seed1701.pt",
+      "1702": "seed1702.pt",
+      "1703": "seed1703.pt"
+    },
+    "load_state_dict_strict": true,
+    "optimizer_state_reused_at_fresh_start": false,
+    "new_optimizer_at_fresh_start": true
+  },
+  "training_mixture": {
+    "product_id": "product_0f7112597501f7ea5fbe123b",
+    "default_product_dir": "/workspace/triqto-data/step10_training_mixture/product_0f7112597501f7ea5fbe123b",
+    "reuse_fit_partition": true,
+    "reuse_selection_partition": true,
+    "reuse_step10b_outer_partition": false
+  },
+  "fresh_outer": {
+    "schema": "triqto.v0_2.step10c_fresh_outer_cohort.v1",
+    "default_parent": "/workspace/triqto-data/step10c_fresh_outer_cohort",
+    "outer_selects_nothing": true
+  },
+  "training": {
+    "root_batch_size": 32,
+    "max_epochs": 40,
+    "early_stopping_patience": 4,
+    "early_stopping_min_delta": 0.0005,
+    "optimizer": "AdamW",
+    "learning_rate": 0.0003,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 1.0,
+    "effect_loss_weight": 1.0,
+    "mechanism_loss_weight": 1.0,
+    "domain_schedule": "equal optimizer-block count from original and bridge per epoch; shorter block list cycles deterministically",
+    "same_schedule_for_warm_start_and_scratch": true,
+    "only_scientific_training_change_vs_step10b": "max_epochs_20_to_40"
+  },
+  "selection": {
+    "original_domain_retention_tolerance": 0.02,
+    "retention_reference": "matching-seed warm-start epoch-0 original-domain selection metrics",
+    "eligibility": [
+      "original mechanism balanced accuracy >= warm-start epoch-0 original mechanism BA - 0.02",
+      "original effect balanced accuracy >= warm-start epoch-0 original effect BA - 0.02"
+    ],
+    "eligible_checkpoint_order": [
+      "bridge mechanism balanced accuracy",
+      "minimum(original mechanism BA, bridge mechanism BA)",
+      "bridge effect balanced accuracy",
+      "earlier epoch"
+    ],
+    "outer_validation_selects_nothing": true,
+    "human_monitoring_may_not_override_selection": true
+  },
+  "checkpointing": {
+    "atomic_write": true,
+    "atomic_protocol": "write temp in same directory -> flush -> fsync file -> os.replace -> fsync parent directory",
+    "best_checkpoint_persisted_on_each_eligible_improvement": true,
+    "resume_checkpoint_persisted_after_every_completed_epoch": true,
+    "resume_restores_optimizer_state": true,
+    "resume_restores_rng_state": true,
+    "resume_restores_early_stopping_state": true,
+    "resume_identity_must_match_exactly": true,
+    "identity_fields": [
+      "schema",
+      "training_config_sha256",
+      "runner_sha256",
+      "mixture_product_id",
+      "fresh_outer_product_id",
+      "step9a_bundle_id",
+      "initialization",
+      "seed",
+      "architecture",
+      "trainable_parameter_count",
+      "execution_device",
+      "runtime_fingerprint"
+    ],
+    "checkpoint_names": {
+      "best": "best.pt",
+      "resume": "resume.pt",
+      "progress": "progress.json"
+    },
+    "resume_runtime_must_match": true,
+    "runtime_fingerprint_fields": [
+      "python_version",
+      "torch_version",
+      "numpy_version",
+      "device_type",
+      "torch_num_threads",
+      "cuda_version_if_any",
+      "cuda_device_name_if_any"
+    ]
+  },
+  "telemetry": {
+    "atomic_progress_json_after_each_epoch": true,
+    "record_wall_time": true,
+    "record_mean_preclip_gradient_norm": true,
+    "record_max_preclip_gradient_norm": true,
+    "record_fraction_optimizer_steps_clipped": true,
+    "record_mean_postclip_gradient_norm": true,
+    "telemetry_does_not_change_optimization": true
+  },
+  "evaluation": {
+    "domains_reported_separately": ["original", "bridge"],
+    "seed_aggregation": "mean logits across seeds after per-seed checkpoint selection",
+    "effect_threshold": "one threshold per initialization selected from concatenated original+bridge selection logits, then frozen before fresh outer evaluation",
+    "bootstrap_replicates": 2000,
+    "bootstrap_seed": 2026082102,
+    "confidence_level": 0.95,
+    "original_bootstrap_unit": "clean_root",
+    "bridge_bootstrap_unit": "parent_group",
+    "bridge_mechanism_gate": {
+      "balanced_accuracy_minimum": 0.8,
+      "bootstrap_ci_lower_minimum": 0.75,
+      "minimum_class_recall": 0.7
+    },
+    "original_retention_gate": {
+      "mechanism_balanced_accuracy_max_drop": 0.02,
+      "effect_balanced_accuracy_max_drop": 0.02,
+      "reference": "untouched Step-9A ensemble evaluated on the same fresh original outer cohort"
+    }
+  },
+  "initialization_decision": {
+    "warm_reuse_preferred_if": "warm passes full dual-domain gate and scratch does not show clear superiority",
+    "scratch_clear_superiority_requires": [
+      "scratch and warm both pass full gate",
+      "paired bootstrap CI lower for scratch-minus-warm bridge mechanism BA > 0.01",
+      "scratch does not worsen original mechanism retention by more than 0.01 relative to warm"
+    ],
+    "otherwise": "NO_INITIALIZATION_PASSES_FULL_DUAL_DOMAIN_GATE"
+  },
+  "scientific_boundaries": [
+    "No architecture, graph-input-contract, learning-rate, gradient-clipping, batch-size, domain-weight, loss-weight, scheduler, EMA, SWA, or dataset-fit/selection change is introduced in Step 10C.",
+    "The only scientific optimization change from Step 10B is max_epochs 20 -> 40; early stopping remains unchanged and may stop runs earlier.",
+    "Atomic persistence, exact resume, progress monitoring, wall-time logging, and clipping telemetry are engineering/observability changes only.",
+    "The spent Step-10B outer cohorts are not used to select, tune, or evaluate Step 10C.",
+    "No QPU execution and no spent confirmatory cohort access occur in Step 10C."
+  ]
+}
