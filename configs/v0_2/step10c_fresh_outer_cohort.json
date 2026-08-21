@@ -1,0 +1,78 @@
+{
+  "schema": "triqto.v0_2.step10c_fresh_outer_cohort.v1",
+  "status": "FROZEN_BEFORE_STEP10C_OUTER_OUTCOME",
+  "purpose": "Create fresh untouched outer-validation cohorts for the Step-10C crash-safe longer-horizon benchmark after the Step-10B outer cohorts became spent.",
+  "source_training_mixture": {
+    "product_id": "product_0f7112597501f7ea5fbe123b",
+    "step10b_benchmark_id": "benchmark_0971e5bb2ec77c2a1bb550d8",
+    "step10b_outer_is_spent": true
+  },
+  "original_domain": {
+    "generator_family": "Step-5 v3 frozen clean-circuit family and scheduling contract",
+    "base_v2_config": "configs/v0_2/step5_matched_diagnostic_training_dataset_v2.json",
+    "v3_overlay_config": "configs/v0_2/step5_matched_diagnostic_training_dataset_v3.json",
+    "global_root_index_start": 5000,
+    "clean_root_count": 1000,
+    "examples_per_root": 13,
+    "expected_examples": 13000,
+    "all_rows_are_outer_validation_only": true,
+    "require_zero_graph_overlap_with_step10_original_product": true,
+    "require_zero_graph_overlap_with_step10_bridge_product": true,
+    "reuse_previous_outer_rows": false,
+    "regenerate_reference_and_observed_finite_shot_evidence": true
+  },
+  "bridge_domain": {
+    "base_seed": 2026082101,
+    "parent_groups": 60,
+    "variants_per_parent": 8,
+    "expected_clean_roots": 480,
+    "examples_per_root": 13,
+    "expected_examples": 6240,
+    "qubit_choices": [2, 3, 4],
+    "motifs": [
+      "pilot_core_variant",
+      "spectator_pre",
+      "spectator_mid",
+      "spectator_tail"
+    ],
+    "parent_phi_range": [-3.141592653589793, 3.141592653589793],
+    "parent_beta_range": [-1.2, 1.2],
+    "variant_phi_offsets": [-0.07, -0.05, -0.03, -0.01, 0.01, 0.03, 0.05, 0.07],
+    "pilot_phi": 0.7,
+    "pilot_exclusion_half_width": 0.01,
+    "context_strengths": [0.08, 0.15, 0.22, 0.3],
+    "shot_levels": [512, 1024, 2048, 4096],
+    "mechanisms": ["rz_drift", "rx_overrotation", "ry_overrotation"],
+    "all_rows_are_outer_validation_only": true,
+    "require_zero_graph_overlap_with_step10_bridge_product": true,
+    "require_zero_graph_overlap_with_step10_original_product": true,
+    "exact_step9d_pilot_graph_forbidden": true
+  },
+  "eda_gates": {
+    "require_all_artifact_hashes_match_manifest": true,
+    "require_pickle_free_npz": true,
+    "require_all_primary_diagnostics_finite": true,
+    "diagnostic_absolute_bound": 2.0000001,
+    "require_13_examples_per_root": true,
+    "require_1_clean_plus_12_injected_per_root": true,
+    "require_4_each_mechanism_per_root": true,
+    "require_all_four_shot_levels_per_injected_root": true,
+    "require_no_duplicate_clean_graphs_within_fresh_cohort": true,
+    "require_zero_graph_overlap_with_all_step10_training_selection_spent_outer_graphs": true,
+    "require_bridge_parent_group_bootstrap": true,
+    "require_original_root_bootstrap": true,
+    "report_effect_positive_rate_by_mechanism": true,
+    "report_phenomenology_by_domain_mechanism": true,
+    "report_diagnostic_norms_by_domain_family_qubits_mechanism_shots_strength": true,
+    "report_exact_vs_empirical_delta_error_by_shots": true,
+    "report_shot_strength_depth_family_associations": true
+  },
+  "scientific_boundaries": [
+    "This cohort is outer-validation only and may not be used for model selection, hyperparameter tuning, early stopping, threshold selection, or architecture choice.",
+    "Step-10B outer rows are spent and are not copied or reshuffled into this cohort.",
+    "The fresh original domain extends the same frozen Step-5 v3 generator family using previously unused global root indices.",
+    "The fresh bridge domain uses a new deterministic base seed while preserving the Step-10 bridge distribution and exact pilot exclusion.",
+    "No QPU execution occurs during cohort generation or EDA.",
+    "Statevectors may be used transiently for simulator generation and privileged EDA only; they are never persisted as deployable x__ inputs."
+  ]
+}

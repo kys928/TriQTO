@@ -1,0 +1,78 @@
+{
+  "schema": "triqto.v0_2.step10_training_mixture.v1",
+  "status": "FROZEN_BEFORE_STEP10_DATASET_OUTCOME",
+  "purpose": "Reference the frozen Step-5 v3 development product unchanged and add a leakage-safe simulator deployment-domain bridge family motivated by Steps 9G-9H.",
+  "original_domain": {
+    "schema": "triqto.v0_2.step5_matched_diagnostic_training_dataset.v3",
+    "product_id": "product_b2d78ad2309b71a55f9bb54f",
+    "default_product_dir": "/workspace/triqto-data/step5_matched_diagnostic_training_v3/product_b2d78ad2309b71a55f9bb54f",
+    "clean_root_count": 5000,
+    "example_count": 65000,
+    "fit_roots": 3000,
+    "selection_roots": 1000,
+    "outer_validation_roots": 1000,
+    "regenerate": false,
+    "relabel": false
+  },
+  "bridge": {
+    "parent_groups": 300,
+    "variants_per_parent": 8,
+    "expected_clean_roots": 2400,
+    "examples_per_root": 13,
+    "expected_examples": 31200,
+    "base_seed": 2026081901,
+    "motifs": [
+      "pilot_core_variant",
+      "spectator_pre",
+      "spectator_mid",
+      "spectator_tail"
+    ],
+    "qubit_choices": [2, 3, 4],
+    "parent_phi_range": [-3.141592653589793, 3.141592653589793],
+    "parent_beta_range": [-1.2, 1.2],
+    "variant_phi_offsets": [-0.07, -0.05, -0.03, -0.01, 0.01, 0.03, 0.05, 0.07],
+    "pilot_phi": 0.7,
+    "pilot_exclusion_half_width": 0.01,
+    "context_strengths": [0.08, 0.15, 0.22, 0.3],
+    "shot_levels": [512, 1024, 2048, 4096],
+    "mechanisms": ["rz_drift", "rx_overrotation", "ry_overrotation"],
+    "clean_control_per_root": 1,
+    "contexts_per_root": 4,
+    "parent_split_rule": {
+      "fold_expression": "parent_group_index mod 5",
+      "fit_folds": [1, 2, 3],
+      "selection_fold": 4,
+      "outer_validation_fold": 0,
+      "expected_fit_roots": 1440,
+      "expected_selection_roots": 480,
+      "expected_outer_validation_roots": 480,
+      "all_variants_of_parent_stay_together": true,
+      "all_13_derivatives_of_root_stay_together": true
+    }
+  },
+  "input_contract": {
+    "reuse_current_step7_graph_adapter": true,
+    "graph_information_change": false,
+    "statevector_as_model_input": false,
+    "exact_diagnostics_as_model_input": false,
+    "hidden_mechanism_as_model_input": false,
+    "affected_qubit_as_model_input": false,
+    "insertion_boundary_as_model_input": false,
+    "strength_as_model_input": false,
+    "family_as_model_input": false,
+    "parent_group_as_model_input": false
+  },
+  "scientific_boundaries": {
+    "qpu_execution": false,
+    "ibm_credentials_required": false,
+    "spent_step8_confirmatory_cohort_access": false,
+    "step9d_qpu_cases_used_for_training": false,
+    "architecture_change": false,
+    "original_domain_replacement": false,
+    "bridge_is_simulator_only": true
+  },
+  "output": {
+    "default_parent": "/workspace/triqto-data/step10_training_mixture",
+    "immutable_product": true
+  }
+}

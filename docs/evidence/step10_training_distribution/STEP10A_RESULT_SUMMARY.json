@@ -1,0 +1,70 @@
+{
+  "schema": "triqto.v0_2.step10a_dataset_result_summary.v1",
+  "status": "FROZEN_POST_OUTCOME",
+  "source_commit": "09b28ee8e739dc290724080529f667513dbd1d4e",
+  "product_id": "product_0f7112597501f7ea5fbe123b",
+  "original_domain": {
+    "product_id": "product_b2d78ad2309b71a55f9bb54f",
+    "clean_root_count": 5000,
+    "example_count": 65000
+  },
+  "bridge_domain": {
+    "parent_group_count": 300,
+    "variants_per_parent": 8,
+    "clean_root_count": 2400,
+    "example_count": 31200,
+    "fit_root_count": 1440,
+    "selection_root_count": 480,
+    "outer_validation_root_count": 480,
+    "family_partition_root_counts_each": {
+      "fit": 360,
+      "selection": 120,
+      "outer_validation": 120
+    },
+    "qubit_counts": {
+      "2": 800,
+      "3": 800,
+      "4": 800
+    },
+    "mechanism_example_counts": {
+      "clean_control": 2400,
+      "rz_drift": 9600,
+      "rx_overrotation": 9600,
+      "ry_overrotation": 9600
+    },
+    "shot_example_counts": {
+      "512": 7800,
+      "1024": 7800,
+      "2048": 7800,
+      "4096": 7800
+    }
+  },
+  "independent_audit": {
+    "parent_groups_checked": 300,
+    "parent_group_leakage_violations": 0,
+    "root_groups_checked": 2400,
+    "root_derivative_partition_violations": 0,
+    "duplicate_bridge_graph_count": 0,
+    "bridge_artifacts_checked": 31200,
+    "missing_bridge_artifacts": 0,
+    "bridge_artifact_hash_mismatches": 0,
+    "exact_step9d_pilot_graph_present": false
+  },
+  "artifact_sha256": {
+    "uploaded_zip": "dc1fdea3d0f80c7ae0880417b3b9bd13efafdade9dce05a9369e3f5fb69d711d",
+    "step10a_generation_log": "15f9e0ef8bf9f1904f2aa716a1ddb214f6c95e26705d66ba8465b649bda2826f",
+    "current_product_json": "2bfc42bd3a7567b4e41b55d0c568201f9156adbbae35f89e0d5276eb63b0d2d5",
+    "dataset_complete_json": "fc4b529677c5165c96ac191aee33622efdbba4fade3867795f9f84778e1ca3c4",
+    "stage_validation_json": "c1437d130b048672856475646fbb1fe9dd831af4e28c54838805b1326b5c5624",
+    "original_domain_reference_json": "6938dca1cfd8479c5ea7b001f74af3d15d5803b07cc20cf97070acbdff989db9",
+    "bridge_root_manifest_csv": "96bd358640a77a4cea328588b11d3e8567e4fd8ce7b42d9e91d1575dad2c50bc",
+    "bridge_example_manifest_csv": "d5bfef900fb0264fa0b41213788be8bf7610080b1f313d27a8954eb945a5467a"
+  },
+  "decision": "STEP10A_DATASET_CONTRACT_PASSES__STEP10B_TRAINING_UNLOCKED",
+  "scientific_boundaries": {
+    "classifier_trained": false,
+    "architecture_changed": false,
+    "qpu_executed": false,
+    "spent_confirmatory_cohort_accessed": false
+  }
+}
