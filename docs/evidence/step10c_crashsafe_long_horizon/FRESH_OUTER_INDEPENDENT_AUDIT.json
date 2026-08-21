@@ -1,0 +1,150 @@
+{
+  "schema": "triqto.v0_2.step10c_fresh_outer_independent_audit.v1",
+  "status": "PASS_ACCEPT_FROZEN_OUTER",
+  "product_id": "product_57ee407d62ea794bfc9ff169",
+  "audit_performed_before_step10c_model_outcome": true,
+  "archive": {
+    "sha256": "c85b9e4f5a9a5e476b3eaae137779e4abaf7df76a3809ba10556aae13ba7d33f",
+    "bytes": 60122491,
+    "crc_pass": true,
+    "entry_count": 19250,
+    "duplicate_entry_count": 0,
+    "npz_artifact_count": 19240
+  },
+  "product_hashes": {
+    "dataset_complete.json": "sha256:858ddeadb5b4380b71325b8294727b6a9e3431293e0cfd150c4f18d05f0129ce",
+    "eda.json": "sha256:f5a97c66792b23b8ba7a7a382cb4dbd44081320db058f5294938697c1d0b0964",
+    "EDA_SUMMARY.md": "sha256:9a740812bb2c403adfe6a2b6b4fe40b849c77b5fae18bcf62a315cfa8485f591",
+    "original_root_manifest.csv": "sha256:2d7aa22c9ab662eeab7d4d12806cd14ae1e8ee1304c8a4cc2053f36082c4fb3e",
+    "original_example_manifest.csv": "sha256:10380939508cb753d5e4fc99e4ebf14a9c37affdbdf4ff6ada1add8157229949",
+    "bridge_root_manifest.csv": "sha256:eb20b48e7ca820ef4dd7e90128463ee7c2f3361f3c1f55e8b474aa85f8756b85",
+    "bridge_example_manifest.csv": "sha256:a073fc16959df1020e758454b03886fe88fba3b4e90745266bcc6515b1a7656a"
+  },
+  "counts": {
+    "total_clean_roots": 1480,
+    "total_examples": 19240,
+    "original_clean_roots": 1000,
+    "original_examples": 13000,
+    "bridge_parent_groups": 60,
+    "bridge_clean_roots": 480,
+    "bridge_examples": 6240
+  },
+  "independent_artifact_scan": {
+    "artifact_hash_mismatch_count": 0,
+    "missing_artifact_count": 0,
+    "duplicate_artifact_path_count": 0,
+    "npz_schema_mismatch_count": 0,
+    "privileged_deployable_key_count": 0,
+    "persisted_statevector_key_count": 0,
+    "target_identity_mismatch_count": 0,
+    "recomputed_graph_hash_mismatch_count": 0,
+    "layout_mismatch_count": 0,
+    "basis_code_mismatch_count": 0,
+    "shot_contract_mismatch_count": 0,
+    "reference_contract_mismatch_count": 0,
+    "pair_index_or_shape_mismatch_count": 0,
+    "graph_pointer_contract_violation_count": 0,
+    "phasor_norm_violation_count": 0,
+    "nonfinite_primary_diagnostic_count": 0,
+    "nonfinite_exact_diagnostic_count": 0,
+    "nonfinite_continuous_target_count": 0,
+    "diagnostic_bound_violation_count": 0,
+    "maximum_absolute_primary_diagnostic": 0.45703125
+  },
+  "supervision_consistency": {
+    "population_plus_phase_equals_total_violation_count": 0,
+    "worst_population_plus_phase_total_absolute_error": 1.1102230246251565e-15,
+    "effect_formula_violation_count": 0,
+    "phenomenology_formula_violation_count": 0,
+    "dominance_log_ratio_formula_violation_count": 0,
+    "clean_control_continuous_nonzero_count": 0,
+    "clean_control_exact_diagnostic_nonzero_count": 0
+  },
+  "structure": {
+    "all_original_root_ids_exactly_5000_through_5999": true,
+    "all_roots_have_13_examples": true,
+    "all_roots_have_1_clean_plus_12_injected": true,
+    "all_roots_have_4_rz_4_rx_4_ry": true,
+    "all_roots_have_all_four_injected_shot_levels": true,
+    "bridge_all_60_parents_have_8_variants": true,
+    "bridge_all_parents_have_variant_indices_0_through_7": true,
+    "bridge_each_parent_has_two_of_each_motif": true,
+    "fresh_original_graph_count_unique": 1000,
+    "fresh_bridge_graph_count_unique": 480,
+    "fresh_original_bridge_cross_overlap": 0
+  },
+  "effect_positive_support": {
+    "original": {
+      "rz_drift": 3478,
+      "rx_overrotation": 3243,
+      "ry_overrotation": 4000
+    },
+    "bridge": {
+      "rz_drift": 1279,
+      "rx_overrotation": 1440,
+      "ry_overrotation": 1920
+    }
+  },
+  "empirical_vs_exact_rms_mean_by_shots": {
+    "original": {
+      "512": 0.055208178360936395,
+      "1024": 0.03881776678916657,
+      "2048": 0.02733040558848601,
+      "4096": 0.019425330305606548,
+      "log_log_slope": -0.502703885773418
+    },
+    "bridge": {
+      "512": 0.054144526741789954,
+      "1024": 0.03810160452514894,
+      "2048": 0.02688066325202057,
+      "4096": 0.019102557731498424,
+      "log_log_slope": -0.5012432083004599
+    }
+  },
+  "diagnostic_rms": {
+    "original_mean": 0.0396681804707068,
+    "original_median": 0.037098458738570005,
+    "bridge_mean": 0.05038481926483663,
+    "bridge_median": 0.04587261492531534
+  },
+  "design_associations_cramers_v": {
+    "original": {
+      "shots_affected_qubit": 0.04692602490948135,
+      "shots_family": 0.0,
+      "shots_depth": 0.04204759208325728,
+      "shots_strength": 0.02340939982143925,
+      "strength_family": 0.0,
+      "strength_depth": 0.0,
+      "depth_family": 0.0,
+      "mechanism_strength": 0.0,
+      "mechanism_depth": 0.0,
+      "mechanism_family": 0.0,
+      "mechanism_shots": 0.0,
+      "mechanism_affected_qubit": 0.0
+    },
+    "bridge": {
+      "shots_affected_qubit": 0.0337377807097951,
+      "shots_family": 0.0,
+      "shots_depth": 0.027684769099458065,
+      "shots_strength": 0.03632415786283895,
+      "strength_family": 0.0,
+      "strength_depth": 0.45733993148794455,
+      "depth_family": 0.3431371532647742,
+      "mechanism_strength": 0.0,
+      "mechanism_depth": 0.0,
+      "mechanism_family": 0.0,
+      "mechanism_shots": 0.0,
+      "mechanism_affected_qubit": 0.0
+    }
+  },
+  "historical_freshness": {
+    "generator_reported_overlap_with_step10_original_graphs": 0,
+    "generator_reported_overlap_with_step10_bridge_graphs": 0,
+    "generator_reported_duplicate_fresh_graph_count": 0,
+    "exact_step9d_pilot_graph_present": false,
+    "minimum_wrapped_phi_distance_from_pilot": 0.015259565820464616,
+    "historical_overlap_independently_recomputed_from_uploaded_zip_alone": false,
+    "reason": "The uploaded fresh-cohort ZIP does not include the historical Step-10 graph manifests; historical overlap is therefore grounded in the frozen generator comparison against immutable source products and their recorded hashes."
+  },
+  "decision": "ACCEPT_PRODUCT_57ee407d62ea794bfc9ff169_AS_FROZEN_STEP10C_FRESH_OUTER"
+}
