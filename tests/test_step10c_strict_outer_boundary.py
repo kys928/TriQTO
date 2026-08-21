@@ -76,6 +76,17 @@ def test_authoritative_main_defers_fresh_outer_materialization():
     original_outer = source.index("fresh_original_outer = step7.materialize_blocks")
     bridge_outer = source.index("fresh_bridge_outer = step7.materialize_blocks")
     outer_prediction = source.index("outer_predictions: dict")
+
+    # The executable sequencing is the contract. Do not rely on a comment or
+    # prose sentinel: neither fresh outer artifact set may be materialized, nor
+    # may the outer-prediction phase begin, before the six-selection boundary
+    # marker is successfully written.
     assert boundary < original_outer < outer_prediction
     assert boundary < bridge_outer < outer_prediction
-    assert "fresh outer NPZ artifacts are unavailable" in source
+
+    before_boundary = source[:boundary]
+    assert "fresh_original_outer = step7.materialize_blocks" not in before_boundary
+    assert "fresh_bridge_outer = step7.materialize_blocks" not in before_boundary
+    assert "outer_predictions: dict" not in before_boundary
+    assert "step7.predict_blocks(model, fresh_original_outer" not in before_boundary
+    assert "step7.predict_blocks(model, fresh_bridge_outer" not in before_boundary
