@@ -1,0 +1,137 @@
+{
+  "schema": "triqto.v0_2.step10c_result_summary.v1",
+  "status": "FROZEN_POSTHOC_AUDIT",
+  "benchmark_id": "benchmark_f9478da45d68795655259054",
+  "official_decision": "NO_INITIALIZATION_PASSES_FULL_DUAL_DOMAIN_GATE",
+  "audit_bundle_sha256": "sha256:efbb016d7c4f6c0908217ce5cca8ba89e23fe785fa71e247dbbe843b09955ba4",
+  "integrity": {
+    "zip_crc_pass": true,
+    "included_files": 9,
+    "all_included_declared_result_hashes_match": true,
+    "checkpoint_files_present_in_audit_bundle": false,
+    "checkpoint_hashes_only_recorded_in_benchmark_complete": true,
+    "training_history_rows": 195,
+    "runs": 6,
+    "trained_epochs_total": 189,
+    "optimizer_steps_per_trained_epoch": 188,
+    "optimizer_blocks_per_domain_per_epoch": 94,
+    "finite_training_metrics": true,
+    "warnings_or_tracebacks_in_log": false,
+    "outer_predictions_finite": true,
+    "warm_scratch_truth_and_bootstrap_alignment": true,
+    "original_bootstrap_groups": 1000,
+    "bridge_bootstrap_parent_groups": 60,
+    "fresh_outer_materialized_after_all_six_selections": true,
+    "fresh_outer_used_for_selection": false,
+    "step10b_outer_evaluated": false,
+    "qpu_executed": false,
+    "any_run_resumed": false
+  },
+  "architecture": {
+    "variant": "late_concat",
+    "trainable_parameter_count": 453829,
+    "architecture_changed": false
+  },
+  "warm_start": {
+    "selected_epochs": {"1701": 24, "1702": 27, "1703": 18},
+    "epochs_ran": {"1701": 28, "1702": 31, "1703": 22},
+    "bridge_mechanism_balanced_accuracy": 0.7939042908232706,
+    "bridge_mechanism_ci_low": 0.7809313429211779,
+    "bridge_minimum_mechanism_recall": 0.7493055555555556,
+    "bridge_recalls": {
+      "rz_drift": 0.8146989835809226,
+      "rx_overrotation": 0.7493055555555556,
+      "ry_overrotation": 0.8177083333333334
+    },
+    "bridge_effect_balanced_accuracy": 0.8096004343049767,
+    "bridge_integrated_balanced_accuracy": 0.6877233022585503,
+    "original_mechanism_balanced_accuracy": 0.514847331605426,
+    "original_effect_balanced_accuracy": 0.7135023964768534,
+    "original_mechanism_ba_drop_vs_step9a": -0.006459503907237485,
+    "original_effect_ba_drop_vs_step9a": 0.0011826141679018853,
+    "original_retention_gate_pass": true,
+    "bridge_gate_pass": false,
+    "full_gate_pass": false
+  },
+  "scratch": {
+    "selected_epochs": {"1701": 34, "1702": 38, "1703": 26},
+    "epochs_ran": {"1701": 38, "1702": 40, "1703": 30},
+    "bridge_mechanism_balanced_accuracy": 0.7868371829119972,
+    "bridge_mechanism_ci_low": 0.7735037558747904,
+    "bridge_minimum_mechanism_recall": 0.7645833333333333,
+    "bridge_recalls": {
+      "rz_drift": 0.7881157154026583,
+      "rx_overrotation": 0.7645833333333333,
+      "ry_overrotation": 0.8078125
+    },
+    "bridge_effect_balanced_accuracy": 0.8120736271884395,
+    "bridge_integrated_balanced_accuracy": 0.6957613013429201,
+    "original_mechanism_balanced_accuracy": 0.5167059418345264,
+    "original_effect_balanced_accuracy": 0.7136771385149174,
+    "original_mechanism_ba_drop_vs_step9a": -0.008318114136337984,
+    "original_effect_ba_drop_vs_step9a": 0.0010078721298378834,
+    "original_retention_gate_pass": true,
+    "bridge_gate_pass": false,
+    "full_gate_pass": false
+  },
+  "paired_primary_comparison": {
+    "metric": "bridge mechanism balanced accuracy, scratch minus warm_start",
+    "mean_bootstrap_difference": -0.007154791047562522,
+    "ci_low": -0.01498014147048735,
+    "ci_high": 0.0004084862699042057,
+    "interpretation": "No statistically clear primary-metric superiority for either initialization."
+  },
+  "secondary_paired_findings": {
+    "bridge_effect_macro_f1_scratch_minus_warm": {
+      "mean": 0.007719,
+      "ci_low": 0.003369,
+      "ci_high": 0.012331,
+      "direction": "scratch_better"
+    },
+    "bridge_integrated_balanced_accuracy_scratch_minus_warm": {
+      "mean": 0.008040,
+      "ci_low": 0.001796,
+      "ci_high": 0.014417,
+      "direction": "scratch_better"
+    },
+    "bridge_integrated_macro_f1_scratch_minus_warm": {
+      "mean": 0.007892,
+      "ci_low": 0.001042,
+      "ci_high": 0.014442,
+      "direction": "scratch_better"
+    }
+  },
+  "selection_and_horizon": {
+    "warm_start_selected_before_epoch_40_for_all_three_seeds": true,
+    "scratch_selected_before_epoch_40_for_all_three_seeds": true,
+    "scratch_1702_ran_to_epoch_40": true,
+    "only_one_of_six_runs_reached_epoch_ceiling": true,
+    "five_of_six_runs_stopped_by_frozen_early_stopping": true,
+    "conclusion": "The 40-epoch ceiling is no longer the primary limiting factor; a further max-epoch-only extension is not justified by Step 10C."
+  },
+  "gradient_clipping": {
+    "clip_norm": 1.0,
+    "fraction_optimizer_steps_clipped_all_runs": 1.0,
+    "postclip_mean_norm_all_runs_approximately": 1.0,
+    "mean_preclip_norm_by_run": {
+      "warm_start_1701": 11.636218223934977,
+      "warm_start_1702": 12.182932499471123,
+      "warm_start_1703": 13.058253143058447,
+      "scratch_1701": 9.655360053155126,
+      "scratch_1702": 9.861397134930757,
+      "scratch_1703": 8.5618800265338
+    },
+    "maximum_preclip_norm_observed": 248.857316079335,
+    "interpretation": "Gradient clipping is a continuously active optimization regime, not merely an emergency safeguard."
+  },
+  "posthoc_followup_discipline": {
+    "fresh_step10c_outer_is_now_spent": true,
+    "do_not_relax_ba_gate": true,
+    "do_not_claim_step10b_to_step10c_outer_improvement_causally": true,
+    "reason": "Step 10B and Step 10C used different outer cohorts; horizon benefit is supported on the shared development/selection trajectory, not by a direct paired outer comparison.",
+    "architecture_change_indicated": false,
+    "dataset_contract_change_indicated": false,
+    "max_epoch_only_extension_indicated": false,
+    "optimization_ablation_indicated": true
+  }
+}
