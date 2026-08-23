@@ -1,0 +1,88 @@
+{
+  "schema": "triqto.v0_2.step10d_result_summary.v1",
+  "status": "FROZEN_POSTHOC_AUDIT",
+  "benchmark_id": "benchmark_1455864a09de8804a7e7958a",
+  "uploaded_audit_zip_sha256": "sha256:e62eb3de2c7e5ccd00b0087d095c4f60394d79ffbd601a1c2042ac7ee926901b",
+  "official_hardware_candidate": "step10c_warm_start",
+  "candidate_rule_outcome": {
+    "step10c_bridge_selection_mechanism_ba": 0.7961509367037295,
+    "step10d_bridge_selection_mechanism_ba": 0.7925952870434715,
+    "delta_step10d_minus_step10c": -0.003555649660258009,
+    "minimum_material_improvement_required": 0.0005,
+    "all_step10d_seed_checkpoints_retention_eligible": true,
+    "step10d_ensemble_retention_pass": true,
+    "step10d_becomes_primary": false
+  },
+  "integrity": {
+    "zip_crc_pass": true,
+    "zip_member_count": 9,
+    "all_declared_benchmark_file_hashes_match_uploaded_files": true,
+    "checkpoint_files_included_and_rehashed": true,
+    "training_history_rows": 95,
+    "trained_epochs_total": 92,
+    "optimizer_steps_per_trained_epoch": 188,
+    "finite_training_metrics": true,
+    "warnings_or_tracebacks_in_log": false,
+    "any_run_resumed": false,
+    "step10c_outer_accessed": false,
+    "new_outer_accessed": false,
+    "qpu_executed": false
+  },
+  "architecture": {
+    "variant": "late_concat",
+    "trainable_parameter_count": 453829,
+    "changed": false
+  },
+  "learning_rate_schedule": [
+    {"epoch_start": 1, "epoch_end": 20, "learning_rate": 0.0003},
+    {"epoch_start": 21, "epoch_end": 40, "learning_rate": 0.0001}
+  ],
+  "per_seed": {
+    "1701": {
+      "epochs_ran": 32,
+      "selected_epoch": 28,
+      "selected_bridge_mechanism_ba": 0.7871504854837464,
+      "selected_checkpoint_retention_eligible": true,
+      "checkpoint_sha256": "sha256:6ae502d88b3b95f60dff13735f7bf70144a7f690e5a35ca5a90425e7b0c37f16"
+    },
+    "1702": {
+      "epochs_ran": 35,
+      "selected_epoch": 31,
+      "selected_bridge_mechanism_ba": 0.7898765056752374,
+      "selected_checkpoint_retention_eligible": true,
+      "checkpoint_sha256": "sha256:67962e546eaa0e1fa0a29ce66c5f242f30c4cb64cab864bbcadf247499713894"
+    },
+    "1703": {
+      "epochs_ran": 25,
+      "selected_epoch": 21,
+      "selected_bridge_mechanism_ba": 0.7914989672612154,
+      "selected_checkpoint_retention_eligible": true,
+      "checkpoint_sha256": "sha256:a876679d413402baa2b3bccbcc9bdc5197690ba3185d4c826ee6fab4ff60fbe5"
+    }
+  },
+  "step10d_selection": {
+    "bridge_effect_balanced_accuracy": 0.8096834418130833,
+    "bridge_mechanism_balanced_accuracy": 0.7925952870434715,
+    "bridge_mechanism_macro_f1": 0.7906734494007278,
+    "original_effect_balanced_accuracy": 0.7238795091092489,
+    "original_mechanism_balanced_accuracy": 0.51642600475459,
+    "original_mechanism_macro_f1": 0.507343482604892
+  },
+  "step10c_reference_selection": {
+    "bridge_effect_balanced_accuracy": 0.8080887955482663,
+    "bridge_mechanism_balanced_accuracy": 0.7961509367037295,
+    "bridge_mechanism_macro_f1": 0.793256444429682,
+    "original_effect_balanced_accuracy": 0.7179684992374367,
+    "original_mechanism_balanced_accuracy": 0.51468376915799,
+    "original_mechanism_macro_f1": 0.5045609952445231
+  },
+  "gradient_clipping": {
+    "fraction_optimizer_steps_clipped_all_trained_epochs": 1.0,
+    "interpretation": "The late-LR refinement was evaluated under the same continuously active clip=1.0 regime; no clipping change is permitted before hardware."
+  },
+  "frozen_next_stage": {
+    "further_simulator_tuning_before_hardware_permitted": false,
+    "primary_hardware_candidate": "step10c_warm_start",
+    "next_stage": "EXPLORATORY_IBM_HARDWARE_TRANSFER_PILOT"
+  }
+}
