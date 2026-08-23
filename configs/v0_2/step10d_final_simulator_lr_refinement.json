@@ -1,0 +1,170 @@
+{
+  "schema": "triqto.v0_2.step10d_final_simulator_lr_refinement.v1",
+  "status": "FROZEN_BEFORE_STEP10D_OUTCOME",
+  "purpose": "Run one final simulator-development refinement of the warm-start TriQTO candidate using a single predeclared late learning-rate reduction, then stop simulator hyperparameter tuning and proceed to a separately frozen exploratory IBM-hardware stage regardless of Step-10D outcome.",
+  "final_simulator_intervention_before_ibm_hardware": true,
+  "step10c_reference": {
+    "benchmark_id": "benchmark_f9478da45d68795655259054",
+    "official_decision": "NO_INITIALIZATION_PASSES_FULL_DUAL_DOMAIN_GATE",
+    "audit_bundle_sha256": "sha256:efbb016d7c4f6c0908217ce5cca8ba89e23fe785fa71e247dbbe843b09955ba4",
+    "fresh_outer_product_id": "product_57ee407d62ea794bfc9ff169",
+    "fresh_outer_is_spent": true,
+    "warm_start_bridge_outer_mechanism_ba": 0.7939042908232706,
+    "scratch_bridge_outer_mechanism_ba": 0.7868371829119972,
+    "initialization_primary_difference_statistically_clear": false
+  },
+  "architecture": {
+    "variant": "late_concat",
+    "expected_trainable_parameter_count": 453829,
+    "architecture_change": false,
+    "graph_information_contract_change": false,
+    "input_shape_change": false
+  },
+  "development_candidate": {
+    "initialization": "warm_start",
+    "seeds": [1701, 1702, 1703],
+    "reason": "Step 10D is not a second initialization comparison. It is a time-bounded final refinement of the reusable warm-start candidate before expiring QPU access. Step 10C found no statistically clear initialization winner, but warm-start had the higher frozen primary outer point estimate, converged earlier, and preserves the project checkpoint-reuse policy.",
+    "scratch_rerun": false
+  },
+  "warm_start": {
+    "default_bundle_parent": "/workspace/triqto-data/step9a_deployment_bundle",
+    "checkpoint_names": {
+      "1701": "seed1701.pt",
+      "1702": "seed1702.pt",
+      "1703": "seed1703.pt"
+    },
+    "load_state_dict_strict": true,
+    "optimizer_state_reused_at_fresh_start": false,
+    "new_optimizer_at_fresh_start": true
+  },
+  "training_mixture": {
+    "product_id": "product_0f7112597501f7ea5fbe123b",
+    "default_product_dir": "/workspace/triqto-data/step10_training_mixture/product_0f7112597501f7ea5fbe123b",
+    "reuse_fit_partition": true,
+    "reuse_selection_partition": true,
+    "reuse_any_outer_partition": false
+  },
+  "step10c_candidate_reference": {
+    "default_benchmark_dir": "/workspace/triqto-data/step10c_crashsafe_long_horizon/benchmark_f9478da45d68795655259054",
+    "candidate": "warm_start ensemble",
+    "checkpoint_names": {
+      "1701": "warm_start__seed1701.pt",
+      "1702": "warm_start__seed1702.pt",
+      "1703": "warm_start__seed1703.pt"
+    },
+    "reference_is_re_evaluated_on_development_selection_only": true,
+    "step10c_outer_is_never_re_evaluated": true
+  },
+  "training": {
+    "root_batch_size": 32,
+    "max_epochs": 40,
+    "early_stopping_patience": 4,
+    "early_stopping_min_delta": 0.0005,
+    "optimizer": "AdamW",
+    "learning_rate_schedule": [
+      {
+        "epoch_start": 1,
+        "epoch_end": 20,
+        "learning_rate": 0.0003
+      },
+      {
+        "epoch_start": 21,
+        "epoch_end": 40,
+        "learning_rate": 0.0001
+      }
+    ],
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 1.0,
+    "effect_loss_weight": 1.0,
+    "mechanism_loss_weight": 1.0,
+    "domain_schedule": "equal optimizer-block count from original and bridge per epoch; shorter block list cycles deterministically",
+    "only_change_to_warm_start_training_trajectory_vs_step10c": "piecewise_constant_learning_rate_after_epoch_20",
+    "scheduler_search": false,
+    "learning_rate_sweep": false
+  },
+  "lr_schedule_rationale": {
+    "epoch_1_to_20_3e_4": "Retains the already demonstrated stable Step-10B/10C early optimization regime unchanged through the former Step-10B ceiling.",
+    "epoch_21_to_40_1e_4": "Reduces the late parameter-step scale by exactly 3x to test a single refinement hypothesis after Step 10C showed continued training-loss reduction, oscillatory late selection BA, and 100 percent clipping at norm 1.0.",
+    "why_not_2e_4": "A 1.5x reduction is intentionally not tested because this is not an LR sweep and may be too small to create a cleanly distinct refinement regime.",
+    "why_not_3e_5_or_lower": "A 10x-or-greater reduction risks effectively freezing a model that still showed development-selection headroom.",
+    "claim": "The values are a conservative predeclared engineering hypothesis, not a claim that 1e-4 is theoretically optimal."
+  },
+  "selection": {
+    "original_domain_retention_tolerance": 0.02,
+    "retention_reference": "matching-seed Step-9A warm-start epoch-0 original-domain selection metrics",
+    "eligibility": [
+      "original mechanism balanced accuracy >= matching-seed epoch-0 original mechanism BA - 0.02",
+      "original effect balanced accuracy >= matching-seed epoch-0 original effect BA - 0.02"
+    ],
+    "eligible_checkpoint_order": [
+      "bridge mechanism balanced accuracy",
+      "minimum(original mechanism BA, bridge mechanism BA)",
+      "bridge effect balanced accuracy",
+      "earlier epoch"
+    ],
+    "human_monitoring_may_not_override_selection": true
+  },
+  "hardware_candidate_decision": {
+    "candidates": [
+      "frozen Step-10C warm-start ensemble re-evaluated on the same development selection cohorts",
+      "Step-10D warm-start ensemble selected by the frozen per-seed selection rule"
+    ],
+    "primary_metric": "bridge selection mechanism balanced accuracy",
+    "minimum_material_improvement": 0.0005,
+    "step10d_becomes_primary_if": [
+      "all three Step-10D selected checkpoints satisfy the frozen per-seed original-retention eligibility rule",
+      "Step-10D ensemble satisfies the same 0.02 original-domain retention tolerance relative to the Step-9A epoch-0 ensemble",
+      "Step-10D bridge selection mechanism BA exceeds re-evaluated Step-10C warm bridge selection mechanism BA by more than 0.0005"
+    ],
+    "otherwise_primary": "frozen Step-10C warm-start ensemble",
+    "human_override_after_qpu_results": false,
+    "hardware_results_may_not_retroactively_select_simulator_candidate": true
+  },
+  "checkpointing": {
+    "atomic_write": true,
+    "best_checkpoint_persisted_on_each_eligible_improvement": true,
+    "resume_checkpoint_persisted_after_every_completed_epoch": true,
+    "resume_restores_optimizer_state": true,
+    "resume_restores_rng_state": true,
+    "resume_restores_early_stopping_state": true,
+    "resume_identity_must_match_exactly": true
+  },
+  "telemetry": {
+    "atomic_progress_json_after_each_epoch": true,
+    "record_learning_rate": true,
+    "record_wall_time": true,
+    "record_mean_preclip_gradient_norm": true,
+    "record_max_preclip_gradient_norm": true,
+    "record_fraction_optimizer_steps_clipped": true,
+    "record_mean_postclip_gradient_norm": true,
+    "telemetry_does_not_change_optimization": true
+  },
+  "outer_and_qpu_boundary": {
+    "step10d_outer_evaluation": false,
+    "step10c_spent_outer_access": "FORBIDDEN",
+    "new_outer_generation_before_step10d": false,
+    "qpu_execution_in_step10d": false,
+    "next_stage_after_step10d": "separately frozen exploratory IBM hardware transfer pilot",
+    "hardware_stage_proceeds_regardless_of_step10d_improvement": true,
+    "if_simulator_full_gate_remains_unmet": "hardware stage must be labeled exploratory hardware-transfer validation under an incompletely satisfied simulator gate",
+    "qpu_tuning": false
+  },
+  "hard_stop_after_step10d": {
+    "before_ibm_hardware": true,
+    "no_more_lr_sweeps": true,
+    "no_more_gradient_clip_tuning": true,
+    "no_more_loss_weight_tuning": true,
+    "no_more_simulator_dataset_redesign": true,
+    "no_more_architecture_changes": true,
+    "no_more_max_epoch_extensions": true,
+    "exception": "Only a code-integrity or execution-invalidating defect discovered before hardware may be repaired; such a repair must not be used to introduce a new scientific tuning intervention."
+  },
+  "scientific_boundaries": [
+    "Step 10D is development-only and makes no fresh outer-validation claim.",
+    "The spent Step-10C outer cohort is not read, materialized, scored, or used for selection in Step 10D.",
+    "The only change to the Step-10C warm-start optimization trajectory is LR=3e-4 for epochs 1-20 and LR=1e-4 for epochs 21-40.",
+    "Step 10D is the final simulator-development intervention before IBM hardware regardless of whether its development metric improves.",
+    "No QPU result may be used to tune Step 10D, choose a different simulator checkpoint after seeing hardware, or retroactively relax the Step-10C BA>=0.80 gate.",
+    "If the frozen simulator gate remains unmet, subsequent hardware results are exploratory transfer evidence rather than confirmatory proof of the full TriQTO hypothesis."
+  ]
+}
