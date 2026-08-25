@@ -85,6 +85,7 @@ def test_cross_motif_factorial_design_has_no_obvious_label_proxy() -> None:
     assert d["distorted_examples_per_root"] == 12
     strength = d["strength_design"]
     assert strength["values_per_root"] == 4
+    assert strength["interval_convention"] == "first three bins are half-open [low, high); final bin is closed [low, high]"
     assert strength["same_strengths_for_all_three_mechanisms_within_root"] is True
     assert strength["mechanism_is_fully_crossed_with_strength"] is True
     shots = d["shot_design"]
@@ -93,6 +94,9 @@ def test_cross_motif_factorial_design_has_no_obvious_label_proxy() -> None:
     assert shots["shot_level_may_not_encode_clean_vs_distorted"] is True
     assert d["circuit_grammar"]["exact_step12_reference_signature_exclusion"] is True
     assert d["circuit_grammar"]["exact_step11_phase_interference_signature_exclusion"] is True
+    layout = d["layout_policy"]
+    assert layout["absolute_physical_id_randomization"] is False
+    assert layout["logical_layout_serialization_remains_required"] is True
 
 
 def test_step14_input_and_qpu_boundaries_are_hardware_facing_and_nonprivileged() -> None:
