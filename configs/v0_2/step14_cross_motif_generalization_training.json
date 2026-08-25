@@ -1,0 +1,365 @@
+{
+  "schema": "triqto.v0_2.step14_cross_motif_generalization_training.v1",
+  "status": "FROZEN_BEFORE_STEP14_DATASET_GENERATION",
+  "purpose": "Test a data-first, architecture-preserving repair for the Step-12/13 graph-conditioned out-of-distribution mechanism-classification failure by warm-starting the frozen Step-10C ensemble and adding a leakage-safe cross-motif simulator training domain with family-level held-out selection and outer evaluation.",
+  "source_evidence": {
+    "step13_freeze_merge_commit": "5ce4c6129c2e9acdf62a297b3b9a295903a0bfb2",
+    "step13_decomposition_result": "docs/evidence/step13_step12_failure_decomposition/STEP13_DECOMPOSITION_RESULT.json",
+    "step13_counterfactual_result": "docs/evidence/step13_step12_failure_decomposition/STEP13_IDEAL_COUNTERFACTUAL_REPLAY_RESULT.json",
+    "frozen_findings": [
+      "Step-10C hardware replay mechanism correctness = 8/18.",
+      "Step-10C fully ideal diagnostic replay mechanism correctness = 8/18.",
+      "Step-10C ideal-local-only replay mechanism correctness = 8/18.",
+      "Step-10C ideal-pair/parity-only replay mechanism correctness = 8/18.",
+      "cz_echo_ramsey remains 0/6 under both hardware and exact ideal diagnostics.",
+      "The acquired Step-12 QPU evidence retains mechanism-specific structure; simple hardware-evidence collapse is not supported as the primary failure explanation.",
+      "Learned out-of-distribution mapping/generalization is supported as the primary failure class; the exact neural subcomponent remains unresolved."
+    ]
+  },
+  "scientific_question": "Can broader leakage-safe circuit-context coverage alone, without changing the architecture, input contract, loss definition, or QPU acquisition contract, materially improve cross-motif RZ/RX/RY mechanism generalization while retaining the previously learned original and Step-10 bridge capabilities?",
+  "architecture": {
+    "variant": "late_concat",
+    "expected_trainable_parameter_count": 453829,
+    "architecture_change": false,
+    "graph_information_contract_change": false,
+    "input_shape_change": false,
+    "new_auxiliary_head": false,
+    "new_invariance_loss": false,
+    "new_privileged_model_input": false,
+    "all_existing_model_parameters_trainable": true
+  },
+  "warm_start": {
+    "source": "frozen Step-10C warm-start ensemble",
+    "benchmark_id": "benchmark_f9478da45d68795655259054",
+    "default_benchmark_dir": "/workspace/triqto-data/step10c_crashsafe_long_horizon/benchmark_f9478da45d68795655259054",
+    "seeds": [1701, 1702, 1703],
+    "checkpoint_names": {
+      "1701": "warm_start__seed1701.pt",
+      "1702": "warm_start__seed1702.pt",
+      "1703": "warm_start__seed1703.pt"
+    },
+    "checkpoint_sha256": {
+      "warm_start__seed1701.pt": "sha256:40f6c86981f038b3a44cd21148ebc67e4bac9db825bac9f4482a7fd098830769",
+      "warm_start__seed1702.pt": "sha256:65b4535f89ec4d51f4126e2cb90ce9dc606d67ef2673b33740193e5aea10f39a",
+      "warm_start__seed1703.pt": "sha256:d97601bcad8a6256d4433f12ca229ac0387acc927f859fe9e30ba4c2d3f3eb1f"
+    },
+    "model_selection_sha256": "sha256:1e4a2cd5445cfec8d30302475deb4dcb29e09a738ffa0524429b91bb1e7502c1",
+    "load_state_dict_strict": true,
+    "optimizer_state_reused": false,
+    "new_optimizer": true,
+    "scratch_control": false,
+    "reason_no_scratch": "Step 14 tests a targeted data/generalization repair of the already selected hardware-facing checkpoint. Reopening initialization choice would add an unnecessary factor and contradict the checkpoint-reuse policy after Step 10C/10D."
+  },
+  "legacy_training_domains": {
+    "step10_mixture_product_id": "product_0f7112597501f7ea5fbe123b",
+    "default_product_dir": "/workspace/triqto-data/step10_training_mixture/product_0f7112597501f7ea5fbe123b",
+    "reuse_original_fit": true,
+    "reuse_original_selection": true,
+    "reuse_bridge_fit": true,
+    "reuse_bridge_selection": true,
+    "reuse_any_spent_outer": false,
+    "regenerate_or_relabel_legacy_examples": false
+  },
+  "cross_motif_dataset": {
+    "schema": "triqto.v0_2.step14_cross_motif_dataset.v1",
+    "base_seed": 2026082501,
+    "family_count_total": 1050,
+    "variants_per_family": 4,
+    "examples_per_root": 13,
+    "mechanisms": ["rz_drift", "rx_overrotation", "ry_overrotation"],
+    "clean_controls_per_root": 1,
+    "distorted_examples_per_root": 12,
+    "family_split": {
+      "fold_expression": "family_index mod 7",
+      "fit_folds": [0, 1, 2, 3],
+      "selection_folds": [4],
+      "simulator_outer_folds": [5],
+      "future_hardware_reserve_folds": [6],
+      "expected_fit_families": 600,
+      "expected_selection_families": 150,
+      "expected_simulator_outer_families": 150,
+      "expected_future_hardware_reserve_families": 150,
+      "all_variants_of_family_stay_together": true,
+      "all_clean_and_distorted_derivatives_of_root_stay_together": true,
+      "no_family_signature_may_cross_partitions": true
+    },
+    "expected_counts": {
+      "fit_roots": 2400,
+      "fit_examples": 31200,
+      "selection_roots": 600,
+      "selection_examples": 7800,
+      "simulator_outer_roots": 600,
+      "simulator_outer_examples": 7800,
+      "future_hardware_reserve_roots": 600,
+      "future_hardware_reserve_examples_if_later_materialized": 7800
+    },
+    "materialization_policy": {
+      "before_training": ["fit", "selection"],
+      "simulator_outer_materialized_only_after_selection_freeze": true,
+      "future_hardware_reserve_materialized_in_step14": false,
+      "future_hardware_reserve_metadata_inspection_in_step14": false,
+      "future_hardware_reserve_model_inference_in_step14": false
+    },
+    "circuit_grammar": {
+      "qubit_choices": [2, 3, 4, 5],
+      "topology_classes": [
+        "path",
+        "hub_spoke",
+        "two_branch",
+        "staggered_path",
+        "directed_fan",
+        "mixed_sparse"
+      ],
+      "reference_layer_count_range_inclusive": [4, 9],
+      "minimum_entangling_operations": 2,
+      "single_qubit_gate_probabilities": {
+        "h": 0.15,
+        "rx": 0.25,
+        "ry": 0.25,
+        "rz": 0.35
+      },
+      "parameterized_rotation_range": [-3.141592653589793, 3.141592653589793],
+      "two_qubit_gate_probabilities": {
+        "cx": 0.5,
+        "cz": 0.5
+      },
+      "injection_context_classes": [
+        "pre_entangling",
+        "inter_entangling",
+        "post_entangling_recombination"
+      ],
+      "affected_qubit_sampling": "uniform over active logical qubits subject to legal injection-boundary constraints",
+      "legal_injection_boundary_requires": [
+        "at least one operation on the affected logical qubit before the injection",
+        "at least one noncommuting operation on the affected logical qubit after the injection",
+        "at least one entangling operation in the reference circuit",
+        "the same injection boundary is used for the RZ/RX/RY triplet at a given root and strength"
+      ],
+      "family_variant_rule": "One seed-generated reference skeleton defines a family. Four roots are created by resampling continuous gate angles and allowed spectator single-qubit slots while preserving the family skeleton and injection-context class.",
+      "exact_step12_reference_signature_exclusion": true,
+      "step12_signature_source": "configs/v0_2/step12_independent_phase_generalization.json",
+      "exact_step11_phase_interference_signature_exclusion": true
+    },
+    "strength_design": {
+      "values_per_root": 4,
+      "sampling": "one deterministic uniform draw from each disjoint bin",
+      "bins": [
+        [0.05, 0.12],
+        [0.12, 0.20],
+        [0.20, 0.28],
+        [0.28, 0.36]
+      ],
+      "same_strengths_for_all_three_mechanisms_within_root": true,
+      "mechanism_is_fully_crossed_with_strength": true
+    },
+    "shot_design": {
+      "shot_levels": [512, 1024, 2048, 4096],
+      "strength_to_shot_assignment": "deterministic root-seeded permutation; each of the four strengths uses each shot level exactly once and the same mapping is used for RZ/RX/RY",
+      "clean_shot_level": "deterministic root-seeded uniform choice from the same four shot levels",
+      "shot_level_may_not_encode_mechanism": true,
+      "shot_level_may_not_encode_clean_vs_distorted": true,
+      "reference_and_observed_counts_sampled_independently": true
+    },
+    "synthetic_layout_randomization": {
+      "enabled": true,
+      "physical_index_range_inclusive": [0, 155],
+      "one_unique_index_per_logical_qubit": true,
+      "per_root_permutation": true,
+      "purpose": "Treat absolute physical-qubit identifiers as nuisance context rather than a mechanism label proxy; no real hardware calibration values are synthesized."
+    },
+    "model_blind_identifiability_admission": {
+      "required": true,
+      "uses_statevector_only": true,
+      "probe_strength": 0.12,
+      "minimum_true_mechanism_delta_norm": 0.02,
+      "minimum_pairwise_mechanism_distance": 0.05,
+      "failed_family_action": "reject the entire family and deterministically advance to the next generator seed",
+      "model_predictions_used": false
+    },
+    "input_contract": {
+      "reuse_current_step7_graph_adapter": true,
+      "hardware_facing_graph_plus_paired_diagnostic_contract": true,
+      "statevector_as_model_input": false,
+      "exact_ideal_diagnostics_as_model_input": false,
+      "hidden_mechanism_as_model_input": false,
+      "affected_qubit_as_model_input": false,
+      "injection_boundary_as_model_input": false,
+      "strength_as_model_input": false,
+      "family_id_as_model_input": false,
+      "topology_class_as_model_input": false,
+      "split_fold_as_model_input": false,
+      "qpu_counts_as_training_input": false
+    },
+    "simulation_noise_policy": {
+      "finite_shot_sampling": true,
+      "device_noise_model": false,
+      "measurement_mitigation": false,
+      "rationale": "Step 13 does not support hardware-evidence collapse as the primary failure. Step 14 isolates circuit-context coverage rather than simultaneously introducing a device-noise intervention."
+    }
+  },
+  "training": {
+    "seeds": [1701, 1702, 1703],
+    "root_batch_size": 32,
+    "max_epochs": 30,
+    "early_stopping_patience": 5,
+    "early_stopping_min_delta": 0.0005,
+    "optimizer": "AdamW",
+    "learning_rate": 0.0001,
+    "learning_rate_schedule": "constant",
+    "learning_rate_sweep": false,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 1.0,
+    "effect_loss_weight": 1.0,
+    "mechanism_loss_weight": 1.0,
+    "new_loss_terms": false,
+    "domain_schedule": "equal optimizer-block count per epoch from legacy original fit, legacy Step-10 bridge fit, and Step-14 cross-motif fit; shorter block lists cycle deterministically",
+    "domain_weights": {
+      "legacy_original": 1.0,
+      "legacy_bridge": 1.0,
+      "cross_motif": 1.0
+    },
+    "all_three_domains_seen_every_epoch": true,
+    "human_monitoring_may_not_change_training": true
+  },
+  "per_seed_checkpoint_selection": {
+    "baseline": "matching-seed frozen Step-10C checkpoint evaluated on the same Step-14 development selection partitions before Step-14 training",
+    "eligibility": [
+      "legacy original selection mechanism balanced accuracy >= matching-seed Step-10C baseline - 0.02",
+      "legacy Step-10 bridge selection mechanism balanced accuracy >= matching-seed Step-10C baseline - 0.02"
+    ],
+    "eligible_checkpoint_order": [
+      "Step-14 cross-motif selection mechanism balanced accuracy",
+      "minimum Step-14 cross-motif per-mechanism recall",
+      "minimum(legacy original selection mechanism BA, legacy Step-10 bridge selection mechanism BA)",
+      "earlier epoch"
+    ],
+    "outer_data_selects_nothing": true,
+    "step12_data_selects_nothing": true,
+    "human_override": false
+  },
+  "ensemble_effect_threshold": {
+    "selected_after_all_three_seed_checkpoints_are_frozen": true,
+    "selection_data": "concatenated legacy original selection + legacy Step-10 bridge selection + Step-14 cross-motif selection ensemble mean effect logits",
+    "objective": "maximize macro-average effect balanced accuracy across the three selection domains",
+    "tie_break_order": [
+      "lower macro-average false-positive rate",
+      "threshold closest to frozen Step-10C threshold",
+      "smaller numerical threshold"
+    ],
+    "frozen_before_any_outer_materialization": true
+  },
+  "fresh_legacy_retention_outer": {
+    "required": true,
+    "materialized_only_after_selection_freeze": true,
+    "base_seed": 2026082502,
+    "must_be_disjoint_from_all_step10b_step10c_outer_products": true,
+    "original_clean_roots": 500,
+    "original_expected_examples": 6500,
+    "bridge_parent_groups": 60,
+    "bridge_variants_per_parent": 8,
+    "bridge_expected_roots": 480,
+    "bridge_expected_examples": 6240,
+    "generation_semantics": "same frozen legacy original/Step-10 bridge generators and label semantics, new seed namespace only",
+    "selects_nothing": true
+  },
+  "outer_evaluation": {
+    "candidate": "Step-14 three-seed warm-start ensemble after frozen per-seed selection",
+    "primary_baseline": "frozen Step-10C warm-start ensemble evaluated on exactly the same newly materialized Step-14 outer cohorts",
+    "cross_motif_outer": "family fold 5 only",
+    "legacy_retention_outer": "fresh Step-14 legacy-retention cohort only",
+    "bootstrap_replicates": 2000,
+    "bootstrap_seed": 2026082503,
+    "confidence_level": 0.95,
+    "bootstrap_units": {
+      "cross_motif": "family_id",
+      "legacy_original": "clean_root",
+      "legacy_bridge": "parent_group"
+    },
+    "primary_metric": "cross-motif mechanism balanced accuracy",
+    "support_gate": {
+      "cross_motif_mechanism_balanced_accuracy_minimum": 0.80,
+      "cross_motif_mechanism_bootstrap_ci_lower_minimum": 0.75,
+      "cross_motif_minimum_class_recall": 0.70,
+      "cross_motif_effect_balanced_accuracy_minimum": 0.90,
+      "candidate_minus_step10c_cross_motif_mechanism_ba_minimum": 0.05,
+      "paired_bootstrap_ci_lower_for_candidate_minus_step10c_mechanism_ba_must_exceed": 0.0,
+      "legacy_original_mechanism_ba_max_drop_vs_step10c": 0.02,
+      "legacy_original_effect_ba_max_drop_vs_step10c": 0.02,
+      "legacy_bridge_mechanism_ba_max_drop_vs_step10c": 0.02,
+      "legacy_bridge_effect_ba_max_drop_vs_step10c": 0.02
+    },
+    "gate_interpretation": {
+      "all_criteria_met": "CROSS_MOTIF_GENERALIZATION_REPAIR_SUPPORTED_IN_SIMULATION",
+      "otherwise": "CROSS_MOTIF_GENERALIZATION_REPAIR_NOT_SUPPORTED_IN_SIMULATION"
+    },
+    "secondary_metrics": [
+      "per-topology-class mechanism balanced accuracy",
+      "per-qubit-count mechanism balanced accuracy",
+      "per-injection-context mechanism balanced accuracy",
+      "per-strength-bin mechanism balanced accuracy",
+      "per-mechanism recall",
+      "mechanism confusion matrix",
+      "effect balanced accuracy",
+      "clean false-positive rate",
+      "paired candidate-vs-Step10C family-level bootstrap difference",
+      "training gradient-clipping telemetry"
+    ]
+  },
+  "post_outer_policy": {
+    "step12_replay_allowed_only_after_step14_outer_result_is_frozen": true,
+    "step12_replay_role": "report-only known-failure repair diagnostic; never part of Step-14 selection or support gate",
+    "if_support_gate_passes": "Step 15 may freeze a new blind hardware protocol using only the untouched future-hardware-reserve fold and no Step-12 case reuse.",
+    "if_support_gate_fails": "Do not spend Step-15 QPU shots. Freeze a representation/fusion/head decomposition on fixed Step-14 data before considering any architecture change."
+  },
+  "scientific_boundaries": {
+    "step11_qpu_counts_used_for_training": false,
+    "step12_qpu_counts_used_for_training": false,
+    "step12_exact_cases_used_for_training": false,
+    "step12_predictions_used_for_training_or_selection": false,
+    "step13_template_oracle_used_as_model_or_labeler": false,
+    "qpu_execution_in_step14": false,
+    "ibm_credentials_required": false,
+    "spent_step10_outer_access": false,
+    "architecture_change": false,
+    "input_contract_change": false,
+    "loss_definition_change": false,
+    "learning_rate_sweep": false,
+    "gradient_clip_sweep": false,
+    "batch_size_sweep": false,
+    "domain_weight_sweep": false,
+    "checkpoint_initialization_sweep": false,
+    "outer_threshold_tuning": false,
+    "future_hardware_reserve_access": false
+  },
+  "implementation_contract": {
+    "future_required_scripts": [
+      "scripts/v0_2/generate_step14_cross_motif_dataset.py",
+      "scripts/v0_2/run_step14_cross_motif_generalization_training.py",
+      "scripts/v0_2/generate_step14_fresh_legacy_retention_outer.py",
+      "scripts/v0_2/evaluate_step14_outer_once.py"
+    ],
+    "future_required_test": "tests/test_step14_cross_motif_generalization_contract.py",
+    "implementation_may_fix_engineering_details_without_scientific_amendment": [
+      "serialization format",
+      "atomic file-write helper",
+      "progress logging",
+      "CLI ergonomics",
+      "runtime compatibility that does not alter generated examples, model inputs, optimizer trajectory, selection, or evaluation"
+    ],
+    "scientific_fields_may_not_change_after_freeze_without_explicit_protocol_amendment": true
+  },
+  "output": {
+    "dataset_parent": "/workspace/triqto-data/step14_cross_motif_dataset",
+    "training_parent": "/workspace/triqto-data/step14_cross_motif_generalization_training",
+    "retention_outer_parent": "/workspace/triqto-data/step14_fresh_legacy_retention_outer",
+    "immutable_products": true,
+    "required_selection_freeze_file": "selection_freeze.json",
+    "required_final_result_files": [
+      "step14_summary.json",
+      "step14_complete.json",
+      "selected_checkpoints.json",
+      "effect_threshold.json",
+      "outer_metrics.json"
+    ]
+  }
+}
