@@ -1,0 +1,56 @@
+{
+  "schema": "triqto.v0_2.step13_ideal_counterfactual_replay.freeze.v1",
+  "status": "FROZEN_POSTREPLAY_NO_QPU_NO_TRAINING",
+  "source_replay_file": "ideal_counterfactual_replay.json",
+  "source_replay_sha256": "sha256:f1ea9602b603658b963fccef19fd4dc917665eaddeeec9187656e37ebebae377",
+  "hardware_prediction_reproduction": "PASS",
+  "primary_step10c": {
+    "hardware": {
+      "mechanism_correct": 8,
+      "case_count": 18,
+      "by_mechanism": {
+        "rz_drift": {"correct": 3, "count": 6},
+        "rx_overrotation": {"correct": 1, "count": 6},
+        "ry_overrotation": {"correct": 4, "count": 6}
+      },
+      "by_motif": {
+        "cz_echo_ramsey": {"correct": 0, "count": 6},
+        "dual_arm_recombination": {"correct": 3, "count": 6},
+        "three_qubit_phase_fanout": {"correct": 5, "count": 6}
+      }
+    },
+    "ideal_all": {
+      "mechanism_correct": 8,
+      "case_count": 18,
+      "by_mechanism": {
+        "rz_drift": {"correct": 2, "count": 6},
+        "rx_overrotation": {"correct": 2, "count": 6},
+        "ry_overrotation": {"correct": 4, "count": 6}
+      },
+      "by_motif": {
+        "cz_echo_ramsey": {"correct": 0, "count": 6},
+        "dual_arm_recombination": {"correct": 2, "count": 6},
+        "three_qubit_phase_fanout": {"correct": 6, "count": 6}
+      }
+    },
+    "ideal_local_only": {"mechanism_correct": 8, "case_count": 18},
+    "ideal_pair_parity_only": {"mechanism_correct": 8, "case_count": 18}
+  },
+  "baseline_step9a_report_only": {
+    "hardware_mechanism_correct": 9,
+    "ideal_all_mechanism_correct": 8,
+    "ideal_local_only_mechanism_correct": 9,
+    "ideal_pair_parity_only_mechanism_correct": 9,
+    "case_count": 18
+  },
+  "diagnostic_conclusion": "IDEAL_DIAGNOSTICS_DO_NOT_RESCUE_MODEL__TRAINING_OR_GRAPH_CONTEXT_GENERALIZATION_PRIMARY",
+  "interpretation": "Replacing the acquired Step-12 hardware diagnostics with exact ideal statevector diagnostics does not improve Step10C aggregate mechanism correctness. Neither local-only nor pair/parity-only idealization rescues performance. This strongly disfavors finite-shot/hardware diagnostic corruption as the primary explanation for Step-12 mechanism failure and supports learned out-of-distribution mapping/generalization, including graph-conditioned context, as the primary failure class. The exact subcomponent remains unresolved.",
+  "scientific_boundaries": {
+    "qpu_access": false,
+    "training": false,
+    "weights_changed": false,
+    "thresholds_changed": false,
+    "step12_outcome_rewritten": false,
+    "step13_template_oracle_used_for_training": false
+  }
+}
