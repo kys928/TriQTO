@@ -1,0 +1,246 @@
+{
+  "frozen_on_utc_date": "2026-08-25",
+  "frozen_software_versions": {
+    "qiskit": "2.1.2",
+    "qiskit_aer": "0.17.1",
+    "qiskit_ibm_runtime": "0.40.1"
+  },
+  "full_triqto_confirmatory_claim_allowed": false,
+  "hardware_identity": {
+    "backend_name": "ibm_marrakesh",
+    "backend_version": "1.0.21",
+    "edge_errors": [
+      0.0013504856139672228,
+      0.0014830844908049756
+    ],
+    "instance_crn_publication": "WITHHELD_FROM_PUBLIC_REPOSITORY__HASH_ONLY",
+    "instance_crn_sha256": "sha256:34ac4d57ceac894bb2555767b9860326064a9c72479cb6d9eed72fee5d7888a2",
+    "instance_name": "open-instance",
+    "instance_plan": "open",
+    "max_two_qubit_error": 0.0014830844908049756,
+    "mean_readout_error": 0.009602864583333334,
+    "mean_two_qubit_error": 0.0014167850523860992,
+    "num_qubits": 156,
+    "physical_chain": [
+      134,
+      135,
+      139
+    ],
+    "processor_family": "Heron",
+    "processor_revision": "2",
+    "properties_last_update_date": "2026-08-25T03:47:14+00:00",
+    "readout_errors": [
+      0.00244140625,
+      0.020751953125,
+      0.005615234375
+    ],
+    "two_qubit_gate": "cz"
+  },
+  "ibm_job_id": "da6od4k6l22c73dmjscg",
+  "identifiability_audit": {
+    "minimum_observed_low_strength_delta_norm": 0.07369085417626903,
+    "minimum_observed_low_strength_pairwise_mechanism_distance": 0.11816295726848569,
+    "minimum_required_low_strength_delta_norm": 0.04,
+    "minimum_required_low_strength_pairwise_mechanism_distance": 0.1,
+    "sha256": "sha256:1361d30ebd1951c2bed9dab5d1313a098fffcb4810b57058f2d8558c50c78c22",
+    "status": "PASS"
+  },
+  "paired_baseline": "step9a_deployment_ensemble",
+  "paired_baseline_results_report_only": {
+    "by_mechanism": {
+      "rx_overrotation": {
+        "correct": 2,
+        "count": 6
+      },
+      "ry_overrotation": {
+        "correct": 4,
+        "count": 6
+      },
+      "rz_drift": {
+        "correct": 3,
+        "count": 6
+      }
+    },
+    "by_motif": {
+      "cz_echo_ramsey": {
+        "correct": 0,
+        "count": 6
+      },
+      "dual_arm_recombination": {
+        "correct": 3,
+        "count": 6
+      },
+      "three_qubit_phase_fanout": {
+        "correct": 6,
+        "count": 6
+      }
+    },
+    "by_strength": {
+      "0.13": {
+        "correct": 5,
+        "count": 9
+      },
+      "0.27": {
+        "correct": 4,
+        "count": 9
+      }
+    },
+    "clean_case_count": 3,
+    "clean_effect_false_positive_count": 2,
+    "distorted_case_count": 18,
+    "distorted_effect_detection_count": 18,
+    "distorted_mechanism_accuracy": 0.5,
+    "distorted_mechanism_correct_count": 9,
+    "mechanism_confusion_matrix": {
+      "rx_overrotation": {
+        "rx_overrotation": 2,
+        "ry_overrotation": 1,
+        "rz_drift": 3
+      },
+      "ry_overrotation": {
+        "rx_overrotation": 0,
+        "ry_overrotation": 4,
+        "rz_drift": 2
+      },
+      "rz_drift": {
+        "rx_overrotation": 1,
+        "ry_overrotation": 2,
+        "rz_drift": 3
+      }
+    }
+  },
+  "paired_mechanism_correctness": {
+    "both_correct_count": 8,
+    "both_wrong_count": 9,
+    "step10c_correct_step9a_wrong_count": 0,
+    "step9a_correct_step10c_wrong_count": 1
+  },
+  "plan_id": "step12plan_24b2631b5cd94c58af951492",
+  "plan_identity_hashes": {
+    "case_design_sha256": "sha256:79732cc7a71574cdec65ead38fa54667fed572811bb75278c50f8d999926ee0f",
+    "compiled_program_metadata_sha256": "sha256:bbf367cc3d646874aa811bfe44d174e240bf4d3e7e7b6c0c0a15b249c5b162bf",
+    "config_sha256": "sha256:55786779d9b90bb7ebc387d8c60165faa5f1f03598f8726e1a2247480896ff7d",
+    "identifiability_audit_sha256": "sha256:7b151aa61c66712b4dbfdcc3eab72d249e74a70b698e2752f099108d5386cf13",
+    "source_step11_manifest_sha256": "sha256:99a5ba51e2bbcb0267abe791efd1e564f0733a87909cabff474cd426eb08d985"
+  },
+  "predeclared_gate": {
+    "criteria": {
+      "clean_false_positive": true,
+      "each_mechanism_floor": false,
+      "each_strength_floor": false,
+      "effect_detection": true,
+      "paired_advantage": false,
+      "total_mechanism_correct": false
+    },
+    "step10c_minus_step9a_mechanism_correct": -1,
+    "thresholds": {
+      "step10c_clean_effect_false_positive_max": 1,
+      "step10c_distorted_effect_detection_min": 14,
+      "step10c_each_mechanism_correct_min_out_of_6": 4,
+      "step10c_each_strength_correct_min_out_of_9": 6,
+      "step10c_minus_step9a_mechanism_correct_min": 3,
+      "step10c_total_mechanism_correct_min": 14
+    }
+  },
+  "predeclared_gate_passed": false,
+  "predeclared_interpretation": "NARROW_CROSS_BACKEND_PHASE_GENERALIZATION_NOT_SUPPORTED",
+  "primary_candidate": "step10c_warm_start",
+  "primary_results": {
+    "by_mechanism": {
+      "rx_overrotation": {
+        "correct": 1,
+        "count": 6
+      },
+      "ry_overrotation": {
+        "correct": 4,
+        "count": 6
+      },
+      "rz_drift": {
+        "correct": 3,
+        "count": 6
+      }
+    },
+    "by_motif": {
+      "cz_echo_ramsey": {
+        "correct": 0,
+        "count": 6
+      },
+      "dual_arm_recombination": {
+        "correct": 3,
+        "count": 6
+      },
+      "three_qubit_phase_fanout": {
+        "correct": 5,
+        "count": 6
+      }
+    },
+    "by_strength": {
+      "0.13": {
+        "correct": 5,
+        "count": 9
+      },
+      "0.27": {
+        "correct": 3,
+        "count": 9
+      }
+    },
+    "clean_case_count": 3,
+    "clean_effect_false_positive_count": 1,
+    "distorted_case_count": 18,
+    "distorted_effect_detection_count": 18,
+    "distorted_mechanism_accuracy": 0.4444444444444444,
+    "distorted_mechanism_correct_count": 8,
+    "mechanism_confusion_matrix": {
+      "rx_overrotation": {
+        "rx_overrotation": 1,
+        "ry_overrotation": 1,
+        "rz_drift": 4
+      },
+      "ry_overrotation": {
+        "rx_overrotation": 0,
+        "ry_overrotation": 4,
+        "rz_drift": 2
+      },
+      "rz_drift": {
+        "rx_overrotation": 1,
+        "ry_overrotation": 2,
+        "rz_drift": 3
+      }
+    }
+  },
+  "privacy_boundary": {
+    "full_instance_crn_committed_publicly": false,
+    "generalization_plan_and_backend_snapshot_committed_publicly": false,
+    "reason": "both contain the full IBM instance CRN; exact hashes are frozen in this manifest"
+  },
+  "qpu_results_used_for_tuning": false,
+  "runtime_result": {
+    "job_created_utc": "2026-08-25T12:12:02.141593Z",
+    "job_finished_utc": "2026-08-25T12:16:13.624918Z",
+    "job_running_utc": "2026-08-25T12:12:03.336359Z",
+    "qpu_usage_seconds": 136.0,
+    "runtime_status": "complete",
+    "status": "STEP12_INDEPENDENT_PHASE_GENERALIZATION_COMPLETE"
+  },
+  "schema": "triqto.v0_2.step12_result_freeze_manifest.v1",
+  "source_artifact_sha256": {
+    "backend_snapshot.json": "sha256:5682550c64232c645cb2b012f02242aa561f0125ebf93ce672c78e353f5c2bb4",
+    "case_results.jsonl": "sha256:603a8a3819de12c784575991f0921ff2cee9504a2eeed523c39601b1ac391465",
+    "generalization_plan.json": "sha256:d6ad919a8fdb100f4b5d365efbf086579e042cd68d976a105cf719db06c5b4ca",
+    "identifiability_audit.json": "sha256:1361d30ebd1951c2bed9dab5d1313a098fffcb4810b57058f2d8558c50c78c22",
+    "physical_access_started.json": "sha256:83bef495df3e6fbbff28ff4d364e001bceb17f1bf1002fcfb71fb570717a8d2d",
+    "predictions_step10c.csv": "sha256:1470df0b25cf3ea3acc0b8014c47c4380c7923fb789c596a89aa553f7536ed62",
+    "predictions_step9a.csv": "sha256:f4e64f6152d13d740701dc3ff7ad05bda997827b6b80763770e5d4fc0c336713",
+    "step12_summary.json": "sha256:53209e8157b5d8865cd306f30b9c36aa15db3ff6e716135d92589c9248920330",
+    "submitted_circuits.qpy": "sha256:0a29580f3ad9e606338b3910c1a452cdb4fb0f2b44c41f00d0df6cca5930ee74"
+  },
+  "source_bundle": {
+    "filename": "step12plan_24b2631b5cd94c58af951492.zip",
+    "sha256": "sha256:9c9a4a726e0403a466960669917a394ef7df73c2f6fb12239dbdf799f818d7ff",
+    "size_bytes": 40073,
+    "zip_crc_validation": "PASS"
+  },
+  "source_protocol_merge_commit": "0e8295b2c94479d325d0748eecd231ef07c152d4",
+  "status": "FROZEN_POSTOUTCOME",
+  "step11_result_replaced": false
+}
