@@ -26,7 +26,8 @@
     "new_auxiliary_head": false,
     "new_invariance_loss": false,
     "new_privileged_model_input": false,
-    "all_existing_model_parameters_trainable": true
+    "all_existing_model_parameters_trainable": true,
+    "current_layout_semantics": "The frozen Step-7 graph adapter uses x__layout_logical_to_physical only to determine logical qubit count and does not expose absolute physical-qubit IDs as node/edge/gate features. Step 14 therefore does not claim or attempt absolute-layout-ID invariance training."
   },
   "warm_start": {
     "source": "frozen Step-10C warm-start ensemble",
@@ -142,7 +143,8 @@
     },
     "strength_design": {
       "values_per_root": 4,
-      "sampling": "one deterministic uniform draw from each disjoint bin",
+      "sampling": "one deterministic uniform draw from each ordered interval",
+      "interval_convention": "first three bins are half-open [low, high); final bin is closed [low, high]",
       "bins": [
         [0.05, 0.12],
         [0.12, 0.20],
@@ -160,12 +162,10 @@
       "shot_level_may_not_encode_clean_vs_distorted": true,
       "reference_and_observed_counts_sampled_independently": true
     },
-    "synthetic_layout_randomization": {
-      "enabled": true,
-      "physical_index_range_inclusive": [0, 155],
-      "one_unique_index_per_logical_qubit": true,
-      "per_root_permutation": true,
-      "purpose": "Treat absolute physical-qubit identifiers as nuisance context rather than a mechanism label proxy; no real hardware calibration values are synthesized."
+    "layout_policy": {
+      "absolute_physical_id_randomization": false,
+      "reason": "Under the frozen Step-7 adapter, absolute physical IDs are not model features. Randomizing unused IDs would be scientifically inert and would falsely imply layout-invariance training.",
+      "logical_layout_serialization_remains_required": true
     },
     "model_blind_identifiability_admission": {
       "required": true,
@@ -338,7 +338,7 @@
       "scripts/v0_2/generate_step14_fresh_legacy_retention_outer.py",
       "scripts/v0_2/evaluate_step14_outer_once.py"
     ],
-    "future_required_test": "tests/test_step14_cross_motif_generalization_contract.py",
+    "protocol_contract_test": "tests/test_step14_cross_motif_generalization_contract.py",
     "implementation_may_fix_engineering_details_without_scientific_amendment": [
       "serialization format",
       "atomic file-write helper",
