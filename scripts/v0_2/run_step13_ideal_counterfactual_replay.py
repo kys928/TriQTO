@@ -19,7 +19,7 @@ import hashlib
 import json
 from pathlib import Path
 import zipfile
-from typing import Any, Mapping
+from typing import Any
 
 import numpy as np
 import torch
@@ -149,11 +149,22 @@ def _metrics(rows: list[dict[str, Any]], key: str) -> dict[str, Any]:
     by_mechanism: dict[str, dict[str, int]] = {}
     for motif in sorted({str(r["family"]) for r in distorted}):
         subset = [r for r in distorted if str(r["family"]) == motif]
-        by_motif[motif] = {"correct": sum(str(r[key]["mechanism_prediction"]) == str(r["expected_mechanism"]) for r in subset), "count": len(subset)}
+        by_motif[motif] = {
+            "correct": sum(str(r[key]["mechanism_prediction"]) == str(r["expected_mechanism"]) for r in subset),
+            "count": len(subset),
+        }
     for mechanism in ("rz_drift", "rx_overrotation", "ry_overrotation"):
         subset = [r for r in distorted if str(r["expected_mechanism"]) == mechanism]
-        by_mechanism[mechanism] = {"correct": sum(str(r[key]["mechanism_prediction"]) == mechanism for r in subset), "count": len(subset)}
-    return {"mechanism_correct": int(correct), "case_count": len(distorted), "by_motif": by_motif, "by_mechanism": by_mechanism}
+        by_mechanism[mechanism] = {
+            "correct": sum(str(r[key]["mechanism_prediction"]) == mechanism for r in subset),
+            "count": len(subset),
+        }
+    return {
+        "mechanism_correct": int(correct),
+        "case_count": len(distorted),
+        "by_motif": by_motif,
+        "by_mechanism": by_mechanism,
+    }
 
 
 def main() -> None:
@@ -201,10 +212,8 @@ def main() -> None:
                 ideal_parity=ideal_parity,
                 mode=mode,
             )
-            p10 = predict_frozen_ensemble(primary, batch)
-            p9 = predict_frozen_ensemble(baseline, batch)
-            row[f"step10c__{mode}"] = p10
-            row[f"step9a__{mode}"] = p9
+            row[f"step10c__{mode}"] = predict_frozen_ensemble(primary, batch)
+            row[f"step9a__{mode}"] = predict_frozen_ensemble(baseline, batch)
         if row["step10c__hardware"]["mechanism_prediction"] != frozen["step10c_prediction"]["mechanism_prediction"]:
             hardware_reproduction_ok = False
         if row["step9a__hardware"]["mechanism_prediction"] != frozen["step9a_prediction"]["mechanism_prediction"]:
@@ -219,12 +228,12 @@ def main() -> None:
         "primary": {},
         "baseline_report_only": {},
         "interpretation_boundary": {
-            "diagnostic_only": true,
-            "qpu_access": false,
-            "training": false,
-            "weights_changed": false,
-            "thresholds_changed": false,
-            "step12_outcome_rewritten": false
+            "diagnostic_only": True,
+            "qpu_access": False,
+            "training": False,
+            "weights_changed": False,
+            "thresholds_changed": False,
+            "step12_outcome_rewritten": False,
         },
         "rows": replay_rows,
     }
@@ -235,11 +244,11 @@ def main() -> None:
     if not hardware_reproduction_ok:
         raise RuntimeError("counterfactual replay did not reproduce frozen hardware predictions")
 
-    h = int(result["primary"]["hardware"]["mechanism_correct"])
-    ideal = int(result["primary"]["ideal_all"]["mechanism_correct"])
-    if ideal <= h + 2:
+    hardware_correct = int(result["primary"]["hardware"]["mechanism_correct"])
+    ideal_correct = int(result["primary"]["ideal_all"]["mechanism_correct"])
+    if ideal_correct <= hardware_correct + 2:
         conclusion = "IDEAL_DIAGNOSTICS_DO_NOT_RESCUE_MODEL__TRAINING_OR_GRAPH_CONTEXT_GENERALIZATION_PRIMARY"
-    elif ideal >= 14:
+    elif ideal_correct >= 14:
         conclusion = "IDEAL_DIAGNOSTICS_SUBSTANTIALLY_RESCUE_MODEL__HARDWARE_DOMAIN_SHIFT_MATERIALLY_CONTRIBUTES"
     else:
         conclusion = "MIXED_IDEAL_REPLAY__BOTH_MODEL_GENERALIZATION_AND_HARDWARE_DOMAIN_SHIFT_PLAUSIBLE"
