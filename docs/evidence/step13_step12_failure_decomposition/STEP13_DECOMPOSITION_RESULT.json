@@ -1,0 +1,71 @@
+{
+  "schema": "triqto.v0_2.step13_step12_failure_decomposition.v1",
+  "status": "COMPLETE_POSTHOC_NO_QPU_NO_TRAINING",
+  "source_step12_bundle": {
+    "filename": "step12plan_24b2631b5cd94c58af951492.zip",
+    "sha256": "sha256:9c9a4a726e0403a466960669917a394ef7df73c2f6fb12239dbdf799f818d7ff",
+    "zip_crc_validation": "PASS",
+    "plan_id": "step12plan_24b2631b5cd94c58af951492",
+    "ibm_job_id": "da6od4k6l22c73dmjscg",
+    "backend_name": "ibm_marrakesh"
+  },
+  "frozen_step12_outcome": {
+    "step10c_mechanism_correct": 8,
+    "step9a_mechanism_correct_report_only": 9,
+    "step10c_distorted_effect_detection": 18,
+    "predeclared_gate_passed": false
+  },
+  "ideal_pre_qpu_audit": {
+    "status": "PASS",
+    "minimum_low_strength_delta_norm": 0.07369085417626903,
+    "minimum_low_strength_pairwise_mechanism_distance": 0.11816295726848569
+  },
+  "hardware_evidence_geometry": {
+    "mean_truth_template_cosine": 0.9534342771935341,
+    "median_truth_template_cosine": 0.9707433196607442,
+    "minimum_truth_template_cosine": 0.7908537680593198,
+    "ideal_vs_qpu_pairwise_distance_pearson": 0.966436334019957,
+    "ideal_vs_qpu_pairwise_distance_spearman": 0.9009287925696594,
+    "median_qpu_to_ideal_pairwise_distance_ratio": 1.0628100896380561,
+    "minimum_qpu_to_ideal_pairwise_distance_ratio": 0.8715103725762983,
+    "maximum_qpu_to_ideal_pairwise_distance_ratio": 1.2941753777790599
+  },
+  "posthoc_physics_template_oracle": {
+    "scope_warning": "Diagnostic decomposition only. Uses known motif, injection strength and ideal mechanism templates; not a deployable model or confirmatory metric.",
+    "actual_nearest_template_correct": 18,
+    "actual_nearest_template_case_count": 18,
+    "bootstrap_replicates_per_case": 1000,
+    "bootstrap_seed": 20260825,
+    "minimum_bootstrap_correct_probability": 0.983,
+    "mean_bootstrap_correct_probability": 0.9982222222222222
+  },
+  "model_behavior": {
+    "step10c_step9a_same_mechanism_prediction_count": 16,
+    "case_count": 18,
+    "step10c_motif_correct": {
+      "cz_echo_ramsey": {"correct": 0, "count": 6},
+      "dual_arm_recombination": {"correct": 3, "count": 6},
+      "three_qubit_phase_fanout": {"correct": 5, "count": 6}
+    },
+    "step10c_mechanism_correct": {
+      "rz_drift": {"correct": 3, "count": 6},
+      "rx_overrotation": {"correct": 1, "count": 6},
+      "ry_overrotation": {"correct": 4, "count": 6}
+    }
+  },
+  "decomposition_conclusion": {
+    "hardware_evidence_collapse_as_primary_explanation": "NOT_SUPPORTED",
+    "learned_representation_or_classifier_generalization_failure": "SUPPORTED_AS_PRIMARY_EXPLANATION",
+    "architecture_subcomponent_at_fault": "NOT_YET_ISOLATED",
+    "interpretation": "The deployable QPU evidence retains mechanism-specific structure, including in cases the learned model misclassifies. Step-12 failure is therefore better explained by out-of-distribution mapping/generalization than by disappearance of the physical diagnostic signal. Additional decomposition is still required to separate graph-conditioning, diagnostic-encoder, fusion, and mechanism-head causes."
+  },
+  "scientific_boundaries": {
+    "qpu_access_performed_for_step13": false,
+    "new_training_performed": false,
+    "weights_changed": false,
+    "thresholds_changed": false,
+    "step12_outcome_reinterpreted": false,
+    "template_oracle_is_deployable_model": false,
+    "template_oracle_is_confirmatory_metric": false
+  }
+}
