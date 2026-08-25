@@ -1,0 +1,295 @@
+{
+  "schema": "triqto.v0_2.step12_independent_phase_generalization.v1",
+  "status": "FROZEN_BEFORE_PHYSICAL_QPU_EXECUTION",
+  "purpose": "Test whether the Step-10C phase-mechanism capability observed in Step 11 generalizes to new phase-sensitive circuit motifs, unseen bridge strengths, a different physical backend, and changed logical-to-physical layouts without any retraining or QPU-driven adaptation.",
+  "source_step11": {
+    "result_freeze_merge_commit": "5a5d6c517864322e803481678b5f744ef5b3c2f0",
+    "result_manifest_path": "docs/evidence/step11_exploratory_ibm_transfer_pilot/STEP11_RESULT_MANIFEST.json",
+    "plan_id": "qpuplan_eaef7207095be0da5e12212b",
+    "ibm_job_id": "da6n7es6l22c73dmiaag",
+    "backend_name": "ibm_kingston",
+    "primary_targeted_result": "3/3",
+    "predeclared_interpretation": "strong exploratory targeted-repair transfer signal",
+    "role": "hypothesis-generating prior result only; Step-11 counts are not used in Step-12 model selection, threshold selection, circuit selection after freeze, or pass/fail calculation"
+  },
+  "source_step10d": {
+    "benchmark_id": "benchmark_1455864a09de8804a7e7958a",
+    "primary_hardware_candidate": "step10c_warm_start",
+    "further_simulator_tuning_before_hardware_permitted": false
+  },
+  "primary_candidate": {
+    "name": "step10c_warm_start",
+    "benchmark_id": "benchmark_f9478da45d68795655259054",
+    "architecture": "late_concat",
+    "seeds": [
+      1701,
+      1702,
+      1703
+    ],
+    "checkpoint_names": {
+      "1701": "warm_start__seed1701.pt",
+      "1702": "warm_start__seed1702.pt",
+      "1703": "warm_start__seed1703.pt"
+    },
+    "checkpoint_sha256": {
+      "warm_start__seed1701.pt": "sha256:40f6c86981f038b3a44cd21148ebc67e4bac9db825bac9f4482a7fd098830769",
+      "warm_start__seed1702.pt": "sha256:65b4535f89ec4d51f4126e2cb90ce9dc606d67ef2673b33740193e5aea10f39a",
+      "warm_start__seed1703.pt": "sha256:d97601bcad8a6256d4433f12ca229ac0387acc927f859fe9e30ba4c2d3f3eb1f"
+    },
+    "model_selection_sha256": "sha256:1e4a2cd5445cfec8d30302475deb4dcb29e09a738ffa0524429b91bb1e7502c1",
+    "effect_threshold": -0.125638447701931,
+    "mechanism_classes": [
+      "rz_drift",
+      "rx_overrotation",
+      "ry_overrotation"
+    ],
+    "expected_trainable_parameter_count": 453829,
+    "model_change_after_step11_allowed": false
+  },
+  "paired_baseline": {
+    "name": "step9a_deployment_ensemble",
+    "bundle_id": "deploy_ac536a74b2f8dd571d353a12",
+    "architecture": "late_concat",
+    "seeds": [
+      1701,
+      1702,
+      1703
+    ],
+    "checkpoint_sha256": {
+      "seed1701.pt": "sha256:549a64c0be5a6612a2a67b9c60fe20a011a81cff2f3c00d0759e8d0a91e8e42d",
+      "seed1702.pt": "sha256:53339d86313a73358fee0ecbae7874cf8f9cac67dc5f1e34618f7f8f32ed4de7",
+      "seed1703.pt": "sha256:b5f4a7f876816449da8c38948e81b439d9144589b28101c553566c126708dabc"
+    },
+    "effect_threshold": 0.05939410626888275,
+    "mechanism_classes": [
+      "rz_drift",
+      "rx_overrotation",
+      "ry_overrotation"
+    ],
+    "expected_trainable_parameter_count": 453829,
+    "weight_provenance": "post_confirmation_fixed_epoch_refit_development_only",
+    "role": "paired report-only baseline on identical Step-12 counts"
+  },
+  "software_environment": {
+    "fail_closed_on_version_drift": true,
+    "qiskit": "2.1.2",
+    "qiskit_aer": "0.17.1",
+    "qiskit_ibm_runtime": "0.40.1",
+    "intended_environment": "/workspace/triqto/.venv-step9d"
+  },
+  "instance_policy": {
+    "allowed_plans": [
+      "open"
+    ],
+    "paid_plan_execution_allowed": false,
+    "explicit_instance_required": true,
+    "freeze_instance_crn_in_plan_identity": true
+  },
+  "backend_selection": {
+    "mode": "quality_first_best_connected_three_qubit_chain_excluding_step11_backend",
+    "excluded_backend_names": [
+      "ibm_kingston"
+    ],
+    "require_backend_different_from_step11": true,
+    "service_filter": {
+      "simulator": false,
+      "operational": true,
+      "min_num_qubits": 3
+    },
+    "two_qubit_gate_preference": [
+      "cz",
+      "ecr"
+    ],
+    "chain_score_order": [
+      "max_two_qubit_error",
+      "mean_two_qubit_error",
+      "mean_readout_error",
+      "pending_jobs",
+      "backend_name",
+      "physical_chain"
+    ],
+    "one_backend_for_entire_test": true,
+    "one_three_qubit_chain_for_entire_test": true,
+    "backend_selection_may_not_use_model_predictions": true
+  },
+  "generalization_design": {
+    "role": "independent_cross_backend_phase_mechanism_generalization_test",
+    "step9d_anchor_matrix_reused": false,
+    "step10_bridge_motif_names_reused": false,
+    "model_predictions_used_to_select_motifs_before_freeze": false,
+    "motifs": [
+      {
+        "name": "cz_echo_ramsey",
+        "n_qubits": 2,
+        "affected_logical_qubit": 0,
+        "layout_rule": "left_center",
+        "reference_operation_signature": [
+          "h:q0",
+          "ry:q1",
+          "cz:q0-q1",
+          "rz:q0",
+          "rx:q1",
+          "h:q0",
+          "cz:q0-q1",
+          "ry:q0",
+          "h:q1"
+        ]
+      },
+      {
+        "name": "dual_arm_recombination",
+        "n_qubits": 2,
+        "affected_logical_qubit": 1,
+        "layout_rule": "right_center",
+        "reference_operation_signature": [
+          "h:q0",
+          "ry:q1",
+          "cx:q0-q1",
+          "rz:q1",
+          "rx:q0",
+          "cz:q0-q1",
+          "h:q1",
+          "cx:q1-q0",
+          "rz:q0"
+        ]
+      },
+      {
+        "name": "three_qubit_phase_fanout",
+        "n_qubits": 3,
+        "affected_logical_qubit": 1,
+        "layout_rule": "reverse_chain",
+        "reference_operation_signature": [
+          "ry:q0",
+          "ry:q1",
+          "h:q2",
+          "cx:q0-q1",
+          "cz:q1-q0",
+          "ry:q1",
+          "rz:q1",
+          "ry:q1",
+          "rz:q0",
+          "cx:q0-q1",
+          "ry:q0",
+          "cx:q1-q2",
+          "ry:q2",
+          "cz:q0-q1",
+          "rz:q2",
+          "rx:q2",
+          "h:q0"
+        ]
+      }
+    ],
+    "mechanisms": [
+      "rz_drift",
+      "rx_overrotation",
+      "ry_overrotation"
+    ],
+    "strengths": [
+      0.13,
+      0.27
+    ],
+    "step10_bridge_strengths_for_exclusion_reference": [
+      0.08,
+      0.15,
+      0.22,
+      0.3
+    ],
+    "clean_cases_per_motif": 1,
+    "distorted_cases_per_motif": 6,
+    "total_clean_cases": 3,
+    "total_distorted_cases": 18,
+    "total_cases": 21,
+    "known_injected_labels_are_report_only_and_never_model_inputs": true,
+    "no_model_inference_allowed_during_plan_generation": true,
+    "model_blind_identifiability_audit": {
+      "required": true,
+      "uses_statevector_only": true,
+      "minimum_low_strength_delta_norm": 0.04,
+      "minimum_low_strength_pairwise_mechanism_distance": 0.1
+    }
+  },
+  "execution": {
+    "primitive": "qiskit_ibm_runtime.SamplerV2",
+    "execution_mode": "single_job",
+    "shots_per_program": 4096,
+    "case_count": 21,
+    "programs_per_case": 6,
+    "total_programs": 126,
+    "total_executions": 516096,
+    "optimization_level": 1,
+    "seed_transpiler": 17121,
+    "max_execution_time_seconds": 300,
+    "measurement_mitigation": false,
+    "dynamical_decoupling": false,
+    "twirling": false,
+    "require_no_routing_permutation": true,
+    "require_meas_register": true,
+    "explicit_confirmation_token": "STEP12_INDEPENDENT_PHASE_GENERALIZATION_QPU"
+  },
+  "predeclared_analysis": {
+    "primary_metric": "step10c mechanism correctness across all 18 distorted Step-12 cases",
+    "same_qpu_counts_used_for_both_models": true,
+    "support_gate": {
+      "step10c_total_mechanism_correct_min": 14,
+      "step10c_each_mechanism_correct_min_out_of_6": 4,
+      "step10c_each_strength_correct_min_out_of_9": 6,
+      "step10c_distorted_effect_detection_min": 14,
+      "step10c_clean_effect_false_positive_max": 1,
+      "step10c_minus_step9a_mechanism_correct_min": 3
+    },
+    "gate_interpretation": {
+      "all_criteria_met": "NARROW_CROSS_BACKEND_PHASE_GENERALIZATION_SUPPORTED",
+      "otherwise": "NARROW_CROSS_BACKEND_PHASE_GENERALIZATION_NOT_SUPPORTED"
+    },
+    "secondary_metrics": [
+      "per_motif_mechanism_correctness",
+      "per_mechanism_correctness",
+      "per_strength_correctness",
+      "distorted_effect_detection_count",
+      "clean_effect_false_positive_count",
+      "paired_step10c_only_and_step9a_only_correct_counts",
+      "mechanism_confusion_matrix",
+      "diagnostic_rms",
+      "backend_calibration_snapshot",
+      "qpu_usage_seconds"
+    ],
+    "gate_is_predeclared_before_qpu": true,
+    "no_posthoc_threshold_adjustment": true
+  },
+  "scientific_boundaries": {
+    "new_training": false,
+    "model_weight_change": false,
+    "architecture_change": false,
+    "threshold_change": false,
+    "checkpoint_selection": false,
+    "qpu_results_used_for_tuning": false,
+    "qpu_results_used_for_retroactive_model_selection": false,
+    "shot_count_selection_from_qpu_results": false,
+    "backend_selection_from_model_predictions": false,
+    "measurement_mitigation_adaptation": false,
+    "step11_result_replacement_allowed": false,
+    "full_triqto_confirmatory_claim": false,
+    "narrow_component_generalization_claim_only_if_predeclared_gate_passes": true,
+    "rerun_replaces_first_step12_outcome": false,
+    "posthoc_diagnosis_allowed_only_after_step12_outcome_is_frozen": true
+  },
+  "output": {
+    "default_parent": "/workspace/triqto-data/step12_independent_phase_generalization",
+    "required_plan_files": [
+      "generalization_plan.json",
+      "backend_snapshot.json",
+      "identifiability_audit.json"
+    ],
+    "required_execution_files": [
+      "generalization_plan.json",
+      "backend_snapshot.json",
+      "identifiability_audit.json",
+      "physical_access_started.json",
+      "submitted_circuits.qpy",
+      "case_results.jsonl",
+      "predictions_step10c.csv",
+      "predictions_step9a.csv",
+      "step12_summary.json",
+      "step12_complete.json"
+    ]
+  }
+}
