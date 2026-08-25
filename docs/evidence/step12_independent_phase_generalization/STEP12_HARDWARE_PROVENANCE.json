@@ -1,0 +1,67 @@
+{
+  "backend_name": "ibm_marrakesh",
+  "backend_status_at_planning": {
+    "operational": true,
+    "pending_jobs": 6,
+    "status_msg": "active"
+  },
+  "backend_version": "1.0.21",
+  "edge_errors": [
+    0.0013504856139672228,
+    0.0014830844908049756
+  ],
+  "execution": {
+    "job_created_utc": "2026-08-25T12:12:02.141593Z",
+    "job_finished_utc": "2026-08-25T12:16:13.624918Z",
+    "job_running_utc": "2026-08-25T12:12:03.336359Z",
+    "physical_access_started_utc": "2026-08-25T12:12:00.803596+00:00",
+    "primitive": "qiskit_ibm_runtime.SamplerV2",
+    "program_count": 126,
+    "qpu_usage_seconds": 136.0,
+    "runtime_status": "complete",
+    "shots_per_program": 4096,
+    "total_executions": 516096
+  },
+  "ibm_job_id": "da6od4k6l22c73dmjscg",
+  "identity_hashes": {
+    "backend_snapshot_sha256": "sha256:5682550c64232c645cb2b012f02242aa561f0125ebf93ce672c78e353f5c2bb4",
+    "case_design_sha256": "sha256:79732cc7a71574cdec65ead38fa54667fed572811bb75278c50f8d999926ee0f",
+    "compiled_program_metadata_sha256": "sha256:bbf367cc3d646874aa811bfe44d174e240bf4d3e7e7b6c0c0a15b249c5b162bf",
+    "config_sha256": "sha256:55786779d9b90bb7ebc387d8c60165faa5f1f03598f8726e1a2247480896ff7d",
+    "generalization_plan_sha256": "sha256:d6ad919a8fdb100f4b5d365efbf086579e042cd68d976a105cf719db06c5b4ca",
+    "identifiability_audit_sha256": "sha256:1361d30ebd1951c2bed9dab5d1313a098fffcb4810b57058f2d8558c50c78c22",
+    "submitted_circuits_qpy_sha256": "sha256:0a29580f3ad9e606338b3910c1a452cdb4fb0f2b44c41f00d0df6cca5930ee74"
+  },
+  "instance_crn_publication": "WITHHELD_FROM_PUBLIC_REPOSITORY__HASH_ONLY",
+  "instance_crn_sha256": "sha256:34ac4d57ceac894bb2555767b9860326064a9c72479cb6d9eed72fee5d7888a2",
+  "instance_name": "open-instance",
+  "instance_plan": "open",
+  "max_two_qubit_error": 0.0014830844908049756,
+  "mean_readout_error": 0.009602864583333334,
+  "mean_two_qubit_error": 0.0014167850523860992,
+  "num_qubits": 156,
+  "physical_chain": [
+    134,
+    135,
+    139
+  ],
+  "plan_id": "step12plan_24b2631b5cd94c58af951492",
+  "processor_type": {
+    "family": "Heron",
+    "revision": "2"
+  },
+  "properties_last_update_date": "2026-08-25T03:47:14+00:00",
+  "readout_errors": [
+    0.00244140625,
+    0.020751953125,
+    0.005615234375
+  ],
+  "schema": "triqto.v0_2.step12_hardware_provenance.v1",
+  "software_versions": {
+    "qiskit": "2.1.2",
+    "qiskit_aer": "0.17.1",
+    "qiskit_ibm_runtime": "0.40.1"
+  },
+  "status": "FROZEN_POSTOUTCOME",
+  "two_qubit_gate": "cz"
+}
