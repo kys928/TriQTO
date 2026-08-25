@@ -94,14 +94,14 @@ Exact Step-12 reference signatures and the exact Step-11 phase-interference sign
 
 ## 6. Strength and shot design
 
-Each root receives one deterministic uniform strength draw from each bin:
+Each root receives one deterministic uniform strength draw from each ordered interval:
 
-- 0.05–0.12;
-- 0.12–0.20;
-- 0.20–0.28;
-- 0.28–0.36.
+- [0.05, 0.12);
+- [0.12, 0.20);
+- [0.20, 0.28);
+- [0.28, 0.36].
 
-The same four strengths are used for all three mechanisms within the root.
+The half-open convention on the first three intervals makes the bins disjoint. The same four strengths are used for all three mechanisms within the root.
 
 Finite-shot counts use 512, 1024, 2048, and 4096 shots. Within a root, the four strengths are assigned the four shot levels by a root-seeded permutation, and that same permutation is shared by RZ/RX/RY. The clean example receives a root-seeded shot level sampled from the same set.
 
@@ -109,13 +109,13 @@ Therefore shot count cannot act as a mechanism label proxy and cannot determinis
 
 Reference and observed counts are sampled independently from the corresponding simulator probabilities.
 
-## 7. Layout randomization
+## 7. Layout semantics under the frozen graph adapter
 
-Step 13 leaves graph-conditioned context as a leading failure candidate. Step 14 therefore treats absolute physical-qubit identifiers as nuisance context rather than letting them become stable label cues.
+Step 13 leaves **graph-conditioned circuit context** as a leading failure candidate. Under the current frozen Step-7 graph adapter, that context consists of the logical reference-circuit structure represented by nodes, gate events, logical incidences, ordering/layers, gate types, and gate parameters.
 
-For every root, the logical qubits are assigned unique synthetic physical indices sampled from 0–155. The mapping is independently permuted per root. No fake calibration errors, fake backend identity, or fake coupling-map metadata are invented.
+The current adapter reads `x__layout_logical_to_physical` to determine the logical qubit count, but it does **not** expose the absolute physical-qubit identifiers themselves as node, edge, or gate features. Therefore Step 14 does not randomize synthetic physical IDs and does not claim to train invariance to absolute IBM qubit identity. Doing so would be scientifically inert under the present input contract.
 
-The goal is invariance to absolute index identity, not simulation of a specific IBM processor.
+Step 14's generalization target is consequently circuit/motif context under the existing deployable representation—not backend-ID or calibration-context invariance. If later evidence shows that physical layout or hardware metadata must be represented explicitly, that would be a separate input-contract/architecture question and cannot be smuggled into Step 14.
 
 ## 8. Model-blind identifiability admission
 
