@@ -1,0 +1,30 @@
+{
+  "schema": "triqto.v0_2.step14_cross_motif_generalization_protocol_manifest.v1",
+  "status": "FROZEN_BEFORE_STEP14_DATASET_GENERATION",
+  "base_main_commit": "5ce4c6129c2e9acdf62a297b3b9a295903a0bfb2",
+  "source_step13_freeze_commit": "5ce4c6129c2e9acdf62a297b3b9a295903a0bfb2",
+  "frozen_files": {
+    "configs/v0_2/step14_cross_motif_generalization_training.json": {
+      "git_blob_sha1": "dc86be6097c1670637f8a1fe4040e424019d2376"
+    },
+    "docs/evidence/step14_cross_motif_generalization_training/PROTOCOL.md": {
+      "git_blob_sha1": "4c16d69d267aaf24c3ca9a3db018bfc54ab8370e"
+    },
+    "docs/evidence/step14_cross_motif_generalization_training/FREEZE.md": {
+      "git_blob_sha1": "756fa3397bcf4eeb1d9bb452b518d8f006378707"
+    },
+    "tests/test_step14_cross_motif_generalization_contract.py": {
+      "git_blob_sha1": "6869d87e55472c9e495f31d56a84647965433ce7"
+    }
+  },
+  "frozen_stage": {
+    "dataset_generated": false,
+    "training_started": false,
+    "selection_accessed": false,
+    "simulator_outer_materialized": false,
+    "future_hardware_reserve_materialized": false,
+    "qpu_access": false
+  },
+  "scientific_intervention": "Warm-start frozen Step-10C and add one leakage-safe cross-motif simulator training domain while retaining legacy original and Step-10 bridge domains; architecture and deployable graph+diagnostic input contract remain unchanged.",
+  "claim_boundary": "This manifest freezes a development protocol, not an outcome. No Step-14 performance claim exists until the predeclared outer evaluation is completed and frozen."
+}
