@@ -1,0 +1,96 @@
+{
+  "schema": "triqto.v0_2.step11_result_freeze_manifest.v1",
+  "status": "FROZEN_POSTOUTCOME",
+  "frozen_on_utc_date": "2026-08-25",
+  "plan_id": "qpuplan_eaef7207095be0da5e12212b",
+  "ibm_job_id": "da6n7es6l22c73dmiaag",
+  "primary_candidate": "step10c_warm_start",
+  "paired_baseline": "step9a_deployment_ensemble",
+  "exploratory_only": true,
+  "confirmatory_claim": false,
+  "simulator_full_gate_previously_met": false,
+  "qpu_results_used_for_tuning": false,
+  "primary_candidate_change_after_qpu_allowed": false,
+  "source_bundle": {
+    "filename": "qpuplan_eaef7207095be0da5e12212b.zip",
+    "sha256": "sha256:62d34c456f9c362ee8d2bd55e5f6002cbd7736117282c56e12b42a6fb5a54200",
+    "size_bytes": 25644,
+    "zip_crc_validation": "PASS"
+  },
+  "runtime_result": {
+    "status": "STEP11_EXPLORATORY_IBM_TRANSFER_PILOT_COMPLETE",
+    "qpu_usage_seconds": 78.0,
+    "job_created_utc": "2026-08-25T10:51:39.731489Z",
+    "job_running_utc": "2026-08-25T10:51:41.23226Z",
+    "job_finished_utc": "2026-08-25T10:54:33.902633Z",
+    "runtime_status": "complete"
+  },
+  "primary_predeclared_targeted_result": {
+    "case_count": 3,
+    "mechanism_correct_count": 3,
+    "mechanism_accuracy": 1.0,
+    "predeclared_interpretation": "strong exploratory targeted-repair transfer signal"
+  },
+  "paired_baseline_targeted_result_report_only": {
+    "case_count": 3,
+    "mechanism_correct_count": 0,
+    "mechanism_accuracy": 0.0,
+    "predeclared_interpretation": "weak_or_absent exploratory targeted-repair transfer signal"
+  },
+  "secondary_results": {
+    "step10c_distorted_mechanism_correct": 6,
+    "step10c_distorted_case_count": 9,
+    "step10c_distorted_effect_detection_count": 7,
+    "step10c_clean_effect_false_positive_count": 0,
+    "step9a_distorted_mechanism_correct_report_only": 4,
+    "step9a_distorted_case_count": 9,
+    "step9a_distorted_effect_detection_count": 7,
+    "step9a_clean_effect_false_positive_count": 1,
+    "paired_step10c_correct_step9a_wrong": 4,
+    "paired_step9a_correct_step10c_wrong": 2,
+    "paired_both_correct": 2,
+    "paired_both_wrong": 1,
+    "family_mechanism_correctness": {
+      "bell_like": {"step10c": 1, "step9a_report_only": 2, "out_of": 3},
+      "ghz": {"step10c": 2, "step9a_report_only": 2, "out_of": 3},
+      "phase_interference": {"step10c": 3, "step9a_report_only": 0, "out_of": 3}
+    }
+  },
+  "hardware_identity": {
+    "backend_name": "ibm_kingston",
+    "backend_version": "1.0.0",
+    "processor_family": "Heron",
+    "processor_revision": "2",
+    "num_qubits": 156,
+    "physical_chain": [10, 11, 12],
+    "two_qubit_gate": "cz",
+    "calibration_properties_last_update_date": "2026-08-25T09:57:21+00:00",
+    "instance_name": "open-instance",
+    "instance_plan": "open",
+    "instance_crn_sha256": "sha256:34ac4d57ceac894bb2555767b9860326064a9c72479cb6d9eed72fee5d7888a2",
+    "instance_crn_publication": "WITHHELD_FROM_PUBLIC_REPOSITORY__HASH_ONLY"
+  },
+  "frozen_software_versions": {
+    "qiskit": "2.1.2",
+    "qiskit_aer": "0.17.1",
+    "qiskit_ibm_runtime": "0.40.1"
+  },
+  "source_artifact_sha256": {
+    "pilot_complete.json": "sha256:5ece2b88e30b146ba8d52898a483210fd53b0b61a2055844d2374bd2378e5501",
+    "pilot_summary.json": "sha256:4d741c4d7d768d2819028d8788a703047e5c9aa0c7ec15bb2269b37415165014",
+    "predictions_step10c.csv": "sha256:f0d58e3ea382d7a3ce9ee2df280bc8695cac2e0b66bb9deab78f1c0263fdd13b",
+    "predictions_step9a.csv": "sha256:5060ca991ec68a4053aa9fe7757dcba71ed9a647f45502d72cc09234f2032205",
+    "case_results.jsonl": "sha256:fd426517fd26dc232794f0d7b8b389c9c750e83fc1076881064aaab940bd6574",
+    "physical_access_started.json": "sha256:2bbb95c79b4aaa532c12471bcaac96962601c6f4f909e1cacba2de41fcc011ea",
+    "submitted_circuits.qpy": "sha256:d31658fa5ac1030d086b86483f11a8c0812177950b6ac3b175bc048e1a1aa741",
+    "pilot_plan.json": "sha256:6f38a74b3aae50f3ee3aa4a6eaba3c7eb0dbde43778759f709f0a1c549b069a7",
+    "backend_snapshot.json": "sha256:35575b029a697c79a71b74412d730c1a5f4f5d72b557262871c6d678a70518bc",
+    "step11_qpu_execution.log": "sha256:1c62d7db344734a1bfe7b9927dd6eded555c1075955017af96c4709035029387",
+    "step11_qpu_execution.pid": "sha256:f858c8c782a83f8a00563efa1997f30f79eace5280f213cc28b9ad7339b96825"
+  },
+  "privacy_boundary": {
+    "full_instance_crn_committed_publicly": false,
+    "pilot_plan_and_backend_snapshot_committed_publicly": false,
+    "reason": "both contain the full IBM instance CRN; exact hashes are frozen above"
+  }
+}

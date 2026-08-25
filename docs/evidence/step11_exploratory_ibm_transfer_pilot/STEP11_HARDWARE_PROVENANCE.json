@@ -1,0 +1,61 @@
+{
+  "schema": "triqto.v0_2.step11_hardware_provenance.v1",
+  "status": "FROZEN_POSTOUTCOME",
+  "plan_id": "qpuplan_eaef7207095be0da5e12212b",
+  "ibm_runtime_job_id": "da6n7es6l22c73dmiaag",
+  "instance": {
+    "name": "open-instance",
+    "plan": "open",
+    "crn_sha256": "sha256:34ac4d57ceac894bb2555767b9860326064a9c72479cb6d9eed72fee5d7888a2",
+    "full_crn_committed_publicly": false
+  },
+  "backend": {
+    "name": "ibm_kingston",
+    "version": "1.0.0",
+    "processor_family": "Heron",
+    "processor_revision": "2",
+    "num_qubits": 156,
+    "operational_at_planning": true,
+    "status_message_at_planning": "active",
+    "pending_jobs_at_planning": 1,
+    "properties_last_update_date": "2026-08-25T09:57:21+00:00"
+  },
+  "selected_chain": {
+    "physical_chain": [10, 11, 12],
+    "two_qubit_gate": "cz",
+    "edge_errors": [0.001039162175034497, 0.0010747635789610521],
+    "max_two_qubit_error": 0.0010747635789610521,
+    "mean_two_qubit_error": 0.0010569628769977746,
+    "readout_errors": [0.004638671875, 0.0096435546875, 0.0428466796875],
+    "mean_readout_error": 0.01904296875
+  },
+  "acquisition": {
+    "program_count": 72,
+    "shots_per_program": 4096,
+    "total_executions": 294912,
+    "single_sampler_job": true,
+    "max_execution_time_seconds": 300,
+    "compiled_program_metadata_sha256": "sha256:5851ea027151595c1b2b96c74e0bac7691e15db8f117517e9229b900e286655c"
+  },
+  "runtime_job_metrics": {
+    "created_utc": "2026-08-25T10:51:39.731489Z",
+    "running_utc": "2026-08-25T10:51:41.23226Z",
+    "finished_utc": "2026-08-25T10:54:33.902633Z",
+    "status": "complete",
+    "quantum_seconds": 78,
+    "caller": "qiskit_ibm_runtime~sampler.py",
+    "qiskit_version": "qiskit_ibm_runtime-0.40.1,qiskit-2.1.2*,qiskit_aer-0.17.1*"
+  },
+  "qpu_usage_seconds": 78.0,
+  "artifact_sha256": {
+    "submitted_circuits.qpy": "sha256:d31658fa5ac1030d086b86483f11a8c0812177950b6ac3b175bc048e1a1aa741",
+    "pilot_plan.json": "sha256:6f38a74b3aae50f3ee3aa4a6eaba3c7eb0dbde43778759f709f0a1c549b069a7",
+    "backend_snapshot.json": "sha256:35575b029a697c79a71b74412d730c1a5f4f5d72b557262871c6d678a70518bc",
+    "physical_access_started.json": "sha256:2bbb95c79b4aaa532c12471bcaac96962601c6f4f909e1cacba2de41fcc011ea"
+  },
+  "software_versions": {
+    "qiskit": "2.1.2",
+    "qiskit_aer": "0.17.1",
+    "qiskit_ibm_runtime": "0.40.1"
+  }
+}
