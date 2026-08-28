@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "id": "inspect-phase15-6-workspace",
+  "kind": "storage",
+  "storage": {
+    "operation": "list",
+    "path": "triqto-data/phase15_6",
+    "max_items": 200
+  }
+}
