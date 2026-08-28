@@ -1,0 +1,120 @@
+name: RunPod Discovery
+
+on:
+  push:
+    branches: [infra/runpod-control-plane]
+    paths:
+      - ".github/workflows/runpod-discovery.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.RUNPOD_S3_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+      DISCOVERY_NETWORK_VOLUME_ID: aaxciry320
+      DISCOVERY_DATACENTER_ID: EU-CZ-1
+      DISCOVERY_S3_ENDPOINT: https://s3api-eu-cz-1.runpod.io/
+
+    steps:
+      - name: Verify required secrets are present
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${RUNPOD_API_KEY}"
+          test -n "${AWS_ACCESS_KEY_ID}"
+          test -n "${AWS_SECRET_ACCESS_KEY}"
+
+      - name: Verify network volume through RunPod REST API
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error \
+            --header "Authorization: Bearer ${RUNPOD_API_KEY}" \
+            "https://rest.runpod.io/v1/networkvolumes/${DISCOVERY_NETWORK_VOLUME_ID}" \
+            > volume.json
+          python - <<'PY'
+          import json, os
+          data = json.load(open('volume.json', encoding='utf-8'))
+          expected_id = os.environ['DISCOVERY_NETWORK_VOLUME_ID']
+          expected_dc = os.environ['DISCOVERY_DATACENTER_ID']
+          if data.get('id') != expected_id:
+              raise SystemExit(f"volume id mismatch: {data.get('id')} != {expected_id}")
+          if data.get('dataCenterId') != expected_dc:
+              raise SystemExit(f"datacenter mismatch: {data.get('dataCenterId')} != {expected_dc}")
+          print(json.dumps({
+              'id': data.get('id'),
+              'name': data.get('name'),
+              'size_gb': data.get('size'),
+              'data_center_id': data.get('dataCenterId'),
+          }, indent=2, sort_keys=True))
+          PY
+
+      - name: Install and configure runpodctl
+        shell: bash
+        run: |
+          set -euo pipefail
+          wget --quiet https://github.com/runpod/runpodctl/releases/latest/download/runpodctl-linux-amd64 -O runpodctl
+          chmod +x runpodctl
+          sudo mv runpodctl /usr/local/bin/runpodctl
+          runpodctl config --apiKey "${RUNPOD_API_KEY}" >/dev/null
+          runpodctl version
+
+      - name: Discover GPU availability in target datacenter
+        shell: bash
+        run: |
+          set -euo pipefail
+          runpodctl datacenter list > datacenters.json
+          python - <<'PY'
+          import json, os
+          dc_id = os.environ['DISCOVERY_DATACENTER_ID']
+          rows = json.load(open('datacenters.json', encoding='utf-8'))
+          dc = next((row for row in rows if row.get('id') == dc_id), None)
+          if dc is None:
+              raise SystemExit(f"datacenter {dc_id} not returned by RunPod")
+          gpus = dc.get('gpuAvailability') or []
+          print(json.dumps({
+              'datacenter': dc_id,
+              'location': dc.get('location'),
+              'gpu_availability': [
+                  {
+                      'gpu_id': g.get('gpuId'),
+                      'display_name': g.get('displayName'),
+                      'stock_status': g.get('stockStatus'),
+                  }
+                  for g in gpus
+              ],
+          }, indent=2, sort_keys=True))
+          if not gpus:
+              raise SystemExit('no GPU availability entries returned for target datacenter')
+          PY
+
+      - name: Verify read-only S3 access to network volume
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws s3api list-objects-v2 \
+            --bucket "${DISCOVERY_NETWORK_VOLUME_ID}" \
+            --endpoint-url "${DISCOVERY_S3_ENDPOINT}" \
+            --max-keys 25 \
+            > s3-root.json
+          python - <<'PY'
+          import json
+          data = json.load(open('s3-root.json', encoding='utf-8'))
+          objects = [
+              {'key': item.get('Key'), 'size': item.get('Size'), 'last_modified': str(item.get('LastModified'))}
+              for item in (data.get('Contents') or [])
+          ]
+          print(json.dumps({
+              'key_count_returned': len(objects),
+              'is_truncated': data.get('IsTruncated', False),
+              'objects': objects,
+          }, indent=2, sort_keys=True))
+          PY
