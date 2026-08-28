@@ -40,6 +40,7 @@ jobs:
       RUNPOD_TEMPLATE_ID: ${{ vars.RUNPOD_TEMPLATE_ID }}
       RUNPOD_CONTAINER_REGISTRY_AUTH_ID: ${{ vars.RUNPOD_CONTAINER_REGISTRY_AUTH_ID }}
       RUNPOD_ACTIVE_PODS_FILE: .runpod-active-pods.json
+      MANUAL_JOB_PATH: ${{ inputs.job_path }}
 
     steps:
       - name: Check out TriQTO
@@ -61,9 +62,9 @@ jobs:
           set -euo pipefail
           : > /tmp/runpod-jobs.txt
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            printf '%s\n' "${{ inputs.job_path }}" > /tmp/runpod-jobs.txt
+            printf '%s\n' "$MANUAL_JOB_PATH" > /tmp/runpod-jobs.txt
           else
-            git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" -- 'runpod/jobs/*.json' > /tmp/runpod-jobs.txt
+            git diff --name-only "$GITHUB_SHA^" "$GITHUB_SHA" -- 'runpod/jobs/*.json' > /tmp/runpod-jobs.txt
           fi
 
           if [[ ! -s /tmp/runpod-jobs.txt ]]; then
@@ -82,6 +83,10 @@ jobs:
             if [[ ! "$job" =~ ^runpod/jobs/[A-Za-z0-9._-]+\.json$ ]]; then
               echo "Unsafe job path: $job" >&2
               exit 2
+            fi
+            if [[ ! -f "$job" ]]; then
+              echo "Skipping removed job manifest: $job"
+              continue
             fi
             python scripts/runpod_control.py execute --job "$job"
           done < /tmp/runpod-jobs.txt
