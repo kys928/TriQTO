@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "id": "phase15-6-train-seed-42",
+  "kind": "compute",
+  "task": {
+    "runner": "phase15_6",
+    "command": "train",
+    "workspace": "/workspace/triqto-data/phase15_6",
+    "seed": 42
+  },
+  "gpu": {
+    "type_ids": [
+      "<EXACT_GPU_TYPE_ID_FROM_RUNPOD>"
+    ],
+    "count": 1,
+    "cloud_type": "SECURE",
+    "container_disk_gb": 50,
+    "interruptible": false
+  },
+  "limits": {
+    "max_hourly_usd": 4.0,
+    "timeout_minutes": 360
+  }
+}
