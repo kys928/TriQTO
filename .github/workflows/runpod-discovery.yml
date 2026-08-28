@@ -18,7 +18,7 @@ jobs:
       RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
       AWS_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.RUNPOD_S3_SECRET_ACCESS_KEY }}
-      AWS_DEFAULT_REGION: us-east-1
+      AWS_DEFAULT_REGION: eu-cz-1
       DISCOVERY_NETWORK_VOLUME_ID: aaxciry320
       DISCOVERY_DATACENTER_ID: EU-CZ-1
       DISCOVERY_S3_ENDPOINT: https://s3api-eu-cz-1.runpod.io/
