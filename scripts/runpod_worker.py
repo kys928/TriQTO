@@ -130,7 +130,8 @@ def gpu_snapshot() -> dict[str, Any]:
 def run() -> int:
     job = load_job()
     job_id = safe_job_id(job.get("id"))
-    run_dir = CONTROL_ROOT / job_id
+    control_run_id = safe_job_id(job.get("_control_run_id") or job_id)
+    run_dir = CONTROL_ROOT / job_id / control_run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     status_path = run_dir / "status.json"
     log_path = run_dir / "worker.log"
@@ -140,6 +141,7 @@ def run() -> int:
     started = {
         "schema_version": 1,
         "job_id": job_id,
+        "control_run_id": control_run_id,
         "state": "running",
         "started_at": utc_now(),
         "host": socket.gethostname(),
