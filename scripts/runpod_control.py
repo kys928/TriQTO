@@ -11,6 +11,7 @@ import base64
 from datetime import datetime, timezone
 import json
 import os
+import secrets
 from pathlib import Path, PurePosixPath
 import time
 from typing import Any
@@ -247,7 +248,7 @@ def delete_pod(pod_id: str, *, best_effort: bool = False) -> None:
         forget_pod(pod_id)
 
 
-def validate_compute(job: dict[str, Any]) -> tuple[dict[str, Any], int, float]:
+def validate_compute(job: dict[str, Any]) -> tuple[dict[str, Any], int, float, str]:
     task = job.get("task")
     gpu = job.get("gpu")
     limits = job.get("limits")
@@ -297,7 +298,10 @@ def validate_compute(job: dict[str, Any]) -> tuple[dict[str, Any], int, float]:
     if timeout_minutes < 1 or timeout_minutes > global_timeout:
         raise ValueError(f"limits.timeout_minutes must be 1..{global_timeout}")
 
-    encoded_job = base64.b64encode(json.dumps(job, sort_keys=True).encode("utf-8")).decode("ascii")
+    control_run_id = f"run-{int(time.time())}-{secrets.token_hex(4)}"
+    worker_job = dict(job)
+    worker_job["_control_run_id"] = control_run_id
+    encoded_job = base64.b64encode(json.dumps(worker_job, sort_keys=True).encode("utf-8")).decode("ascii")
     payload: dict[str, Any] = {
         "name": f"triqto-{job['id']}"[:191],
         "computeType": "GPU",
@@ -333,17 +337,17 @@ def validate_compute(job: dict[str, Any]) -> tuple[dict[str, Any], int, float]:
     if registry_auth:
         payload["containerRegistryAuthId"] = registry_auth
 
-    return payload, timeout_minutes, effective_cap
+    return payload, timeout_minutes, effective_cap, control_run_id
 
 
-def status_key(job_id: str) -> str:
-    return f"triqto-control/runs/{job_id}/status.json"
+def status_key(job_id: str, control_run_id: str) -> str:
+    return f"triqto-control/runs/{job_id}/{control_run_id}/status.json"
 
 
-def read_worker_status(job_id: str) -> dict[str, Any] | None:
+def read_worker_status(job_id: str, control_run_id: str) -> dict[str, Any] | None:
     client = s3_client()
     bucket = required_env("RUNPOD_NETWORK_VOLUME_ID")
-    key = status_key(job_id)
+    key = status_key(job_id, control_run_id)
     try:
         obj = client.get_object(Bucket=bucket, Key=key)
     except ClientError as exc:
@@ -356,7 +360,7 @@ def read_worker_status(job_id: str) -> dict[str, Any] | None:
 
 
 def compute_job(job: dict[str, Any]) -> None:
-    payload, timeout_minutes, hourly_cap = validate_compute(job)
+    payload, timeout_minutes, hourly_cap, control_run_id = validate_compute(job)
     pod_id: str | None = None
     deadline = time.monotonic() + timeout_minutes * 60
 
@@ -377,6 +381,7 @@ def compute_job(job: dict[str, Any]) -> None:
                     "job_id": job["id"],
                     "pod_id": pod_id,
                     "created_at": utc_now(),
+                    "control_run_id": control_run_id,
                     "cost_per_hour": cost,
                     "hourly_cap": hourly_cap,
                     "network_volume_id": required_env("RUNPOD_NETWORK_VOLUME_ID"),
@@ -393,7 +398,7 @@ def compute_job(job: dict[str, Any]) -> None:
         last_state: str | None = None
         poll_seconds = max(optional_int_env("RUNPOD_STATUS_POLL_SECONDS", DEFAULT_POLL_SECONDS), 5)
         while time.monotonic() < deadline:
-            status = read_worker_status(str(job["id"]))
+            status = read_worker_status(str(job["id"]), control_run_id)
             if status is not None:
                 state = str(status.get("state", ""))
                 if state != last_state:
