@@ -64,6 +64,8 @@ jobs:
           wget --quiet https://github.com/runpod/runpodctl/releases/latest/download/runpodctl-linux-amd64 -O runpodctl
           chmod +x runpodctl
           sudo mv runpodctl /usr/local/bin/runpodctl
+          mkdir -p "${HOME}/.runpod"
+          touch "${HOME}/.runpod/.runpod.yaml"
           runpodctl config --apiKey "${RUNPOD_API_KEY}" >/dev/null
           runpodctl version
 
