@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
+import shutil
 import socket
 import subprocess
 import sys
@@ -76,13 +77,10 @@ def safe_config(value: object | None) -> str | None:
     return path.as_posix()
 
 
-def build_command(job: dict[str, Any]) -> list[str]:
+def build_phase15_6_command(job: dict[str, Any]) -> list[str]:
     task = job.get("task")
     if not isinstance(task, dict):
         raise ValueError("job.task must be an object")
-    if task.get("runner") != "phase15_6":
-        raise ValueError("Only task.runner='phase15_6' is enabled in v1")
-
     command = str(task.get("command", ""))
     if command not in ALLOWED_COMMANDS:
         raise ValueError(f"Unsupported Phase 15.6 command: {command!r}")
@@ -109,7 +107,6 @@ def build_command(job: dict[str, Any]) -> list[str]:
         if seed < 0 or seed > 2**31 - 1:
             raise ValueError("task.seed is outside the accepted range")
         cmd.extend(["--seed", str(seed)])
-
     return cmd
 
 
@@ -122,26 +119,118 @@ def gpu_snapshot() -> dict[str, Any]:
             timeout=20,
             check=False,
         )
-        return {"returncode": result.returncode, "output": result.stdout.strip(), "stderr": result.stderr.strip()}
+        return {
+            "returncode": result.returncode,
+            "output": result.stdout.strip(),
+            "stderr": result.stderr.strip(),
+        }
     except Exception as exc:
         return {"error": repr(exc)}
+
+
+def memory_total_gib() -> float | None:
+    try:
+        for line in Path("/proc/meminfo").read_text(encoding="utf-8").splitlines():
+            if line.startswith("MemTotal:"):
+                kib = int(line.split()[1])
+                return round(kib / 1024**2, 3)
+    except Exception:
+        return None
+    return None
+
+
+def infra_smoke(run_dir: Path) -> dict[str, Any]:
+    import torch
+    import qiskit
+    import qiskit_aer
+    import triqto  # noqa: F401
+
+    disk = shutil.disk_usage("/workspace")
+    control_probe = run_dir / "write_probe.txt"
+    control_probe.write_text("TriQTO RunPod control-plane write probe\n", encoding="utf-8")
+    probe_ok = control_probe.read_text(encoding="utf-8").startswith("TriQTO RunPod")
+    control_probe.unlink()
+
+    result = {
+        "checked_at": utc_now(),
+        "python": sys.version.split()[0],
+        "cpu_count": os.cpu_count(),
+        "memory_total_gib": memory_total_gib(),
+        "workspace": {
+            "path": "/workspace",
+            "total_gib": round(disk.total / 1024**3, 3),
+            "used_gib": round(disk.used / 1024**3, 3),
+            "free_gib": round(disk.free / 1024**3, 3),
+            "control_write_probe": probe_ok,
+        },
+        "torch": {
+            "version": torch.__version__,
+            "cuda_available": torch.cuda.is_available(),
+            "cuda_runtime": torch.version.cuda,
+            "device_count": torch.cuda.device_count() if torch.cuda.is_available() else 0,
+            "device_names": [
+                torch.cuda.get_device_name(index)
+                for index in range(torch.cuda.device_count())
+            ] if torch.cuda.is_available() else [],
+        },
+        "qiskit": qiskit.__version__,
+        "qiskit_aer": qiskit_aer.__version__,
+        "gpu": gpu_snapshot(),
+        "repo_root": str(REPO_ROOT),
+        "triqto_import": True,
+    }
+    atomic_json(run_dir / "infra_smoke.json", result)
+
+    if not probe_ok:
+        raise RuntimeError("Network Volume control write/read probe failed")
+    if not result["torch"]["cuda_available"]:
+        raise RuntimeError("CUDA is not available inside the RunPod GPU worker")
+    if int(result["torch"]["device_count"]) < 1:
+        raise RuntimeError("No CUDA GPU devices are visible to PyTorch")
+    return result
+
+
+def run_subprocess(command: list[str], log_path: Path) -> int:
+    with log_path.open("w", encoding="utf-8") as log:
+        process = subprocess.Popen(
+            command,
+            cwd=REPO_ROOT,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+        assert process.stdout is not None
+        for line in process.stdout:
+            print(line, end="", flush=True)
+            log.write(line)
+            log.flush()
+        return process.wait()
 
 
 def run() -> int:
     job = load_job()
     job_id = safe_job_id(job.get("id"))
     control_run_id = safe_job_id(job.get("_control_run_id") or job_id)
+    task = job.get("task")
+    if not isinstance(task, dict):
+        raise ValueError("job.task must be an object")
+    runner = str(task.get("runner", ""))
+    if runner not in {"phase15_6", "infra_smoke"}:
+        raise ValueError("Only task.runner='phase15_6' or 'infra_smoke' is enabled")
+
     run_dir = CONTROL_ROOT / job_id / control_run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     status_path = run_dir / "status.json"
     log_path = run_dir / "worker.log"
     atomic_json(run_dir / "job.json", job)
 
-    command = build_command(job)
+    command = ["internal:infra_smoke"] if runner == "infra_smoke" else build_phase15_6_command(job)
     started = {
-        "schema_version": 1,
+        "schema_version": 2,
         "job_id": job_id,
         "control_run_id": control_run_id,
+        "runner": runner,
         "state": "running",
         "started_at": utc_now(),
         "host": socket.gethostname(),
@@ -152,21 +241,12 @@ def run() -> int:
     atomic_json(status_path, started)
 
     try:
-        with log_path.open("w", encoding="utf-8") as log:
-            process = subprocess.Popen(
-                command,
-                cwd=REPO_ROOT,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1,
-            )
-            assert process.stdout is not None
-            for line in process.stdout:
-                print(line, end="", flush=True)
-                log.write(line)
-                log.flush()
-            returncode = process.wait()
+        if runner == "infra_smoke":
+            result = infra_smoke(run_dir)
+            log_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+            returncode = 0
+        else:
+            returncode = run_subprocess(command, log_path)
 
         completed = {
             **started,
@@ -174,6 +254,7 @@ def run() -> int:
             "completed_at": utc_now(),
             "returncode": returncode,
             "log_path": str(log_path),
+            "result_path": str(run_dir / "infra_smoke.json") if runner == "infra_smoke" else None,
         }
         atomic_json(status_path, completed)
         return returncode
