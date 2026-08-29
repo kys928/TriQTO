@@ -1,0 +1,95 @@
+name: TriQTO Step 14 Baseline and Selection Training
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "runpod/step14_training/*.json"
+  workflow_dispatch:
+    inputs:
+      request_path:
+        description: "Path to one frozen Step-14 baseline/training request"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: triqto-step14-training-selection
+  cancel-in-progress: false
+
+jobs:
+  launch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
+      RUNPOD_S3_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
+      RUNPOD_S3_SECRET_ACCESS_KEY: ${{ secrets.RUNPOD_S3_SECRET_ACCESS_KEY }}
+      RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
+      RUNPOD_DATACENTER_ID: ${{ vars.RUNPOD_DATACENTER_ID }}
+      RUNPOD_S3_ENDPOINT: ${{ vars.RUNPOD_S3_ENDPOINT }}
+      RUNPOD_ALLOWED_GPU_TYPES: ${{ vars.RUNPOD_ALLOWED_GPU_TYPES }}
+      RUNPOD_IMAGE_NAME: ${{ vars.RUNPOD_IMAGE_NAME }}
+      RUNPOD_CONTAINER_REGISTRY_AUTH_ID: ${{ vars.RUNPOD_CONTAINER_REGISTRY_AUTH_ID }}
+      MANUAL_REQUEST_PATH: ${{ inputs.request_path }}
+
+    steps:
+      - name: Check out TriQTO
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install control-plane dependency
+        run: python -m pip install --disable-pip-version-check boto3
+
+      - name: Determine Step-14 baseline/training requests
+        shell: bash
+        run: |
+          set -euo pipefail
+          : > /tmp/step14-training-requests.txt
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            printf '%s\n' "$MANUAL_REQUEST_PATH" > /tmp/step14-training-requests.txt
+          else
+            git diff --name-only "$GITHUB_SHA^" "$GITHUB_SHA" -- 'runpod/step14_training/*.json' > /tmp/step14-training-requests.txt
+          fi
+          if [[ ! -s /tmp/step14-training-requests.txt ]]; then
+            echo "No Step-14 baseline/training requests found."
+          else
+            echo "Step-14 baseline/training requests:"
+            cat /tmp/step14-training-requests.txt
+          fi
+
+      - name: Launch frozen Step-14 baseline or selection training
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r request; do
+            [[ -z "$request" ]] && continue
+            if [[ ! "$request" =~ ^runpod/step14_training/[A-Za-z0-9._-]+\.json$ ]]; then
+              echo "Unsafe Step-14 request path: $request" >&2
+              exit 2
+            fi
+            if [[ ! -f "$request" ]]; then
+              echo "Skipping removed Step-14 request: $request"
+              continue
+            fi
+            python scripts/runpod_step14_training_selection.py --request "$request"
+          done < /tmp/step14-training-requests.txt
+
+      - name: Start continuous RunPod supervisor
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh workflow run runpod-supervisor.yml --ref main
+          echo "Supervisor dispatch accepted for Step-14 baseline/training operation."
