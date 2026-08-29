@@ -66,8 +66,10 @@ def test_generator_blueprint_is_deterministic_and_identifiability_is_model_blind
     variants = [gen.build_variant(b1, 0, v, c) for v in range(4)]
     assert len(variants) == 4
     source = inspect.getsource(gen.identifiability).lower()
-    assert "predict" not in source
-    assert "model" not in source
+    assert '"uses_statevector_only": true' in source
+    assert '"uses_model_predictions": false' in source
+    assert ".predict(" not in source
+    assert "load_state_dict" not in source
     assert "inject_hidden_rotation" in source
 
 
