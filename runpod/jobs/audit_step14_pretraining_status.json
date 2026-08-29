@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "id": "audit-step14-pretraining-status",
+  "kind": "storage",
+  "storage": {
+    "operation": "read_text",
+    "path": "triqto-control/runs/step14-pretraining-baseline-20260829/run-1788040693-4a58c955/status.json",
+    "max_bytes": 65536
+  }
+}
