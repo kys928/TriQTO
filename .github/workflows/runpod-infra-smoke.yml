@@ -1,6 +1,10 @@
 name: TriQTO RunPod Infrastructure Smoke
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "runpod/smoke/*.json"
   workflow_dispatch:
     inputs:
       request_path:
@@ -30,10 +34,12 @@ jobs:
       RUNPOD_ALLOWED_GPU_TYPES: ${{ vars.RUNPOD_ALLOWED_GPU_TYPES }}
       RUNPOD_IMAGE_NAME: ${{ vars.RUNPOD_IMAGE_NAME }}
       RUNPOD_CONTAINER_REGISTRY_AUTH_ID: ${{ vars.RUNPOD_CONTAINER_REGISTRY_AUTH_ID }}
-      REQUEST_PATH: ${{ inputs.request_path }}
+      MANUAL_REQUEST_PATH: ${{ inputs.request_path }}
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - uses: actions/setup-python@v5
         with:
@@ -42,15 +48,22 @@ jobs:
       - name: Install boto3
         run: python -m pip install --quiet boto3
 
-      - name: Validate request path
+      - name: Determine smoke request
+        id: request
         shell: bash
         run: |
           set -euo pipefail
-          if [[ ! "$REQUEST_PATH" =~ ^runpod/[A-Za-z0-9_./-]+\.json$ ]]; then
-            echo "Unsafe smoke request path" >&2
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            request="$MANUAL_REQUEST_PATH"
+          else
+            request="$(git diff --name-only "$GITHUB_SHA^" "$GITHUB_SHA" -- 'runpod/smoke/*.json' | head -n 1)"
+          fi
+          if [[ ! "$request" =~ ^runpod/[A-Za-z0-9_./-]+\.json$ ]]; then
+            echo "Unsafe or missing smoke request path: $request" >&2
             exit 2
           fi
-          test -f "$REQUEST_PATH"
+          test -f "$request"
+          echo "path=$request" >> "$GITHUB_OUTPUT"
 
       - name: Launch detached infrastructure smoke Pod
-        run: python scripts/runpod_infra_smoke.py --request "$REQUEST_PATH"
+        run: python scripts/runpod_infra_smoke.py --request "${{ steps.request.outputs.path }}"
