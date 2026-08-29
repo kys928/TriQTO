@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "id": "supervisor-zero-cost-smoke",
+  "kind": "storage",
+  "storage": {
+    "operation": "list",
+    "path": "triqto-control/active/",
+    "max_items": 20
+  }
+}
