@@ -64,3 +64,15 @@ def test_supervisor_requests_handoff_without_terminating_active_run(
         supervisor.main()
 
     assert excinfo.value.code == supervisor.HANDOFF_EXIT_CODE
+
+
+def test_runpod_s3_missing_status_is_normal_pending_state() -> None:
+    missing = RuntimeError(
+        "An error occurred (InvalidArgument) when calling the GetObject operation: object not found"
+    )
+    unrelated = RuntimeError(
+        "An error occurred (InvalidArgument) when calling the PutObject operation: object not found"
+    )
+
+    assert supervisor.is_pending_status_error(missing)
+    assert not supervisor.is_pending_status_error(unrelated)
