@@ -1,0 +1,11 @@
+{
+  "id": "triqto-runpod-infra-smoke",
+  "gpu_type_ids": [
+    "NVIDIA GeForce RTX 5090",
+    "NVIDIA GeForce RTX 4090",
+    "NVIDIA GeForce RTX 3090"
+  ],
+  "cloud_type": "SECURE",
+  "container_disk_gb": 50,
+  "interruptible": false
+}
