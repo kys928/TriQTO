@@ -1,0 +1,134 @@
+name: TriQTO Data Inventory
+
+on:
+  push:
+    branches: [infra/runpod-control-plane]
+    paths:
+      - ".github/workflows/runpod-triqto-data-inventory.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RUNPOD_S3_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
+      RUNPOD_S3_SECRET_ACCESS_KEY: ${{ secrets.RUNPOD_S3_SECRET_ACCESS_KEY }}
+      RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
+      RUNPOD_DATACENTER_ID: ${{ vars.RUNPOD_DATACENTER_ID }}
+      RUNPOD_S3_ENDPOINT: ${{ vars.RUNPOD_S3_ENDPOINT }}
+
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install boto3
+        run: python -m pip install --quiet boto3
+
+      - name: Inventory triqto-data children in parallel
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import heapq
+          import json
+          import os
+          from concurrent.futures import ThreadPoolExecutor, as_completed
+          import boto3
+          from botocore.config import Config
+
+          bucket = os.environ['RUNPOD_NETWORK_VOLUME_ID']
+          endpoint = os.environ['RUNPOD_S3_ENDPOINT']
+          region = os.environ['RUNPOD_DATACENTER_ID'].lower()
+
+          def make_client():
+              return boto3.client(
+                  's3',
+                  endpoint_url=endpoint,
+                  region_name=region,
+                  aws_access_key_id=os.environ['RUNPOD_S3_ACCESS_KEY_ID'],
+                  aws_secret_access_key=os.environ['RUNPOD_S3_SECRET_ACCESS_KEY'],
+                  config=Config(
+                      signature_version='s3v4',
+                      retries={'max_attempts': 8, 'mode': 'standard'},
+                      max_pool_connections=32,
+                  ),
+              )
+
+          root = 'triqto-data/'
+          discovery = make_client().list_objects_v2(
+              Bucket=bucket,
+              Prefix=root,
+              Delimiter='/',
+              MaxKeys=1000,
+          )
+          prefixes = [str(x['Prefix']) for x in discovery.get('CommonPrefixes', [])]
+          root_objects = [
+              (str(x.get('Key', '')), int(x.get('Size', 0)))
+              for x in discovery.get('Contents', [])
+          ]
+
+          def scan(prefix):
+              client = make_client()
+              paginator = client.get_paginator('list_objects_v2')
+              total = 0
+              count = 0
+              largest = []
+              for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+                  for item in page.get('Contents', []):
+                      size = int(item.get('Size', 0))
+                      key = str(item.get('Key', ''))
+                      total += size
+                      count += 1
+                      entry = (size, key)
+                      if len(largest) < 5:
+                          heapq.heappush(largest, entry)
+                      elif size > largest[0][0]:
+                          heapq.heapreplace(largest, entry)
+              return {
+                  'prefix': prefix,
+                  'bytes': total,
+                  'gib': round(total / 1024**3, 3),
+                  'objects': count,
+                  'largest': [
+                      {'key': key, 'gib': round(size / 1024**3, 3), 'bytes': size}
+                      for size, key in sorted(largest, reverse=True)
+                  ],
+              }
+
+          rows = []
+          with ThreadPoolExecutor(max_workers=min(16, max(1, len(prefixes)))) as pool:
+              futures = {pool.submit(scan, prefix): prefix for prefix in prefixes}
+              for future in as_completed(futures):
+                  row = future.result()
+                  rows.append(row)
+                  print(json.dumps({'finished': row['prefix'], 'gib': row['gib'], 'objects': row['objects']}), flush=True)
+
+          root_bytes = sum(size for _, size in root_objects)
+          total_bytes = root_bytes + sum(row['bytes'] for row in rows)
+          report = {
+              'prefix': root,
+              'used_gib': round(total_bytes / 1024**3, 3),
+              'object_count': sum(row['objects'] for row in rows) + len(root_objects),
+              'root_objects': [
+                  {'key': key, 'gib': round(size / 1024**3, 3), 'bytes': size}
+                  for key, size in root_objects
+              ],
+              'children': sorted(rows, key=lambda row: row['bytes'], reverse=True),
+          }
+          print(json.dumps(report, indent=2), flush=True)
+          with open('triqto-data-inventory.json', 'w', encoding='utf-8') as handle:
+              json.dump(report, handle, indent=2)
+              handle.write('\n')
+          PY
+
+      - name: Upload inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: triqto-data-inventory
+          path: triqto-data-inventory.json
+          retention-days: 7

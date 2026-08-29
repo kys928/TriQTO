@@ -1,0 +1,205 @@
+name: RunPod Discovery
+
+on:
+  push:
+    branches: [infra/runpod-control-plane]
+    paths:
+      - ".github/workflows/runpod-discovery.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.RUNPOD_S3_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: eu-cz-1
+      DISCOVERY_NETWORK_VOLUME_ID: aaxciry320
+      DISCOVERY_DATACENTER_ID: EU-CZ-1
+      DISCOVERY_S3_ENDPOINT: https://s3api-eu-cz-1.runpod.io/
+
+    steps:
+      - name: Verify required secrets are present
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${RUNPOD_API_KEY}"
+          test -n "${AWS_ACCESS_KEY_ID}"
+          test -n "${AWS_SECRET_ACCESS_KEY}"
+
+      - name: Verify network volume through RunPod REST API
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error \
+            --header "Authorization: Bearer ${RUNPOD_API_KEY}" \
+            "https://rest.runpod.io/v1/networkvolumes/${DISCOVERY_NETWORK_VOLUME_ID}" \
+            > volume.json
+          python - <<'PY'
+          import json, os
+          data = json.load(open('volume.json', encoding='utf-8'))
+          expected_id = os.environ['DISCOVERY_NETWORK_VOLUME_ID']
+          expected_dc = os.environ['DISCOVERY_DATACENTER_ID']
+          if data.get('id') != expected_id:
+              raise SystemExit(f"volume id mismatch: {data.get('id')} != {expected_id}")
+          if data.get('dataCenterId') != expected_dc:
+              raise SystemExit(f"datacenter mismatch: {data.get('dataCenterId')} != {expected_dc}")
+          print(json.dumps({
+              'id': data.get('id'),
+              'name': data.get('name'),
+              'size_gb': data.get('size'),
+              'data_center_id': data.get('dataCenterId'),
+          }, indent=2, sort_keys=True))
+          PY
+
+      - name: Install and configure runpodctl
+        shell: bash
+        run: |
+          set -euo pipefail
+          wget --quiet https://github.com/runpod/runpodctl/releases/latest/download/runpodctl-linux-amd64 -O runpodctl
+          chmod +x runpodctl
+          sudo mv runpodctl /usr/local/bin/runpodctl
+          mkdir -p "${HOME}/.runpod"
+          touch "${HOME}/.runpod/.runpod.yaml"
+          runpodctl config --apiKey "${RUNPOD_API_KEY}" >/dev/null
+          runpodctl version
+
+      - name: Discover GPU availability in target datacenter
+        shell: bash
+        run: |
+          set -euo pipefail
+          runpodctl datacenter list > datacenters.json
+          python - <<'PY'
+          import json, os
+          dc_id = os.environ['DISCOVERY_DATACENTER_ID']
+          rows = json.load(open('datacenters.json', encoding='utf-8'))
+          dc = next((row for row in rows if row.get('id') == dc_id), None)
+          if dc is None:
+              raise SystemExit(f"datacenter {dc_id} not returned by RunPod")
+          gpus = dc.get('gpuAvailability') or []
+          print(json.dumps({
+              'datacenter': dc_id,
+              'location': dc.get('location'),
+              'gpu_availability': [
+                  {
+                      'gpu_id': g.get('gpuId'),
+                      'display_name': g.get('displayName'),
+                      'stock_status': g.get('stockStatus'),
+                  }
+                  for g in gpus
+              ],
+          }, indent=2, sort_keys=True))
+          if not gpus:
+              raise SystemExit('no GPU availability entries returned for target datacenter')
+          PY
+
+      - name: Verify read-only S3 access to network volume
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws s3api list-objects-v2 \
+            --bucket "${DISCOVERY_NETWORK_VOLUME_ID}" \
+            --endpoint-url "${DISCOVERY_S3_ENDPOINT}" \
+            --max-keys 25 \
+            > s3-root.json
+          python - <<'PY'
+          import json
+          data = json.load(open('s3-root.json', encoding='utf-8'))
+          objects = [
+              {'key': item.get('Key'), 'size': item.get('Size'), 'last_modified': str(item.get('LastModified'))}
+              for item in (data.get('Contents') or [])
+          ]
+          print(json.dumps({
+              'key_count_returned': len(objects),
+              'is_truncated': data.get('IsTruncated', False),
+              'objects': objects,
+          }, indent=2, sort_keys=True))
+          PY
+
+      - name: Inventory full network volume
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet boto3
+          python - <<'PY'
+          import heapq
+          import json
+          import os
+          from collections import defaultdict
+          import boto3
+          from botocore.config import Config
+
+          bucket = os.environ['DISCOVERY_NETWORK_VOLUME_ID']
+          endpoint = os.environ['DISCOVERY_S3_ENDPOINT']
+          region = os.environ['DISCOVERY_DATACENTER_ID'].lower()
+          client = boto3.client(
+              's3',
+              endpoint_url=endpoint,
+              region_name=region,
+              aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+              aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'],
+              config=Config(signature_version='s3v4'),
+          )
+
+          total_bytes = 0
+          object_count = 0
+          top_level = defaultdict(lambda: [0, 0])
+          triqto_second = defaultdict(lambda: [0, 0])
+          largest = []
+          paginator = client.get_paginator('list_objects_v2')
+          for page in paginator.paginate(Bucket=bucket):
+              for item in page.get('Contents', []):
+                  key = str(item.get('Key', ''))
+                  size = int(item.get('Size', 0))
+                  total_bytes += size
+                  object_count += 1
+                  top = key.split('/', 1)[0] or '<root>'
+                  top_level[top][0] += size
+                  top_level[top][1] += 1
+                  if key.startswith('triqto-data/'):
+                      rest = key[len('triqto-data/'):]
+                      second = rest.split('/', 1)[0] or '<root>'
+                      triqto_second[second][0] += size
+                      triqto_second[second][1] += 1
+                  entry = (size, key)
+                  if len(largest) < 30:
+                      heapq.heappush(largest, entry)
+                  elif size > largest[0][0]:
+                      heapq.heapreplace(largest, entry)
+
+          capacity_bytes = 150 * 1024**3
+          report = {
+              'object_count': object_count,
+              'used_gib': round(total_bytes / 1024**3, 3),
+              'capacity_gib': 150,
+              'estimated_free_gib': round(max(capacity_bytes - total_bytes, 0) / 1024**3, 3),
+              'top_level': [
+                  {'prefix': name, 'gib': round(values[0] / 1024**3, 3), 'objects': values[1]}
+                  for name, values in sorted(top_level.items(), key=lambda kv: kv[1][0], reverse=True)
+              ],
+              'triqto_data_children': [
+                  {'prefix': name, 'gib': round(values[0] / 1024**3, 3), 'objects': values[1]}
+                  for name, values in sorted(triqto_second.items(), key=lambda kv: kv[1][0], reverse=True)
+              ],
+              'largest_objects': [
+                  {'key': key, 'gib': round(size / 1024**3, 3), 'bytes': size}
+                  for size, key in sorted(largest, reverse=True)
+              ],
+          }
+          print(json.dumps(report, indent=2, sort_keys=False))
+          with open('runpod-volume-inventory.json', 'w', encoding='utf-8') as handle:
+              json.dump(report, handle, indent=2)
+              handle.write('\n')
+          PY
+
+      - name: Upload inventory report
+        uses: actions/upload-artifact@v4
+        with:
+          name: runpod-volume-inventory
+          path: runpod-volume-inventory.json
+          retention-days: 7

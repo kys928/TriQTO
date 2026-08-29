@@ -10,3 +10,7 @@ data/processed/**
 experiments/**
 !**/.gitkeep
 .ipynb_checkpoints/
+runpod_artifacts/
+.runpod-active-pods.json
+runpod-volume-inventory.json
+triqto-data-inventory.json

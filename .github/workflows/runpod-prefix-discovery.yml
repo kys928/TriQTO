@@ -1,0 +1,46 @@
+name: TriQTO Prefix Discovery
+
+on:
+  push:
+    branches: [infra/runpod-control-plane]
+    paths:
+      - ".github/workflows/runpod-prefix-discovery.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prefixes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.RUNPOD_S3_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: eu-cz-1
+      RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
+      RUNPOD_S3_ENDPOINT: ${{ vars.RUNPOD_S3_ENDPOINT }}
+
+    steps:
+      - name: List top-level volume prefixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws s3api list-objects-v2 \
+            --bucket "$RUNPOD_NETWORK_VOLUME_ID" \
+            --endpoint-url "$RUNPOD_S3_ENDPOINT" \
+            --delimiter '/' \
+            --max-keys 1000 \
+            --query '{prefixes:CommonPrefixes[].Prefix,root_objects:Contents[].Key}'
+
+      - name: List triqto-data children
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws s3api list-objects-v2 \
+            --bucket "$RUNPOD_NETWORK_VOLUME_ID" \
+            --endpoint-url "$RUNPOD_S3_ENDPOINT" \
+            --prefix 'triqto-data/' \
+            --delimiter '/' \
+            --max-keys 1000 \
+            --query '{prefixes:CommonPrefixes[].Prefix,root_objects:Contents[].Key}'

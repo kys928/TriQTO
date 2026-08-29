@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "id": "inspect-triqto-data",
+  "kind": "storage",
+  "storage": {
+    "operation": "list",
+    "path": "triqto-data/",
+    "max_items": 200
+  }
+}
