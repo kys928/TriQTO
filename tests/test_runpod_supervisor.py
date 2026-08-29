@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 import sys
+import types
 
 import pytest
 
@@ -10,6 +11,16 @@ import pytest
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
+
+# The production control module intentionally depends on boto3, which is
+# installed only in RunPod control workflows rather than TriQTO's CPU test
+# environment.  Inject the narrow interface the supervisor needs so these
+# tests exercise supervision behavior without changing scientific deps.
+fake_control = types.ModuleType("runpod_control_v2")
+fake_control.utc_now = lambda: "2026-01-01T00:00:00+00:00"
+fake_control.reconcile_detached = lambda: None
+fake_control.list_active_records = lambda: []
+sys.modules["runpod_control_v2"] = fake_control
 
 supervisor = importlib.import_module("runpod_supervisor")
 
