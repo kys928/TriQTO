@@ -1,0 +1,102 @@
+name: TriQTO Data Inventory
+
+on:
+  push:
+    branches: [infra/runpod-control-plane]
+    paths:
+      - ".github/workflows/runpod-triqto-data-inventory.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RUNPOD_S3_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
+      RUNPOD_S3_SECRET_ACCESS_KEY: ${{ secrets.RUNPOD_S3_SECRET_ACCESS_KEY }}
+      RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
+      RUNPOD_DATACENTER_ID: ${{ vars.RUNPOD_DATACENTER_ID }}
+      RUNPOD_S3_ENDPOINT: ${{ vars.RUNPOD_S3_ENDPOINT }}
+
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install boto3
+        run: python -m pip install --quiet boto3
+
+      - name: Inventory triqto-data prefix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import heapq
+          import json
+          import os
+          from collections import defaultdict
+          import boto3
+          from botocore.config import Config
+
+          bucket = os.environ['RUNPOD_NETWORK_VOLUME_ID']
+          endpoint = os.environ['RUNPOD_S3_ENDPOINT']
+          region = os.environ['RUNPOD_DATACENTER_ID'].lower()
+          client = boto3.client(
+              's3',
+              endpoint_url=endpoint,
+              region_name=region,
+              aws_access_key_id=os.environ['RUNPOD_S3_ACCESS_KEY_ID'],
+              aws_secret_access_key=os.environ['RUNPOD_S3_SECRET_ACCESS_KEY'],
+              config=Config(signature_version='s3v4'),
+          )
+
+          prefix = 'triqto-data/'
+          total = 0
+          count = 0
+          children = defaultdict(lambda: [0, 0])
+          largest = []
+          paginator = client.get_paginator('list_objects_v2')
+          for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+              for item in page.get('Contents', []):
+                  key = str(item.get('Key', ''))
+                  size = int(item.get('Size', 0))
+                  total += size
+                  count += 1
+                  rest = key[len(prefix):]
+                  child = rest.split('/', 1)[0] or '<root>'
+                  children[child][0] += size
+                  children[child][1] += 1
+                  entry = (size, key)
+                  if len(largest) < 40:
+                      heapq.heappush(largest, entry)
+                  elif size > largest[0][0]:
+                      heapq.heapreplace(largest, entry)
+
+          report = {
+              'prefix': prefix,
+              'object_count': count,
+              'used_gib': round(total / 1024**3, 3),
+              'children': [
+                  {'name': name, 'gib': round(values[0] / 1024**3, 3), 'objects': values[1]}
+                  for name, values in sorted(children.items(), key=lambda kv: kv[1][0], reverse=True)
+              ],
+              'largest_objects': [
+                  {'key': key, 'gib': round(size / 1024**3, 3), 'bytes': size}
+                  for size, key in sorted(largest, reverse=True)
+              ],
+          }
+          print(json.dumps(report, indent=2))
+          with open('triqto-data-inventory.json', 'w', encoding='utf-8') as handle:
+              json.dump(report, handle, indent=2)
+              handle.write('\n')
+          PY
+
+      - name: Upload inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: triqto-data-inventory
+          path: triqto-data-inventory.json
+          retention-days: 7
