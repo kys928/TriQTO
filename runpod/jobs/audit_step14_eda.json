@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "id": "audit-step14-eda",
+  "kind": "storage",
+  "storage": {
+    "operation": "read_text",
+    "path": "triqto-data/step14_cross_motif_dataset/development_b087edfd6629ac250299391d/eda.json",
+    "max_bytes": 262144
+  }
+}
