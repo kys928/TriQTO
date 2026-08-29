@@ -58,7 +58,6 @@ def main() -> None:
         raise ValueError(f"Step-14 request contains disallowed GPU types: {disallowed}")
 
     job_id = str(request.get("id") or f"step14-development-{int(time.time())}")
-    control.safe_job_id = getattr(control, "safe_job_id", None)
     allowed_id_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.")
     if not job_id or len(job_id) > 96 or any(ch not in allowed_id_chars for ch in job_id):
         raise ValueError("Step-14 request id contains unsafe characters")
