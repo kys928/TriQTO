@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "id": "phase15-6-train-seed-42",
+  "id": "phase15-6-train-seed-2026",
   "kind": "compute",
   "task": {
     "runner": "phase15_6",
     "command": "train",
     "workspace": "/workspace/triqto-data/phase15_6",
-    "seed": 42
+    "seed": 2026
   },
   "gpu": {
     "type_ids": [
