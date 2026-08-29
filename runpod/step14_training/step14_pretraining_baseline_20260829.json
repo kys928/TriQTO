@@ -1,0 +1,12 @@
+{
+  "id": "step14-pretraining-baseline-20260829",
+  "operation": "evaluate_pretraining_baseline",
+  "gpu_type_ids": [
+    "NVIDIA GeForce RTX 5090",
+    "NVIDIA GeForce RTX 4090",
+    "NVIDIA GeForce RTX 3090"
+  ],
+  "container_disk_gb": 50,
+  "interruptible": false,
+  "progress_every": 5000
+}
