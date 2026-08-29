@@ -19,8 +19,7 @@
     "container_disk_gb": 50,
     "interruptible": false
   },
-  "limits": {
-    "max_hourly_usd": 2.0,
-    "timeout_minutes": 360
+  "lifecycle": {
+    "mode": "detached"
   }
 }
