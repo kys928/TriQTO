@@ -14,6 +14,7 @@ on:
 
 permissions:
   contents: read
+  actions: write
 
 concurrency:
   group: triqto-runpod-control-plane
@@ -89,6 +90,16 @@ jobs:
             fi
             python scripts/runpod_control_v2.py execute --job "$job"
           done < /tmp/runpod-jobs.txt
+
+      - name: Start continuous RunPod supervisor
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh workflow run runpod-supervisor.yml --ref main
+          echo "Supervisor dispatch accepted. If no detached jobs are active, it will exit immediately."
 
       - name: Upload downloaded S3 artifacts
         if: always()
