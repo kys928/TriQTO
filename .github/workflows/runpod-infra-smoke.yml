@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: read
+  actions: write
 
 concurrency:
   group: triqto-runpod-infra-smoke
@@ -67,3 +68,12 @@ jobs:
 
       - name: Launch detached infrastructure smoke Pod
         run: python scripts/runpod_infra_smoke.py --request "${{ steps.request.outputs.path }}"
+
+      - name: Start continuous RunPod supervisor
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh workflow run runpod-supervisor.yml --ref main
+          echo "Supervisor dispatch accepted."
