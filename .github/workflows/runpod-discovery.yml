@@ -13,7 +13,7 @@ permissions:
 jobs:
   discover:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     env:
       RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
       AWS_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
@@ -120,3 +120,86 @@ jobs:
               'objects': objects,
           }, indent=2, sort_keys=True))
           PY
+
+      - name: Inventory full network volume
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet boto3
+          python - <<'PY'
+          import heapq
+          import json
+          import os
+          from collections import defaultdict
+          import boto3
+          from botocore.config import Config
+
+          bucket = os.environ['DISCOVERY_NETWORK_VOLUME_ID']
+          endpoint = os.environ['DISCOVERY_S3_ENDPOINT']
+          region = os.environ['DISCOVERY_DATACENTER_ID'].lower()
+          client = boto3.client(
+              's3',
+              endpoint_url=endpoint,
+              region_name=region,
+              aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+              aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'],
+              config=Config(signature_version='s3v4'),
+          )
+
+          total_bytes = 0
+          object_count = 0
+          top_level = defaultdict(lambda: [0, 0])
+          triqto_second = defaultdict(lambda: [0, 0])
+          largest = []
+          paginator = client.get_paginator('list_objects_v2')
+          for page in paginator.paginate(Bucket=bucket):
+              for item in page.get('Contents', []):
+                  key = str(item.get('Key', ''))
+                  size = int(item.get('Size', 0))
+                  total_bytes += size
+                  object_count += 1
+                  top = key.split('/', 1)[0] or '<root>'
+                  top_level[top][0] += size
+                  top_level[top][1] += 1
+                  if key.startswith('triqto-data/'):
+                      rest = key[len('triqto-data/'):]
+                      second = rest.split('/', 1)[0] or '<root>'
+                      triqto_second[second][0] += size
+                      triqto_second[second][1] += 1
+                  entry = (size, key)
+                  if len(largest) < 30:
+                      heapq.heappush(largest, entry)
+                  elif size > largest[0][0]:
+                      heapq.heapreplace(largest, entry)
+
+          capacity_bytes = 150 * 1024**3
+          report = {
+              'object_count': object_count,
+              'used_gib': round(total_bytes / 1024**3, 3),
+              'capacity_gib': 150,
+              'estimated_free_gib': round(max(capacity_bytes - total_bytes, 0) / 1024**3, 3),
+              'top_level': [
+                  {'prefix': name, 'gib': round(values[0] / 1024**3, 3), 'objects': values[1]}
+                  for name, values in sorted(top_level.items(), key=lambda kv: kv[1][0], reverse=True)
+              ],
+              'triqto_data_children': [
+                  {'prefix': name, 'gib': round(values[0] / 1024**3, 3), 'objects': values[1]}
+                  for name, values in sorted(triqto_second.items(), key=lambda kv: kv[1][0], reverse=True)
+              ],
+              'largest_objects': [
+                  {'key': key, 'gib': round(size / 1024**3, 3), 'bytes': size}
+                  for size, key in sorted(largest, reverse=True)
+              ],
+          }
+          print(json.dumps(report, indent=2, sort_keys=False))
+          with open('runpod-volume-inventory.json', 'w', encoding='utf-8') as handle:
+              json.dump(report, handle, indent=2)
+              handle.write('\n')
+          PY
+
+      - name: Upload inventory report
+        uses: actions/upload-artifact@v4
+        with:
+          name: runpod-volume-inventory
+          path: runpod-volume-inventory.json
+          retention-days: 7
