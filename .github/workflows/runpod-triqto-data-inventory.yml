@@ -29,7 +29,7 @@ jobs:
       - name: Install boto3
         run: python -m pip install --quiet boto3
 
-      - name: Inventory triqto-data prefix
+      - name: Inventory triqto-data children in parallel
         shell: bash
         run: |
           set -euo pipefail
@@ -37,58 +37,90 @@ jobs:
           import heapq
           import json
           import os
-          from collections import defaultdict
+          from concurrent.futures import ThreadPoolExecutor, as_completed
           import boto3
           from botocore.config import Config
 
           bucket = os.environ['RUNPOD_NETWORK_VOLUME_ID']
           endpoint = os.environ['RUNPOD_S3_ENDPOINT']
           region = os.environ['RUNPOD_DATACENTER_ID'].lower()
-          client = boto3.client(
-              's3',
-              endpoint_url=endpoint,
-              region_name=region,
-              aws_access_key_id=os.environ['RUNPOD_S3_ACCESS_KEY_ID'],
-              aws_secret_access_key=os.environ['RUNPOD_S3_SECRET_ACCESS_KEY'],
-              config=Config(signature_version='s3v4'),
+
+          def make_client():
+              return boto3.client(
+                  's3',
+                  endpoint_url=endpoint,
+                  region_name=region,
+                  aws_access_key_id=os.environ['RUNPOD_S3_ACCESS_KEY_ID'],
+                  aws_secret_access_key=os.environ['RUNPOD_S3_SECRET_ACCESS_KEY'],
+                  config=Config(
+                      signature_version='s3v4',
+                      retries={'max_attempts': 8, 'mode': 'standard'},
+                      max_pool_connections=32,
+                  ),
+              )
+
+          root = 'triqto-data/'
+          discovery = make_client().list_objects_v2(
+              Bucket=bucket,
+              Prefix=root,
+              Delimiter='/',
+              MaxKeys=1000,
           )
+          prefixes = [str(x['Prefix']) for x in discovery.get('CommonPrefixes', [])]
+          root_objects = [
+              (str(x.get('Key', '')), int(x.get('Size', 0)))
+              for x in discovery.get('Contents', [])
+          ]
 
-          prefix = 'triqto-data/'
-          total = 0
-          count = 0
-          children = defaultdict(lambda: [0, 0])
-          largest = []
-          paginator = client.get_paginator('list_objects_v2')
-          for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
-              for item in page.get('Contents', []):
-                  key = str(item.get('Key', ''))
-                  size = int(item.get('Size', 0))
-                  total += size
-                  count += 1
-                  rest = key[len(prefix):]
-                  child = rest.split('/', 1)[0] or '<root>'
-                  children[child][0] += size
-                  children[child][1] += 1
-                  entry = (size, key)
-                  if len(largest) < 40:
-                      heapq.heappush(largest, entry)
-                  elif size > largest[0][0]:
-                      heapq.heapreplace(largest, entry)
+          def scan(prefix):
+              client = make_client()
+              paginator = client.get_paginator('list_objects_v2')
+              total = 0
+              count = 0
+              largest = []
+              for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+                  for item in page.get('Contents', []):
+                      size = int(item.get('Size', 0))
+                      key = str(item.get('Key', ''))
+                      total += size
+                      count += 1
+                      entry = (size, key)
+                      if len(largest) < 5:
+                          heapq.heappush(largest, entry)
+                      elif size > largest[0][0]:
+                          heapq.heapreplace(largest, entry)
+              return {
+                  'prefix': prefix,
+                  'bytes': total,
+                  'gib': round(total / 1024**3, 3),
+                  'objects': count,
+                  'largest': [
+                      {'key': key, 'gib': round(size / 1024**3, 3), 'bytes': size}
+                      for size, key in sorted(largest, reverse=True)
+                  ],
+              }
 
+          rows = []
+          with ThreadPoolExecutor(max_workers=min(16, max(1, len(prefixes)))) as pool:
+              futures = {pool.submit(scan, prefix): prefix for prefix in prefixes}
+              for future in as_completed(futures):
+                  row = future.result()
+                  rows.append(row)
+                  print(json.dumps({'finished': row['prefix'], 'gib': row['gib'], 'objects': row['objects']}), flush=True)
+
+          root_bytes = sum(size for _, size in root_objects)
+          total_bytes = root_bytes + sum(row['bytes'] for row in rows)
           report = {
-              'prefix': prefix,
-              'object_count': count,
-              'used_gib': round(total / 1024**3, 3),
-              'children': [
-                  {'name': name, 'gib': round(values[0] / 1024**3, 3), 'objects': values[1]}
-                  for name, values in sorted(children.items(), key=lambda kv: kv[1][0], reverse=True)
-              ],
-              'largest_objects': [
+              'prefix': root,
+              'used_gib': round(total_bytes / 1024**3, 3),
+              'object_count': sum(row['objects'] for row in rows) + len(root_objects),
+              'root_objects': [
                   {'key': key, 'gib': round(size / 1024**3, 3), 'bytes': size}
-                  for size, key in sorted(largest, reverse=True)
+                  for key, size in root_objects
               ],
+              'children': sorted(rows, key=lambda row: row['bytes'], reverse=True),
           }
-          print(json.dumps(report, indent=2))
+          print(json.dumps(report, indent=2), flush=True)
           with open('triqto-data-inventory.json', 'w', encoding='utf-8') as handle:
               json.dump(report, handle, indent=2)
               handle.write('\n')
