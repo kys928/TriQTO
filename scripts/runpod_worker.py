@@ -110,6 +110,40 @@ def build_phase15_6_command(job: dict[str, Any]) -> list[str]:
     return cmd
 
 
+def build_step14_cross_motif_command(job: dict[str, Any]) -> list[str]:
+    """Build the one enabled Step-14 operation: fit+selection generation only."""
+    task = job.get("task")
+    if not isinstance(task, dict):
+        raise ValueError("job.task must be an object")
+    if str(task.get("command", "")) != "generate_development":
+        raise ValueError("Step-14 RunPod runner enables only command='generate_development'")
+    if task.get("selection_freeze") is not None:
+        raise ValueError("Step-14 development generation may not consume a selection freeze")
+    requested_mode = task.get("mode")
+    if requested_mode not in {None, "development"}:
+        raise ValueError("Step-14 RunPod runner is hard-pinned to development mode")
+
+    output_parent = safe_workspace(task.get("workspace"))
+    cmd = [
+        sys.executable,
+        str(REPO_ROOT / "scripts" / "v0_2" / "generate_step14_cross_motif_dataset.py"),
+        "--mode",
+        "development",
+        "--output-parent",
+        str(output_parent),
+    ]
+
+    config = safe_config(task.get("config"))
+    if config is not None:
+        cmd.extend(["--config", config])
+
+    progress_every = int(task.get("progress_every", 25))
+    if progress_every < 1 or progress_every > 10000:
+        raise ValueError("task.progress_every must be between 1 and 10000")
+    cmd.extend(["--progress-every", str(progress_every)])
+    return cmd
+
+
 def gpu_snapshot() -> dict[str, Any]:
     try:
         result = subprocess.run(
@@ -216,8 +250,10 @@ def run() -> int:
     if not isinstance(task, dict):
         raise ValueError("job.task must be an object")
     runner = str(task.get("runner", ""))
-    if runner not in {"phase15_6", "infra_smoke"}:
-        raise ValueError("Only task.runner='phase15_6' or 'infra_smoke' is enabled")
+    if runner not in {"phase15_6", "infra_smoke", "step14_cross_motif"}:
+        raise ValueError(
+            "Only task.runner='phase15_6', 'infra_smoke', or 'step14_cross_motif' is enabled"
+        )
 
     run_dir = CONTROL_ROOT / job_id / control_run_id
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -225,7 +261,13 @@ def run() -> int:
     log_path = run_dir / "worker.log"
     atomic_json(run_dir / "job.json", job)
 
-    command = ["internal:infra_smoke"] if runner == "infra_smoke" else build_phase15_6_command(job)
+    if runner == "infra_smoke":
+        command = ["internal:infra_smoke"]
+    elif runner == "step14_cross_motif":
+        command = build_step14_cross_motif_command(job)
+    else:
+        command = build_phase15_6_command(job)
+
     started = {
         "schema_version": 2,
         "job_id": job_id,
