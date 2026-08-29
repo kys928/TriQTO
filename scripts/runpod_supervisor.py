@@ -19,6 +19,22 @@ import runpod_control_v2 as control
 HANDOFF_EXIT_CODE = 75
 
 
+def is_pending_status_error(exc: Exception) -> bool:
+    """Recognize RunPod S3's nonstandard missing-object response.
+
+    Before a worker writes status.json, RunPod's S3-compatible endpoint may
+    answer GetObject with InvalidArgument + "object not found" rather than a
+    normal 404/NoSuchKey.  That is a normal startup state, not a supervisor
+    transport failure.
+    """
+    text = str(exc).lower()
+    return (
+        "invalidargument" in text
+        and "getobject" in text
+        and "object not found" in text
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--poll-seconds", type=int, default=30)
@@ -50,19 +66,29 @@ def main() -> None:
             remaining = control.list_active_records()
             consecutive_errors = 0
         except Exception as exc:
-            consecutive_errors += 1
-            print(json.dumps({
-                "supervisor": "reconcile-error",
-                "consecutive_errors": consecutive_errors,
-                "max_consecutive_errors": args.max_consecutive_errors,
-                "error": repr(exc),
-                "checked_at": control.utc_now(),
-            }))
-            if consecutive_errors >= args.max_consecutive_errors:
-                raise
-            # Short bounded retry for transient RunPod/S3 failures.
-            time.sleep(min(args.poll_seconds * consecutive_errors, 120))
-            continue
+            if is_pending_status_error(exc):
+                remaining = control.list_active_records()
+                consecutive_errors = 0
+                print(json.dumps({
+                    "supervisor": "status-pending",
+                    "active_run_count": len(remaining),
+                    "checked_at": control.utc_now(),
+                    "message": "Worker status object has not been written yet; continuing normal polling.",
+                }))
+            else:
+                consecutive_errors += 1
+                print(json.dumps({
+                    "supervisor": "reconcile-error",
+                    "consecutive_errors": consecutive_errors,
+                    "max_consecutive_errors": args.max_consecutive_errors,
+                    "error": repr(exc),
+                    "checked_at": control.utc_now(),
+                }))
+                if consecutive_errors >= args.max_consecutive_errors:
+                    raise
+                # Short bounded retry for transient RunPod/S3 failures.
+                time.sleep(min(args.poll_seconds * consecutive_errors, 120))
+                continue
 
         if not remaining:
             print(json.dumps({
