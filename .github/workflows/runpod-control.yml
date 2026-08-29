@@ -22,7 +22,7 @@ concurrency:
 jobs:
   execute:
     runs-on: ubuntu-latest
-    timeout-minutes: 370
+    timeout-minutes: 60
     env:
       RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
       RUNPOD_S3_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
@@ -39,7 +39,6 @@ jobs:
       RUNPOD_IMAGE_NAME: ${{ vars.RUNPOD_IMAGE_NAME }}
       RUNPOD_TEMPLATE_ID: ${{ vars.RUNPOD_TEMPLATE_ID }}
       RUNPOD_CONTAINER_REGISTRY_AUTH_ID: ${{ vars.RUNPOD_CONTAINER_REGISTRY_AUTH_ID }}
-      RUNPOD_ACTIVE_PODS_FILE: .runpod-active-pods.json
       MANUAL_JOB_PATH: ${{ inputs.job_path }}
 
     steps:
@@ -88,7 +87,7 @@ jobs:
               echo "Skipping removed job manifest: $job"
               continue
             fi
-            python scripts/runpod_control.py execute --job "$job"
+            python scripts/runpod_control_v2.py execute --job "$job"
           done < /tmp/runpod-jobs.txt
 
       - name: Upload downloaded S3 artifacts
@@ -99,8 +98,3 @@ jobs:
           path: runpod_artifacts/
           if-no-files-found: ignore
           retention-days: 7
-
-      - name: Emergency Pod cleanup
-        if: always()
-        shell: bash
-        run: python scripts/runpod_control.py cleanup-active
