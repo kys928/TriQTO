@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "id": "audit-step14-pretraining-baseline",
+  "kind": "storage",
+  "storage": {
+    "operation": "read_text",
+    "path": "triqto-data/step14_cross_motif_training/pretraining_baselines/pretraining_fa722c1827f264841365f979/pretraining_baseline.json",
+    "max_bytes": 262144
+  }
+}
