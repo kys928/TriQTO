@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "id": "audit-step14-deep-list",
+  "kind": "storage",
+  "storage": {
+    "operation": "list",
+    "path": "triqto-data/step14_cross_motif_dataset/development_b087edfd6629ac250299391d/",
+    "max_items": 1000
+  }
+}
