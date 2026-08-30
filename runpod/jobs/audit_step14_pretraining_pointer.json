@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "id": "audit-step14-pretraining-pointer",
+  "kind": "storage",
+  "storage": {
+    "operation": "read_text",
+    "path": "triqto-data/step14_cross_motif_training/current_pretraining_baseline.json",
+    "max_bytes": 65536
+  }
+}
