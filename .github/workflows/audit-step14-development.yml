@@ -1,0 +1,69 @@
+name: TriQTO Step 14 Deep Cohort Audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/audit-step14-development.yml"
+      - "scripts/v0_2/audit_step14_development_cohort.py"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: triqto-step14-deep-cohort-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      RUNPOD_S3_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
+      RUNPOD_S3_SECRET_ACCESS_KEY: ${{ secrets.RUNPOD_S3_SECRET_ACCESS_KEY }}
+      RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
+      RUNPOD_DATACENTER_ID: ${{ vars.RUNPOD_DATACENTER_ID }}
+      RUNPOD_S3_ENDPOINT: ${{ vars.RUNPOD_S3_ENDPOINT }}
+
+    steps:
+      - name: Check out frozen audit code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install read-only audit dependencies
+        run: python -m pip install --disable-pip-version-check boto3 numpy scikit-learn
+
+      - name: Compile audit script
+        run: python -m py_compile scripts/v0_2/audit_step14_development_cohort.py
+
+      - name: Run independent manifest, leakage, shortcut and raw-artifact audit
+        run: |
+          set -euo pipefail
+          python -u scripts/v0_2/audit_step14_development_cohort.py \
+            --fit-sample-roots 48 \
+            --selection-sample-roots 24 \
+            --output-dir audit_artifacts/step14_deep
+
+      - name: Publish verdict to workflow summary
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f audit_artifacts/step14_deep/step14_deep_audit.md ]]; then
+            cat audit_artifacts/step14_deep/step14_deep_audit.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## Step-14 deep audit did not produce a verdict artifact" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload immutable audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: step14-deep-cohort-audit-${{ github.run_id }}
+          path: audit_artifacts/step14_deep/
+          if-no-files-found: warn
+          retention-days: 30
