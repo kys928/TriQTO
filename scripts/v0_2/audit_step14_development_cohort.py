@@ -256,16 +256,28 @@ def main() -> None:
     report_check(checks, "fit_selection_marginal_js_divergence", all(v<=0.10 for v in js.values()), js, severity="warning")
     if any(v>0.10 for v in js.values()): warnings.append(f"Fit/selection marginal JSD exceeds 0.10: {js}")
 
-    # Static feature-pipeline audit: actual model batch is assembled only from x__ arrays;
-    # y__ arrays become Step7Targets, and manifest metadata is not passed into the batch.
+    # Static feature-pipeline audit: prove the actual delegated call chain.
     repo = Path(__file__).resolve().parents[2]
     adapter_text = (repo/"src/triqto/step7/graph_adapter.py").read_text(encoding="utf-8")
     training_text = (repo/"scripts/v0_2/run_step14_cross_motif_training.py").read_text(encoding="utf-8")
+    materializer_text = (repo/"scripts/v0_2/run_step7_full_development_benchmark.py").read_text(encoding="utf-8")
     x_keys = sorted(set(re.findall(r'"(x__[A-Za-z0-9_]+)"', adapter_text)))
     y_keys = sorted(set(re.findall(r'"(y__[A-Za-z0-9_]+)"', adapter_text)))
     suspicious_inputs = [k for k in x_keys if any(tok in k.lower() for tok in FORBIDDEN_INPUT_TOKENS)]
-    pipeline_contract = ("batch_from_step5_examples(examples" in training_text and "smoke_runner.load_example(product, row)" in training_text and {"y__effect_present_target","y__mechanism_target","y__mechanism_loss_mask"} <= set(y_keys))
-    report_check(checks, "static_model_input_key_audit", not suspicious_inputs and pipeline_contract, {"x_keys":x_keys,"y_keys":y_keys,"suspicious_x_keys":suspicious_inputs})
+    expected_targets = {"y__effect_present_target","y__mechanism_target","y__mechanism_loss_mask"}
+    call_chain = {
+        "step14_delegates_to_step7_materializer": "step7.materialize_blocks(" in training_text,
+        "step7_materializer_loads_hashed_npz": "smoke_runner.load_example(product, row)" in materializer_text,
+        "step7_materializer_calls_graph_adapter": "batch_from_step5_examples(examples, device=\"cpu\")" in materializer_text,
+        "graph_adapter_exposes_expected_targets": expected_targets <= set(y_keys),
+    }
+    pipeline_contract = all(call_chain.values())
+    report_check(
+        checks,
+        "static_model_input_key_audit",
+        not suspicious_inputs and pipeline_contract,
+        {"x_keys":x_keys,"y_keys":y_keys,"suspicious_x_keys":suspicious_inputs,"delegated_call_chain":call_chain},
+    )
 
     # Metadata-only shortcut probe, trained on fit and tested on selection.
     distorted = [r for r in examples if r["mechanism"] in EXPECTED_MECHANISMS]
