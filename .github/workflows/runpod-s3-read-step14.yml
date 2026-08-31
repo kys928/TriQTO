@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   read-step14:
@@ -22,6 +22,8 @@ jobs:
       RUNPOD_S3_ENDPOINT: ${{ vars.RUNPOD_S3_ENDPOINT }}
 
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -36,7 +38,6 @@ jobs:
           python - <<'PY'
           import json
           import os
-          from pathlib import PurePosixPath
           import boto3
           from botocore.config import Config
 
@@ -57,37 +58,50 @@ jobs:
               return obj['Body'].read().decode('utf-8')
 
           root = 'triqto-data/step14_cross_motif_training'
-          pointer_key = f'{root}/current_training_run.json'
-          pointer_text = read_text(pointer_key)
+          pointer_text = read_text(f'{root}/current_training_run.json')
           pointer = json.loads(pointer_text)
           run_dir = str(pointer['run_dir'])
-          prefix = '/workspace/'
-          if not run_dir.startswith(prefix):
+          workspace_prefix = '/workspace/'
+          if not run_dir.startswith(workspace_prefix):
               raise RuntimeError(f'Unexpected run_dir: {run_dir!r}')
-          run_key = run_dir[len(prefix):].rstrip('/')
+          run_key = run_dir[len(workspace_prefix):].rstrip('/')
           if not run_key.startswith(root + '/training_'):
               raise RuntimeError(f'Refusing unexpected Step-14 run key: {run_key!r}')
 
-          os.makedirs('step14-s3-read', exist_ok=True)
-          with open('step14-s3-read/current_training_run.json', 'w', encoding='utf-8') as f:
+          output = 'runpod/step14_training/latest_s3_read'
+          os.makedirs(output, exist_ok=True)
+          with open(f'{output}/current_training_run.json', 'w', encoding='utf-8') as f:
               f.write(pointer_text)
 
           names = ['selection_freeze.json', 'training_history.json', 'training_complete.json']
           print('=== current_training_run.json ===')
           print(pointer_text)
           for name in names:
-              key = f'{run_key}/{name}'
-              text = read_text(key)
-              json.loads(text)  # validate JSON before exposing/uploading
-              with open(f'step14-s3-read/{name}', 'w', encoding='utf-8') as f:
+              text = read_text(f'{run_key}/{name}')
+              json.loads(text)
+              with open(f'{output}/{name}', 'w', encoding='utf-8') as f:
                   f.write(text)
               print(f'=== {name} ===')
               print(text)
           PY
 
+      - name: Commit read-only snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add runpod/step14_training/latest_s3_read/*.json
+          if git diff --cached --quiet; then
+            echo "Step-14 S3 snapshot unchanged."
+            exit 0
+          fi
+          git commit -m "Snapshot Step-14 training artifacts from RunPod S3"
+          git push
+
       - name: Upload Step-14 S3 read
         uses: actions/upload-artifact@v4
         with:
           name: step14-s3-read
-          path: step14-s3-read/*.json
+          path: runpod/step14_training/latest_s3_read/*.json
           retention-days: 3
