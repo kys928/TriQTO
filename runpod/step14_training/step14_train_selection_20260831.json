@@ -1,0 +1,12 @@
+{
+  "id": "step14-fit-selection-training",
+  "operation": "train_selection",
+  "gpu_type_ids": [
+    "NVIDIA GeForce RTX 3090",
+    "NVIDIA GeForce RTX 4090",
+    "NVIDIA GeForce RTX 5090"
+  ],
+  "container_disk_gb": 50,
+  "interruptible": false,
+  "progress_every": 1000
+}
