@@ -1,0 +1,17 @@
+{
+  "identity": {
+    "cross_dataset_sha256": "sha256:c471919d2c2a8ca2c206228ac59774f5708fc5182c17bbfb48eca6ecf9491280",
+    "outer_accessed": false,
+    "protocol_config_sha256": "sha256:fedb862d1baff9ecc9269530e38e6f965c37427bcb2182dcadccabfb101b75ab",
+    "qpu_accessed": false,
+    "schema": "triqto.v0_2.step14_training_run.v1",
+    "step10_dataset_sha256": "sha256:fc4b529677c5165c96ac191aee33622efdbba4fade3867795f9f84778e1ca3c4",
+    "step10c_model_selection_sha256": "sha256:1e4a2cd5445cfec8d30302475deb4dcb29e09a738ffa0524429b91bb1e7502c1"
+  },
+  "outer_accessed": false,
+  "qpu_executed": false,
+  "run_id": "training_18e0b4ed6e685af30b6c4a35",
+  "schema": "triqto.v0_2.step14_training_run.v1",
+  "selection_freeze_sha256": "sha256:af7ffaece77d16134c33b1c898afb7165c7ace5dcfccfea23f713ae242e4ed6f",
+  "status": "COMPLETE_SELECTION_FROZEN_BEFORE_OUTER"
+}

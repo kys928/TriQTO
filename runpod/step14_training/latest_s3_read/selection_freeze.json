@@ -1,0 +1,299 @@
+{
+  "all_three_seed_checkpoints_frozen": true,
+  "checkpoint_hashes": {
+    "step14__seed1701.pt": "sha256:53bfd75c341fb8f5549502a3c7f65a8a2d0531130f4cd6b4139dc3b3ce1cf6af",
+    "step14__seed1702.pt": "sha256:1c7bedf8535248b4830e340c28b86df041f5c8c0ae0301bd3bc3bfe1d1e74958",
+    "step14__seed1703.pt": "sha256:d27c21b14e01a50de76922b117b51b4df9684720bb5608ff15dc33f77d60e687"
+  },
+  "ensemble_effect_threshold": 0.25088146328926086,
+  "outer_accessed_before_freeze": false,
+  "protocol_config_sha256": "sha256:fedb862d1baff9ecc9269530e38e6f965c37427bcb2182dcadccabfb101b75ab",
+  "qpu_accessed": false,
+  "schema": "triqto.v0_2.step14_selection_freeze.v1",
+  "seeds": [
+    1701,
+    1702,
+    1703
+  ],
+  "selected_seed_records": {
+    "1701": {
+      "baseline_step10c_selection": {
+        "cross_motif": {
+          "effect_balanced_accuracy": 0.75125,
+          "effect_macro_f1": 0.5823575165051232,
+          "effect_threshold": 0.08267863094806671,
+          "mechanism_balanced_accuracy": 0.37527777777777777,
+          "mechanism_macro_f1": 0.3558348518495657,
+          "mechanism_recall": [
+            0.5233333333333333,
+            0.13625,
+            0.46625
+          ],
+          "minimum_mechanism_recall": 0.13625
+        },
+        "legacy_bridge": {
+          "effect_balanced_accuracy": 0.800245427551949,
+          "effect_macro_f1": 0.7643174760586514,
+          "effect_threshold": -0.8771854937076569,
+          "mechanism_balanced_accuracy": 0.7839041145471392,
+          "mechanism_macro_f1": 0.7809940901632991,
+          "mechanism_recall": [
+            0.8171875,
+            0.7157748436414176,
+            0.81875
+          ],
+          "minimum_mechanism_recall": 0.7157748436414176
+        },
+        "legacy_original": {
+          "effect_balanced_accuracy": 0.7210873113775234,
+          "effect_macro_f1": 0.6429848159862337,
+          "effect_threshold": 0.04811073839664459,
+          "mechanism_balanced_accuracy": 0.5047486681164125,
+          "mechanism_macro_f1": 0.4943424911219978,
+          "mechanism_recall": [
+            0.616094606287857,
+            0.5352199323285143,
+            0.36293146573286644
+          ],
+          "minimum_mechanism_recall": 0.36293146573286644
+        }
+      },
+      "checkpoint": "step14__seed1701.pt",
+      "checkpoint_sha256": "sha256:53bfd75c341fb8f5549502a3c7f65a8a2d0531130f4cd6b4139dc3b3ce1cf6af",
+      "selected_epoch": 14,
+      "selection": {
+        "cross_motif": {
+          "effect_balanced_accuracy": 0.767986111111111,
+          "effect_macro_f1": 0.5981992540065506,
+          "effect_threshold": 0.300007164478302,
+          "mechanism_balanced_accuracy": 0.5076388888888889,
+          "mechanism_macro_f1": 0.5071589358349239,
+          "mechanism_recall": [
+            0.46166666666666667,
+            0.51375,
+            0.5475
+          ],
+          "minimum_mechanism_recall": 0.46166666666666667
+        },
+        "legacy_bridge": {
+          "effect_balanced_accuracy": 0.8026802471348272,
+          "effect_macro_f1": 0.7669100644912086,
+          "effect_threshold": -1.1051062941551208,
+          "mechanism_balanced_accuracy": 0.7782095132615242,
+          "mechanism_macro_f1": 0.7783846822010876,
+          "mechanism_recall": [
+            0.76015625,
+            0.7400972897845726,
+            0.834375
+          ],
+          "minimum_mechanism_recall": 0.7400972897845726
+        },
+        "legacy_original": {
+          "effect_balanced_accuracy": 0.7164396136781571,
+          "effect_macro_f1": 0.638404119812336,
+          "effect_threshold": -0.12572075426578522,
+          "mechanism_balanced_accuracy": 0.5011023370049389,
+          "mechanism_macro_f1": 0.49710299546614983,
+          "mechanism_recall": [
+            0.5197577156042689,
+            0.5478314364810828,
+            0.43571785892946474
+          ],
+          "minimum_mechanism_recall": 0.43571785892946474
+        }
+      }
+    },
+    "1702": {
+      "baseline_step10c_selection": {
+        "cross_motif": {
+          "effect_balanced_accuracy": 0.74,
+          "effect_macro_f1": 0.5723201389132221,
+          "effect_threshold": -0.01185536291450262,
+          "mechanism_balanced_accuracy": 0.39291666666666664,
+          "mechanism_macro_f1": 0.3755204830125751,
+          "mechanism_recall": [
+            0.41791666666666666,
+            0.17666666666666667,
+            0.5841666666666666
+          ],
+          "minimum_mechanism_recall": 0.17666666666666667
+        },
+        "legacy_bridge": {
+          "effect_balanced_accuracy": 0.8007843367996317,
+          "effect_macro_f1": 0.7650889234699102,
+          "effect_threshold": -1.0317824482917786,
+          "mechanism_balanced_accuracy": 0.7862833951046251,
+          "mechanism_macro_f1": 0.7842285515387847,
+          "mechanism_recall": [
+            0.796875,
+            0.744266851980542,
+            0.8177083333333334
+          ],
+          "minimum_mechanism_recall": 0.744266851980542
+        },
+        "legacy_original": {
+          "effect_balanced_accuracy": 0.7167051870649908,
+          "effect_macro_f1": 0.6386003726645411,
+          "effect_threshold": -0.05356627702713013,
+          "mechanism_balanced_accuracy": 0.5073441869272507,
+          "mechanism_macro_f1": 0.5005540914869201,
+          "mechanism_recall": [
+            0.6590712431496971,
+            0.43924946170409107,
+            0.423711855927964
+          ],
+          "minimum_mechanism_recall": 0.423711855927964
+        }
+      },
+      "checkpoint": "step14__seed1702.pt",
+      "checkpoint_sha256": "sha256:1c7bedf8535248b4830e340c28b86df041f5c8c0ae0301bd3bc3bfe1d1e74958",
+      "selected_epoch": 13,
+      "selection": {
+        "cross_motif": {
+          "effect_balanced_accuracy": 0.7651388888888888,
+          "effect_macro_f1": 0.5957302149529887,
+          "effect_threshold": 0.25955480337142944,
+          "mechanism_balanced_accuracy": 0.5126388888888889,
+          "mechanism_macro_f1": 0.5130570569765204,
+          "mechanism_recall": [
+            0.5183333333333333,
+            0.54375,
+            0.47583333333333333
+          ],
+          "minimum_mechanism_recall": 0.47583333333333333
+        },
+        "legacy_bridge": {
+          "effect_balanced_accuracy": 0.8025945467635218,
+          "effect_macro_f1": 0.7672364569720433,
+          "effect_threshold": -1.0908425450325012,
+          "mechanism_balanced_accuracy": 0.7818587247123775,
+          "mechanism_macro_f1": 0.7820144533298402,
+          "mechanism_recall": [
+            0.76484375,
+            0.7546907574704657,
+            0.8260416666666667
+          ],
+          "minimum_mechanism_recall": 0.7546907574704657
+        },
+        "legacy_original": {
+          "effect_balanced_accuracy": 0.709157591411177,
+          "effect_macro_f1": 0.6310618128970873,
+          "effect_threshold": -0.07619553059339523,
+          "mechanism_balanced_accuracy": 0.5087417901181416,
+          "mechanism_macro_f1": 0.5056906364519663,
+          "mechanism_recall": [
+            0.49754831266224403,
+            0.5604429406336512,
+            0.46823411705852924
+          ],
+          "minimum_mechanism_recall": 0.46823411705852924
+        }
+      }
+    },
+    "1703": {
+      "baseline_step10c_selection": {
+        "cross_motif": {
+          "effect_balanced_accuracy": 0.7552083333333334,
+          "effect_macro_f1": 0.5854748770751977,
+          "effect_threshold": 0.01936766318976879,
+          "mechanism_balanced_accuracy": 0.3969444444444445,
+          "mechanism_macro_f1": 0.369934439918993,
+          "mechanism_recall": [
+            0.6104166666666667,
+            0.13,
+            0.4504166666666667
+          ],
+          "minimum_mechanism_recall": 0.13
+        },
+        "legacy_bridge": {
+          "effect_balanced_accuracy": 0.8024757241748697,
+          "effect_macro_f1": 0.766841236534934,
+          "effect_threshold": -1.0866842865943909,
+          "mechanism_balanced_accuracy": 0.7896697769477261,
+          "mechanism_macro_f1": 0.7854679982457778,
+          "mechanism_recall": [
+            0.81796875,
+            0.7484364141765114,
+            0.8026041666666667
+          ],
+          "minimum_mechanism_recall": 0.7484364141765114
+        },
+        "legacy_original": {
+          "effect_balanced_accuracy": 0.7193107479919383,
+          "effect_macro_f1": 0.6410194901342875,
+          "effect_threshold": -0.007430972531437874,
+          "mechanism_balanced_accuracy": 0.502570017648787,
+          "mechanism_macro_f1": 0.4908950204836315,
+          "mechanism_recall": [
+            0.6547447360830689,
+            0.49953860350661333,
+            0.35342671335667836
+          ],
+          "minimum_mechanism_recall": 0.35342671335667836
+        }
+      },
+      "checkpoint": "step14__seed1703.pt",
+      "checkpoint_sha256": "sha256:d27c21b14e01a50de76922b117b51b4df9684720bb5608ff15dc33f77d60e687",
+      "selected_epoch": 14,
+      "selection": {
+        "cross_motif": {
+          "effect_balanced_accuracy": 0.7661805555555556,
+          "effect_macro_f1": 0.5963825046291562,
+          "effect_threshold": 0.274943009018898,
+          "mechanism_balanced_accuracy": 0.5083333333333334,
+          "mechanism_macro_f1": 0.5085293037267044,
+          "mechanism_recall": [
+            0.5583333333333333,
+            0.46791666666666665,
+            0.49875
+          ],
+          "minimum_mechanism_recall": 0.46791666666666665
+        },
+        "legacy_bridge": {
+          "effect_balanced_accuracy": 0.8047060207977903,
+          "effect_macro_f1": 0.7693705695979364,
+          "effect_threshold": -1.1936866641044617,
+          "mechanism_balanced_accuracy": 0.7860790793181994,
+          "mechanism_macro_f1": 0.7841680677844304,
+          "mechanism_recall": [
+            0.79921875,
+            0.7366226546212647,
+            0.8223958333333333
+          ],
+          "minimum_mechanism_recall": 0.7366226546212647
+        },
+        "legacy_original": {
+          "effect_balanced_accuracy": 0.7178751808350476,
+          "effect_macro_f1": 0.6397110228145326,
+          "effect_threshold": -0.09036655724048615,
+          "mechanism_balanced_accuracy": 0.5060175955618663,
+          "mechanism_macro_f1": 0.5025431288419693,
+          "mechanism_recall": [
+            0.5682145947505047,
+            0.502614580129191,
+            0.447223611805903
+          ],
+          "minimum_mechanism_recall": 0.447223611805903
+        }
+      }
+    }
+  },
+  "status": "FROZEN_BEFORE_ANY_STEP14_OUTER_MATERIALIZATION",
+  "step10c_threshold_reference": -0.125638447701931,
+  "step12_data_used_for_selection": false,
+  "threshold_selection": {
+    "domain_balanced_accuracy": {
+      "cross_motif": 0.7707638888888889,
+      "legacy_bridge": 0.8170268797565221,
+      "legacy_original": 0.7114705313232779
+    },
+    "domain_false_positive_rate": {
+      "cross_motif": 0.23333333333333334,
+      "legacy_bridge": 0.04497189256714553,
+      "legacy_original": 0.1295971978984238
+    },
+    "objective_macro_effect_balanced_accuracy": 0.7664204333228963,
+    "step10c_threshold_reference": -0.125638447701931
+  },
+  "training_run_id": "training_18e0b4ed6e685af30b6c4a35"
+}
