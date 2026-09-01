@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "id": "audit-step14-current-training-pointer-20260901",
+  "kind": "storage",
+  "storage": {
+    "operation": "read_text",
+    "path": "triqto-data/step14_cross_motif_training/current_training_run.json"
+  }
+}
