@@ -19,6 +19,11 @@ import runpod_reconcile_hardened as hardened
 
 HANDOFF_EXIT_CODE = 75
 
+# Keep the original supervisor/control seam for existing tests and callers, but
+# route that seam to the lifecycle-aware implementation in production.
+control.reconcile_detached = hardened.reconcile_detached
+is_pending_status_error = hardened.is_pending_status_error
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -46,7 +51,7 @@ def main() -> None:
 
     while True:
         try:
-            hardened.reconcile_detached()
+            control.reconcile_detached()
             remaining = control.list_active_records()
             consecutive_errors = 0
         except Exception as exc:
