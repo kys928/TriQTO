@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Launch frozen Step-14 baseline, selection training, or one-shot outer evaluation."""
+"""Launch frozen Step-14 baseline, training, outer evaluation, or decomposition."""
 from __future__ import annotations
 
 import argparse
@@ -14,7 +14,12 @@ import runpod_control_v2 as control
 
 WORKSPACE = "/workspace/triqto-data/step14_cross_motif_training"
 CONFIG = "configs/v0_2/step14_cross_motif_generalization_training.json"
-ALLOWED_OPERATIONS = {"evaluate_pretraining_baseline", "train_selection", "evaluate_outer"}
+ALLOWED_OPERATIONS = {
+    "evaluate_pretraining_baseline",
+    "train_selection",
+    "evaluate_outer",
+    "decompose_representation",
+}
 ALLOWED_REQUEST_KEYS = {
     "id",
     "operation",
@@ -37,15 +42,15 @@ def load_request(path: Path) -> dict:
     operation = str(value.get("operation", ""))
     if operation not in ALLOWED_OPERATIONS:
         raise ValueError(f"Unsupported Step-14 operation: {operation!r}")
-    if operation == "evaluate_outer":
+    if operation in {"evaluate_outer", "decompose_representation"}:
         run_id = str(value.get("expected_training_run_id", ""))
         freeze_sha = str(value.get("expected_selection_freeze_sha256", ""))
         if not run_id.startswith("training_"):
-            raise ValueError("evaluate_outer requires expected_training_run_id")
+            raise ValueError(f"{operation} requires expected_training_run_id")
         if not freeze_sha.startswith("sha256:") or len(freeze_sha) != 71:
-            raise ValueError("evaluate_outer requires expected_selection_freeze_sha256")
+            raise ValueError(f"{operation} requires expected_selection_freeze_sha256")
     elif value.get("expected_training_run_id") is not None or value.get("expected_selection_freeze_sha256") is not None:
-        raise ValueError("frozen selection identifiers are only allowed for evaluate_outer")
+        raise ValueError("frozen selection identifiers are only allowed for post-selection operations")
     return value
 
 
@@ -73,6 +78,7 @@ def main() -> None:
         "evaluate_pretraining_baseline": "step14-pretraining-baseline",
         "train_selection": "step14-fit-selection-training",
         "evaluate_outer": "step14-frozen-outer-evaluation",
+        "decompose_representation": "step14-representation-decomposition",
     }
     job_id = str(request.get("id") or f"{defaults[operation]}-{int(time.time())}")
     allowed_id_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.")
@@ -93,7 +99,7 @@ def main() -> None:
         "config": CONFIG,
         "progress_every": progress_every,
     }
-    if operation == "evaluate_outer":
+    if operation in {"evaluate_outer", "decompose_representation"}:
         task["expected_training_run_id"] = str(request["expected_training_run_id"])
         task["expected_selection_freeze_sha256"] = str(request["expected_selection_freeze_sha256"])
 
@@ -162,7 +168,7 @@ def main() -> None:
             "workspace": WORKSPACE,
             "protocol_config": CONFIG,
         }
-        if operation == "evaluate_outer":
+        if operation in {"evaluate_outer", "decompose_representation"}:
             record["expected_training_run_id"] = task["expected_training_run_id"]
             record["expected_selection_freeze_sha256"] = task["expected_selection_freeze_sha256"]
         control.internal_put_json(control.active_key(control_run_id), record)
