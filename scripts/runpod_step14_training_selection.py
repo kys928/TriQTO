@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Launch frozen Step-14 baseline, training, outer evaluation, or decomposition."""
+"""Launch frozen Step-14 baseline, training, outer evaluation, or diagnostics."""
 from __future__ import annotations
 
 import argparse
@@ -19,6 +19,12 @@ ALLOWED_OPERATIONS = {
     "train_selection",
     "evaluate_outer",
     "decompose_representation",
+    "decompose_oracle_raw_evidence",
+}
+POST_SELECTION_OPERATIONS = {
+    "evaluate_outer",
+    "decompose_representation",
+    "decompose_oracle_raw_evidence",
 }
 ALLOWED_REQUEST_KEYS = {
     "id",
@@ -42,7 +48,7 @@ def load_request(path: Path) -> dict:
     operation = str(value.get("operation", ""))
     if operation not in ALLOWED_OPERATIONS:
         raise ValueError(f"Unsupported Step-14 operation: {operation!r}")
-    if operation in {"evaluate_outer", "decompose_representation"}:
+    if operation in POST_SELECTION_OPERATIONS:
         run_id = str(value.get("expected_training_run_id", ""))
         freeze_sha = str(value.get("expected_selection_freeze_sha256", ""))
         if not run_id.startswith("training_"):
@@ -79,6 +85,7 @@ def main() -> None:
         "train_selection": "step14-fit-selection-training",
         "evaluate_outer": "step14-frozen-outer-evaluation",
         "decompose_representation": "step14-representation-decomposition",
+        "decompose_oracle_raw_evidence": "step14-oracle-raw-evidence",
     }
     job_id = str(request.get("id") or f"{defaults[operation]}-{int(time.time())}")
     allowed_id_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.")
@@ -99,7 +106,7 @@ def main() -> None:
         "config": CONFIG,
         "progress_every": progress_every,
     }
-    if operation in {"evaluate_outer", "decompose_representation"}:
+    if operation in POST_SELECTION_OPERATIONS:
         task["expected_training_run_id"] = str(request["expected_training_run_id"])
         task["expected_selection_freeze_sha256"] = str(request["expected_selection_freeze_sha256"])
 
@@ -168,7 +175,7 @@ def main() -> None:
             "workspace": WORKSPACE,
             "protocol_config": CONFIG,
         }
-        if operation in {"evaluate_outer", "decompose_representation"}:
+        if operation in POST_SELECTION_OPERATIONS:
             record["expected_training_run_id"] = task["expected_training_run_id"]
             record["expected_selection_freeze_sha256"] = task["expected_selection_freeze_sha256"]
         control.internal_put_json(control.active_key(control_run_id), record)
