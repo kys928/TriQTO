@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "id": "audit-step14-representation-decomposition-status-read-20260901",
+  "kind": "storage",
+  "storage": {
+    "operation": "read_text",
+    "path": "triqto-control/runs/step14-representation-decomposition-20260901/run-1788256287-f104088d/status.json"
+  }
+}
