@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "id": "audit-step14-representation-decomposition-status-retry-20260901",
+  "kind": "storage",
+  "storage": {
+    "operation": "list",
+    "path": "triqto-control/runs/step14-representation-decomposition-20260901/run-1788256287-f104088d/",
+    "max_items": 100
+  }
+}
