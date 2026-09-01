@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "id": "audit-step7-decision-20260901",
+  "kind": "storage",
+  "storage": {
+    "operation": "read_text",
+    "path": "triqto-data/step7_structured_diagnostic_benchmark/benchmark_9989fbf9ef9feeaf283fe23f/decision.json",
+    "max_bytes": 65536
+  }
+}
