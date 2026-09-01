@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "id": "audit-step14-decomposition-outputs-20260901",
+  "kind": "storage",
+  "storage": {
+    "operation": "list",
+    "path": "triqto-data/step14_representation_decomposition/",
+    "max_items": 1000
+  }
+}
