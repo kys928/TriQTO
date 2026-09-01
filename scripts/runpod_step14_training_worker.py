@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""Restricted RunPod worker for Step-14 baseline and fit/selection training only."""
+"""Restricted RunPod worker for frozen Step-14 scientific operations.
+
+Allowed stages are deliberately typed: pretraining baseline, fit/selection
+training, or the one-shot post-selection outer evaluation pipeline.
+"""
 from __future__ import annotations
 
-import json
 from pathlib import Path
 import sys
 import traceback
@@ -13,7 +16,7 @@ import runpod_worker as common
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONTROL_ROOT = Path("/workspace/triqto-control/runs")
 CONFIG = "configs/v0_2/step14_cross_motif_generalization_training.json"
-ALLOWED_OPERATIONS = {"evaluate_pretraining_baseline", "train_selection"}
+ALLOWED_OPERATIONS = {"evaluate_pretraining_baseline", "train_selection", "evaluate_outer"}
 
 
 def build_command(job: dict[str, Any]) -> list[str]:
@@ -21,22 +24,42 @@ def build_command(job: dict[str, Any]) -> list[str]:
     if not isinstance(task, dict):
         raise ValueError("job.task must be an object")
     if str(task.get("runner", "")) != "step14_training_selection":
-        raise ValueError("Step-14 training worker requires runner='step14_training_selection'")
+        raise ValueError("Step-14 worker requires runner='step14_training_selection'")
 
     operation = str(task.get("command", ""))
     if operation not in ALLOWED_OPERATIONS:
-        raise ValueError(f"Unsupported Step-14 training operation: {operation!r}")
-    if task.get("selection_freeze") is not None:
-        raise ValueError("Baseline/training stage may not consume a Step-14 selection freeze")
+        raise ValueError(f"Unsupported Step-14 operation: {operation!r}")
 
     workspace = common.safe_workspace(task.get("workspace"))
     config = common.safe_config(task.get("config"))
     if config != CONFIG:
-        raise ValueError("Step-14 training worker is hard-pinned to the frozen Step-14 config")
+        raise ValueError("Step-14 worker is hard-pinned to the frozen Step-14 config")
 
     progress_every = int(task.get("progress_every", 5000))
     if progress_every < 1 or progress_every > 100000:
         raise ValueError("task.progress_every must be between 1 and 100000")
+
+    if operation == "evaluate_outer":
+        run_id = str(task.get("expected_training_run_id", ""))
+        freeze_sha = str(task.get("expected_selection_freeze_sha256", ""))
+        if not run_id.startswith("training_") or len(run_id) > 96:
+            raise ValueError("outer evaluation requires a frozen Step-14 training run id")
+        if not freeze_sha.startswith("sha256:") or len(freeze_sha) != 71:
+            raise ValueError("outer evaluation requires the frozen selection-freeze SHA-256")
+        script = REPO_ROOT / "scripts" / "v0_2" / "run_step14_frozen_outer_pipeline.py"
+        return [
+            sys.executable,
+            str(script),
+            "--training-run-id",
+            run_id,
+            "--selection-freeze-sha256",
+            freeze_sha,
+            "--progress-every",
+            str(progress_every),
+        ]
+
+    if task.get("expected_training_run_id") is not None or task.get("expected_selection_freeze_sha256") is not None:
+        raise ValueError("baseline/training stage may not consume a Step-14 selection freeze")
 
     if operation == "evaluate_pretraining_baseline":
         script = REPO_ROOT / "scripts" / "v0_2" / "evaluate_step14_pretraining_baseline.py"
