@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "id": "audit-step14-training-worker-status-20260901",
+  "kind": "storage",
+  "storage": {
+    "operation": "read_text",
+    "path": "triqto-control/runs/step14-fit-selection-training/run-1788198552-fd485fc3/status.json",
+    "max_bytes": 65536
+  }
+}

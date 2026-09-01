@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "id": "audit-step14-selection-freeze-20260901",
+  "kind": "storage",
+  "storage": {
+    "operation": "read_text",
+    "path": "triqto-data/step14_cross_motif_training/training_18e0b4ed6e685af30b6c4a35/selection_freeze.json",
+    "max_bytes": 1048576
+  }
+}
