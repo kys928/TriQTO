@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "id": "audit-step14-outer-result-20260901",
+  "kind": "storage",
+  "storage": {
+    "operation": "read_text",
+    "path": "triqto-data/step14_outer_evaluation/evaluation_eccb0c977a9f94f61a015109/outer_result.json",
+    "max_bytes": 1048576
+  }
+}
