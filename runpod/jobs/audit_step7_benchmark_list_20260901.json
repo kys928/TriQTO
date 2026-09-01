@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "id": "audit-step7-benchmark-list-20260901",
+  "kind": "storage",
+  "storage": {
+    "operation": "list",
+    "path": "triqto-data/step7_structured_diagnostic_benchmark/",
+    "max_items": 1000
+  }
+}
