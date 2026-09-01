@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "id": "audit-step14-decomposition-complete-20260901",
+  "kind": "storage",
+  "storage": {
+    "operation": "read_text",
+    "path": "triqto-data/step14_representation_decomposition/decomposition_7428900d1ab271f9d3cf88ae/decomposition_complete.json"
+  }
+}
