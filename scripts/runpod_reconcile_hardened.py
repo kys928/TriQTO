@@ -14,8 +14,6 @@ import argparse
 import json
 from typing import Any
 
-from botocore.exceptions import ClientError
-
 import runpod_control_v2 as control
 
 TERMINAL_WORKER_STATES = {"completed", "failed"}
@@ -23,15 +21,14 @@ TERMINAL_POD_STATES = {"EXITED", "TERMINATED"}
 
 
 def is_pending_status_error(exc: Exception) -> bool:
-    if isinstance(exc, ClientError):
-        code = str(exc.response.get("Error", {}).get("Code", ""))
-        if code in {"404", "NoSuchKey", "NotFound"}:
-            return True
     text = str(exc).lower()
     return (
-        "invalidargument" in text
-        and "getobject" in text
-        and "object not found" in text
+        any(token in text for token in ("nosuchkey", "notfound", "http 404", "404"))
+        or (
+            "invalidargument" in text
+            and "getobject" in text
+            and "object not found" in text
+        )
     )
 
 
