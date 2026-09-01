@@ -8,6 +8,10 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import runpod_step14_training_worker as worker  # noqa: E402
 
 
+FROZEN_RUN = "training_18e0b4ed6e685af30b6c4a35"
+FROZEN_SHA = "sha256:af7ffaece77d16134c33b1c898afb7165c7ace5dcfccfea23f713ae242e4ed6f"
+
+
 def make_job(operation: str) -> dict:
     return {
         "task": {
@@ -18,6 +22,13 @@ def make_job(operation: str) -> dict:
             "progress_every": 5000,
         }
     }
+
+
+def frozen_job(operation: str) -> dict:
+    job = make_job(operation)
+    job["task"]["expected_training_run_id"] = FROZEN_RUN
+    job["task"]["expected_selection_freeze_sha256"] = FROZEN_SHA
+    return job
 
 
 def test_pretraining_baseline_is_a_dedicated_typed_operation() -> None:
@@ -35,21 +46,25 @@ def test_fit_selection_training_is_a_dedicated_typed_operation() -> None:
 
 
 def test_outer_evaluation_is_typed_and_hash_pinned() -> None:
-    job = make_job("evaluate_outer")
-    job["task"]["expected_training_run_id"] = "training_18e0b4ed6e685af30b6c4a35"
-    job["task"]["expected_selection_freeze_sha256"] = (
-        "sha256:af7ffaece77d16134c33b1c898afb7165c7ace5dcfccfea23f713ae242e4ed6f"
-    )
-    command = worker.build_command(job)
+    command = worker.build_command(frozen_job("evaluate_outer"))
     assert command[1].endswith("scripts/v0_2/run_step14_frozen_outer_pipeline.py")
-    assert command[command.index("--training-run-id") + 1] == "training_18e0b4ed6e685af30b6c4a35"
-    assert command[command.index("--selection-freeze-sha256") + 1].startswith("sha256:")
+    assert command[command.index("--training-run-id") + 1] == FROZEN_RUN
+    assert command[command.index("--selection-freeze-sha256") + 1] == FROZEN_SHA
     assert "--device" not in command
 
 
-def test_outer_evaluation_requires_frozen_identifiers() -> None:
+def test_representation_decomposition_is_typed_hash_pinned_and_cuda() -> None:
+    command = worker.build_command(frozen_job("decompose_representation"))
+    assert command[1].endswith("scripts/v0_2/analyze_step14_representation_fusion_head.py")
+    assert command[command.index("--training-run-id") + 1] == FROZEN_RUN
+    assert command[command.index("--selection-freeze-sha256") + 1] == FROZEN_SHA
+    assert command[command.index("--device") + 1] == "cuda"
+
+
+@pytest.mark.parametrize("operation", ["evaluate_outer", "decompose_representation"])
+def test_postselection_operations_require_frozen_identifiers(operation: str) -> None:
     with pytest.raises(ValueError, match="training run id"):
-        worker.build_command(make_job("evaluate_outer"))
+        worker.build_command(make_job(operation))
 
 
 @pytest.mark.parametrize("operation", ["outer", "future_hardware", "qpu", "shell", "all"])
