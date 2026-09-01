@@ -2,7 +2,8 @@
 """Restricted RunPod worker for frozen Step-14 scientific operations.
 
 Allowed stages are deliberately typed: pretraining baseline, fit/selection
-training, or the one-shot post-selection outer evaluation pipeline.
+training, one-shot post-selection outer evaluation, or a post-outer frozen
+representation/fusion/head decomposition that never updates the main model.
 """
 from __future__ import annotations
 
@@ -16,7 +17,12 @@ import runpod_worker as common
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONTROL_ROOT = Path("/workspace/triqto-control/runs")
 CONFIG = "configs/v0_2/step14_cross_motif_generalization_training.json"
-ALLOWED_OPERATIONS = {"evaluate_pretraining_baseline", "train_selection", "evaluate_outer"}
+ALLOWED_OPERATIONS = {
+    "evaluate_pretraining_baseline",
+    "train_selection",
+    "evaluate_outer",
+    "decompose_representation",
+}
 
 
 def build_command(job: dict[str, Any]) -> list[str]:
@@ -39,14 +45,26 @@ def build_command(job: dict[str, Any]) -> list[str]:
     if progress_every < 1 or progress_every > 100000:
         raise ValueError("task.progress_every must be between 1 and 100000")
 
-    if operation == "evaluate_outer":
+    if operation in {"evaluate_outer", "decompose_representation"}:
         run_id = str(task.get("expected_training_run_id", ""))
         freeze_sha = str(task.get("expected_selection_freeze_sha256", ""))
         if not run_id.startswith("training_") or len(run_id) > 96:
-            raise ValueError("outer evaluation requires a frozen Step-14 training run id")
+            raise ValueError("post-selection Step-14 operation requires a frozen training run id")
         if not freeze_sha.startswith("sha256:") or len(freeze_sha) != 71:
-            raise ValueError("outer evaluation requires the frozen selection-freeze SHA-256")
-        script = REPO_ROOT / "scripts" / "v0_2" / "run_step14_frozen_outer_pipeline.py"
+            raise ValueError("post-selection Step-14 operation requires the frozen selection-freeze SHA-256")
+        if operation == "evaluate_outer":
+            script = REPO_ROOT / "scripts" / "v0_2" / "run_step14_frozen_outer_pipeline.py"
+            return [
+                sys.executable,
+                str(script),
+                "--training-run-id",
+                run_id,
+                "--selection-freeze-sha256",
+                freeze_sha,
+                "--progress-every",
+                str(progress_every),
+            ]
+        script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_representation_fusion_head.py"
         return [
             sys.executable,
             str(script),
@@ -54,6 +72,8 @@ def build_command(job: dict[str, Any]) -> list[str]:
             run_id,
             "--selection-freeze-sha256",
             freeze_sha,
+            "--device",
+            "cuda",
             "--progress-every",
             str(progress_every),
         ]
