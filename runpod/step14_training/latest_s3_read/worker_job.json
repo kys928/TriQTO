@@ -1,22 +1,24 @@
 {
-  "_control_run_id": "run-1788198552-fd485fc3",
+  "_control_run_id": "run-1788337802-5bd8b2cc",
   "gpu": {
     "count": 1,
     "type_ids": [
-      "NVIDIA GeForce RTX 3090",
+      "NVIDIA GeForce RTX 5090",
       "NVIDIA GeForce RTX 4090",
-      "NVIDIA GeForce RTX 5090"
+      "NVIDIA GeForce RTX 3090"
     ]
   },
-  "id": "step14-fit-selection-training",
+  "id": "step14-oracle-raw-evidence-20260902",
   "kind": "compute",
   "lifecycle": {
     "mode": "detached"
   },
   "task": {
-    "command": "train_selection",
+    "command": "decompose_oracle_raw_evidence",
     "config": "configs/v0_2/step14_cross_motif_generalization_training.json",
-    "progress_every": 1000,
+    "expected_selection_freeze_sha256": "sha256:af7ffaece77d16134c33b1c898afb7165c7ace5dcfccfea23f713ae242e4ed6f",
+    "expected_training_run_id": "training_18e0b4ed6e685af30b6c4a35",
+    "progress_every": 5000,
     "runner": "step14_training_selection",
     "workspace": "/workspace/triqto-data/step14_cross_motif_training"
   },

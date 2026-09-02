@@ -1,27 +1,27 @@
 {
   "command": [
     "/usr/local/bin/python",
-    "/opt/TriQTO/scripts/v0_2/run_step14_cross_motif_training.py",
-    "--config",
-    "configs/v0_2/step14_cross_motif_generalization_training.json",
-    "--output-parent",
-    "/workspace/triqto-data/step14_cross_motif_training",
+    "/opt/TriQTO/scripts/v0_2/analyze_step14_oracle_raw_evidence_ceiling.py",
+    "--training-run-id",
+    "training_18e0b4ed6e685af30b6c4a35",
+    "--selection-freeze-sha256",
+    "sha256:af7ffaece77d16134c33b1c898afb7165c7ace5dcfccfea23f713ae242e4ed6f",
     "--device",
     "cuda",
     "--progress-every",
-    "1000"
+    "5000"
   ],
-  "control_run_id": "run-1788198552-fd485fc3",
+  "control_run_id": "run-1788337802-5bd8b2cc",
   "gpu": {
-    "output": "NVIDIA GeForce RTX 3090, GPU-dc7d1011-5b3d-5c0a-d77b-8f27e6993cef, 24576",
+    "output": "NVIDIA GeForce RTX 5090, GPU-dab7edc1-45a7-8226-a946-4171390ddce6, 32607",
     "returncode": 0,
     "stderr": ""
   },
-  "job_id": "step14-fit-selection-training",
+  "job_id": "step14-oracle-raw-evidence-20260902",
   "repo_root": "/opt/TriQTO",
   "runner": "step14_training_selection",
   "schema_version": 2,
-  "scientific_operation": "train_selection",
-  "started_at": "2026-08-31T20:04:09.635197+00:00",
+  "scientific_operation": "decompose_oracle_raw_evidence",
+  "started_at": "2026-09-02T08:35:51.554336+00:00",
   "state": "running"
 }
