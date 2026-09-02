@@ -19,14 +19,17 @@ import analyze_step14_oracle_raw_evidence_ceiling as diagnostic
 FROZEN_STEP14_MAX_REFERENCE_OPERATIONS = 17
 
 
-def main() -> None:
-    # Keep this fail-closed so a future change to the underlying diagnostic does
-    # not silently turn the compatibility shim into a scientific-protocol edit.
-    if diagnostic.MAX_GATES != 16:
+def apply_frozen_support_bound() -> None:
+    """Apply the one bug-fix bound while failing closed on unexpected drift."""
+    if diagnostic.MAX_GATES not in {16, FROZEN_STEP14_MAX_REFERENCE_OPERATIONS}:
         raise RuntimeError(
             "unexpected underlying oracle diagnostic MAX_GATES; review before changing frozen support"
         )
     diagnostic.MAX_GATES = FROZEN_STEP14_MAX_REFERENCE_OPERATIONS
+
+
+def main() -> None:
+    apply_frozen_support_bound()
     diagnostic.main()
 
 
