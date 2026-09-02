@@ -11,6 +11,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(0, str(ROOT / "scripts" / "v0_2"))
 
 import analyze_step14_oracle_raw_evidence_ceiling as oracle  # noqa: E402
+import run_step14_oracle_raw_evidence_ceiling as oracle_runner  # noqa: E402
 import runpod_reconcile_hardened as hardened  # noqa: E402
 import runpod_step14_training_worker as worker  # noqa: E402
 
@@ -54,6 +55,23 @@ def test_oracle_local_context_changes_with_true_boundary() -> None:
     assert not np.array_equal(before, after)
 
 
+def test_frozen_generator_seventeen_gate_signature_is_supported() -> None:
+    # Exact shape that reproduced the failed RunPod attempt at frozen root 32.
+    signature = json.dumps([
+        "ry:q2", "rx:q0", "cx:q2-q0", "rz:q0", "cz:q2-q1", "h:q2",
+        "cx:q2-q3", "h:q0", "rx:q0", "cz:q2-q0", "rz:q0", "h:q4",
+        "cz:q2-q3", "rx:q2", "rx:q4", "cx:q2-q0", "h:q2",
+    ])
+    original = oracle.MAX_GATES
+    try:
+        oracle_runner.apply_frozen_support_bound()
+        parsed = oracle.parse_operation_signature(signature)
+        assert len(parsed) == 17
+        assert oracle.MAX_GATES == oracle_runner.FROZEN_STEP14_MAX_REFERENCE_OPERATIONS
+    finally:
+        oracle.MAX_GATES = original
+
+
 def test_oracle_stage_is_explicitly_typed_and_post_selection_only() -> None:
     job = {
         "task": {
@@ -68,11 +86,30 @@ def test_oracle_stage_is_explicitly_typed_and_post_selection_only() -> None:
     }
     command = worker.build_command(job)
     joined = " ".join(command)
-    assert "analyze_step14_oracle_raw_evidence_ceiling.py" in joined
+    assert "run_step14_oracle_raw_evidence_ceiling.py" in joined
     assert "--training-run-id training_18e0b4ed6e685af30b6c4a35" in joined
     assert "--selection-freeze-sha256 sha256:" in joined
     assert "outer" not in joined
     assert "qpu" not in joined.lower()
+
+
+def test_terminal_worker_status_survives_container_restart(tmp_path: Path) -> None:
+    status_path = tmp_path / "status.json"
+    log_path = tmp_path / "worker.log"
+    terminal = {
+        "state": "failed",
+        "returncode": 1,
+        "log_path": str(log_path),
+        "completed_at": "2026-09-02T08:35:41+00:00",
+    }
+    status_path.write_text(json.dumps(terminal), encoding="utf-8")
+    log_path.write_text("original traceback\n", encoding="utf-8")
+
+    recovered = worker._existing_terminal_status(status_path)
+
+    assert recovered == terminal
+    assert worker._terminal_returncode(recovered) == 1
+    assert log_path.read_text(encoding="utf-8") == "original traceback\n"
 
 
 def test_hardened_reconciler_deletes_only_already_exited_stale_pod(monkeypatch) -> None:

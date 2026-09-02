@@ -7,6 +7,7 @@ diagnostics that never update the main model.
 """
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import sys
 import traceback
@@ -29,6 +30,7 @@ POST_SELECTION_OPERATIONS = {
     "decompose_representation",
     "decompose_oracle_raw_evidence",
 }
+TERMINAL_STATES = {"completed", "failed"}
 
 
 def build_command(job: dict[str, Any]) -> list[str]:
@@ -73,7 +75,9 @@ def build_command(job: dict[str, Any]) -> list[str]:
         if operation == "decompose_representation":
             script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_representation_fusion_head.py"
         else:
-            script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_oracle_raw_evidence_ceiling.py"
+            # Compatibility entrypoint fixes only the accidental 16-vs-17 gate
+            # support bound; the underlying frozen v1 diagnostic is unchanged.
+            script = REPO_ROOT / "scripts" / "v0_2" / "run_step14_oracle_raw_evidence_ceiling.py"
         return [
             sys.executable,
             str(script),
@@ -109,6 +113,33 @@ def build_command(job: dict[str, Any]) -> list[str]:
     ]
 
 
+def _existing_terminal_status(path: Path) -> dict[str, Any] | None:
+    """Return a previously persisted terminal status without mutating it.
+
+    RunPod may restart a container whose process exits non-zero while the Pod's
+    desired state remains RUNNING. Re-entering the same control run must never
+    replace a terminal status with ``running`` or truncate its worker log.
+    """
+    if not path.is_file():
+        return None
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if isinstance(value, dict) and str(value.get("state", "")) in TERMINAL_STATES:
+        return value
+    return None
+
+
+def _terminal_returncode(status: dict[str, Any]) -> int:
+    if str(status.get("state")) == "completed":
+        return 0
+    value = status.get("returncode")
+    if isinstance(value, int) and value != 0:
+        return value
+    return 1
+
+
 def run() -> int:
     job = common.load_job()
     job_id = common.safe_job_id(job.get("id"))
@@ -121,8 +152,25 @@ def run() -> int:
     run_dir.mkdir(parents=True, exist_ok=True)
     status_path = run_dir / "status.json"
     log_path = run_dir / "worker.log"
-    common.atomic_json(run_dir / "job.json", job)
 
+    previous = _existing_terminal_status(status_path)
+    if previous is not None:
+        print(
+            json.dumps(
+                {
+                    "job_id": job_id,
+                    "control_run_id": control_run_id,
+                    "state": "restart-refused-terminal-status-preserved",
+                    "terminal_state": previous.get("state"),
+                    "log_path": previous.get("log_path", str(log_path)),
+                },
+                sort_keys=True,
+            ),
+            flush=True,
+        )
+        return _terminal_returncode(previous)
+
+    common.atomic_json(run_dir / "job.json", job)
     started = {
         "schema_version": 2,
         "job_id": job_id,
