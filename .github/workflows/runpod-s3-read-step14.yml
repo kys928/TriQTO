@@ -76,7 +76,6 @@ jobs:
               with open(f'{output}/{name}', 'w', encoding='utf-8') as f:
                   f.write(text)
 
-          # Locate the persisted detached worker record for the exact control run.
           paginator = client.get_paginator('list_objects_v2')
           suffix = f'/{CONTROL_RUN_ID}/status.json'
           matches = []
@@ -98,6 +97,14 @@ jobs:
                   f.write(text)
               print(f'=== {name} ===')
               print(text)
+
+          history_key = f'triqto-control/history/{CONTROL_RUN_ID}.json'
+          history_text = read_text(history_key)
+          json.loads(history_text)
+          with open(f'{output}/worker_history.json', 'w', encoding='utf-8') as f:
+              f.write(history_text)
+          print('=== history ===')
+          print(history_text)
           PY
 
       - name: Commit read-only snapshot
