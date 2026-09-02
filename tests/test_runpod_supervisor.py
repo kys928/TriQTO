@@ -20,6 +20,8 @@ fake_control = types.ModuleType("runpod_control_v2")
 fake_control.utc_now = lambda: "2026-01-01T00:00:00+00:00"
 fake_control.reconcile_detached = lambda: None
 fake_control.list_active_records = lambda: []
+fake_control.delete_pod = lambda _pod_id, best_effort=False: True
+fake_control.archive_and_remove = lambda _key, _record, _terminal: None
 sys.modules["runpod_control_v2"] = fake_control
 
 supervisor = importlib.import_module("runpod_supervisor")
