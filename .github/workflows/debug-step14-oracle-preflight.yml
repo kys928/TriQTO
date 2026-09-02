@@ -31,7 +31,7 @@ jobs:
           python -m pip install --quiet --upgrade pip
           python -m pip install --quiet -r requirements.txt -c constraints/cpu.txt
           python -m pip install --quiet -e . boto3
-      - name: Reproduce oracle feature extraction on frozen development data
+      - name: Reproduce oracle feature extraction on every frozen development root
         shell: bash
         run: |
           set -euo pipefail
@@ -42,7 +42,6 @@ jobs:
           import os
           import tempfile
           import traceback
-          from pathlib import Path
 
           import boto3
           import numpy as np
@@ -73,13 +72,19 @@ jobs:
           examples = list(csv.DictReader(io.StringIO(get_bytes(product_key + '/manifests/example_manifest.csv').decode('utf-8'))))
           root_by_index = {int(row['root_index']): row for row in roots}
           wanted = {'rz_drift', 'rx_overrotation', 'ry_overrotation'}
-          selected = [row for row in examples if row['mechanism'] in wanted]
+          representatives = {}
+          for row in examples:
+              if row['mechanism'] in wanted:
+                  representatives.setdefault(int(row['root_index']), row)
+          if len(representatives) != len(roots):
+              raise RuntimeError(f'expected one representative for each root: {len(representatives)} != {len(roots)}')
           print('product', product_key)
-          print('roots', len(roots), 'injected', len(selected))
+          print('roots', len(roots), 'representatives', len(representatives))
 
           checked = 0
-          for row in selected[:250]:
-              root = root_by_index[int(row['root_index'])]
+          for root_index in sorted(representatives):
+              row = representatives[root_index]
+              root = root_by_index[root_index]
               artifact_key = product_key + '/' + row['artifact_path']
               raw = get_bytes(artifact_key)
               with tempfile.NamedTemporaryFile(suffix='.npz') as handle:
@@ -92,13 +97,17 @@ jobs:
                   affected = int(root['affected_qubit'])
                   localized, core = oracle.localized_oracle_features(loaded, affected)
                   local_context = oracle.local_insertion_context(root, core)
-                  _ = np.concatenate((r, ordinary, localized, local_context))
+                  combined = np.concatenate((r, ordinary, localized, local_context))
+                  if not np.all(np.isfinite(combined)):
+                      raise RuntimeError('non-finite combined oracle feature')
               except Exception:
                   print('FAILED_EXAMPLE_ID', row.get('example_id'))
-                  print('FAILED_ROOT_INDEX', row.get('root_index'))
+                  print('FAILED_ROOT_INDEX', root_index)
                   print('FAILED_OPERATION_SIGNATURE', root.get('operation_signature'))
                   traceback.print_exc()
                   raise
               checked += 1
-          print('PREFLIGHT_OK examples=', checked)
+              if checked % 250 == 0:
+                  print('checked', checked, flush=True)
+          print('PREFLIGHT_OK roots=', checked)
           PY
