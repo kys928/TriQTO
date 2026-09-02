@@ -1,0 +1,104 @@
+name: Debug Step-14 Oracle Feature Preflight
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/debug-step14-oracle-preflight.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      RUNPOD_S3_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
+      RUNPOD_S3_SECRET_ACCESS_KEY: ${{ secrets.RUNPOD_S3_SECRET_ACCESS_KEY }}
+      RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
+      RUNPOD_DATACENTER_ID: ${{ vars.RUNPOD_DATACENTER_ID }}
+      RUNPOD_S3_ENDPOINT: ${{ vars.RUNPOD_S3_ENDPOINT }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install CPU scientific dependencies
+        run: |
+          python -m pip install --quiet --upgrade pip
+          python -m pip install --quiet -r requirements.txt -c constraints/cpu.txt
+          python -m pip install --quiet -e . boto3
+      - name: Reproduce oracle feature extraction on frozen development data
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH=src:scripts:scripts/v0_2 python - <<'PY'
+          import csv
+          import io
+          import json
+          import os
+          import tempfile
+          import traceback
+          from pathlib import Path
+
+          import boto3
+          import numpy as np
+          from botocore.config import Config
+
+          import analyze_step14_oracle_raw_evidence_ceiling as oracle
+
+          bucket = os.environ['RUNPOD_NETWORK_VOLUME_ID']
+          client = boto3.client(
+              's3',
+              endpoint_url=os.environ['RUNPOD_S3_ENDPOINT'],
+              region_name=os.environ['RUNPOD_DATACENTER_ID'].lower(),
+              aws_access_key_id=os.environ['RUNPOD_S3_ACCESS_KEY_ID'],
+              aws_secret_access_key=os.environ['RUNPOD_S3_SECRET_ACCESS_KEY'],
+              config=Config(signature_version='s3v4', retries={'max_attempts': 8, 'mode': 'standard'}),
+          )
+
+          def get_bytes(key):
+              return client.get_object(Bucket=bucket, Key=key)['Body'].read()
+
+          pointer = json.loads(get_bytes('triqto-data/step14_cross_motif_dataset/current_development_product.json'))
+          product_dir = str(pointer['product_dir'])
+          if not product_dir.startswith('/workspace/triqto-data/step14_cross_motif_dataset/development_'):
+              raise RuntimeError(f'unexpected development product: {product_dir}')
+          product_key = product_dir[len('/workspace/'):].rstrip('/')
+
+          roots = list(csv.DictReader(io.StringIO(get_bytes(product_key + '/manifests/root_manifest.csv').decode('utf-8'))))
+          examples = list(csv.DictReader(io.StringIO(get_bytes(product_key + '/manifests/example_manifest.csv').decode('utf-8'))))
+          root_by_index = {int(row['root_index']): row for row in roots}
+          wanted = {'rz_drift', 'rx_overrotation', 'ry_overrotation'}
+          selected = [row for row in examples if row['mechanism'] in wanted]
+          print('product', product_key)
+          print('roots', len(roots), 'injected', len(selected))
+
+          checked = 0
+          for row in selected[:250]:
+              root = root_by_index[int(row['root_index'])]
+              artifact_key = product_key + '/' + row['artifact_path']
+              raw = get_bytes(artifact_key)
+              with tempfile.NamedTemporaryFile(suffix='.npz') as handle:
+                  handle.write(raw); handle.flush()
+                  with np.load(handle.name, allow_pickle=False) as archive:
+                      loaded = {key: archive[key] for key in archive.files}
+              try:
+                  r, _, _ = oracle.raw_diagnostic_features(loaded)
+                  ordinary = oracle.ordinary_circuit_context(root, loaded)
+                  affected = int(root['affected_qubit'])
+                  localized, core = oracle.localized_oracle_features(loaded, affected)
+                  local_context = oracle.local_insertion_context(root, core)
+                  _ = np.concatenate((r, ordinary, localized, local_context))
+              except Exception:
+                  print('FAILED_EXAMPLE_ID', row.get('example_id'))
+                  print('FAILED_ROOT_INDEX', row.get('root_index'))
+                  print('FAILED_OPERATION_SIGNATURE', root.get('operation_signature'))
+                  traceback.print_exc()
+                  raise
+              checked += 1
+          print('PREFLIGHT_OK examples=', checked)
+          PY
