@@ -2,8 +2,8 @@
 """Restricted RunPod worker for frozen Step-14 scientific operations.
 
 Allowed stages are deliberately typed: pretraining baseline, fit/selection
-training, one-shot post-selection outer evaluation, or a post-outer frozen
-representation/fusion/head decomposition that never updates the main model.
+training, one-shot post-selection outer evaluation, or frozen post-selection
+diagnostics that never update the main model.
 """
 from __future__ import annotations
 
@@ -22,6 +22,12 @@ ALLOWED_OPERATIONS = {
     "train_selection",
     "evaluate_outer",
     "decompose_representation",
+    "decompose_oracle_raw_evidence",
+}
+POST_SELECTION_OPERATIONS = {
+    "evaluate_outer",
+    "decompose_representation",
+    "decompose_oracle_raw_evidence",
 }
 
 
@@ -45,7 +51,7 @@ def build_command(job: dict[str, Any]) -> list[str]:
     if progress_every < 1 or progress_every > 100000:
         raise ValueError("task.progress_every must be between 1 and 100000")
 
-    if operation in {"evaluate_outer", "decompose_representation"}:
+    if operation in POST_SELECTION_OPERATIONS:
         run_id = str(task.get("expected_training_run_id", ""))
         freeze_sha = str(task.get("expected_selection_freeze_sha256", ""))
         if not run_id.startswith("training_") or len(run_id) > 96:
@@ -64,7 +70,10 @@ def build_command(job: dict[str, Any]) -> list[str]:
                 "--progress-every",
                 str(progress_every),
             ]
-        script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_representation_fusion_head.py"
+        if operation == "decompose_representation":
+            script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_representation_fusion_head.py"
+        else:
+            script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_oracle_raw_evidence_ceiling.py"
         return [
             sys.executable,
             str(script),

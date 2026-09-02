@@ -12,6 +12,7 @@ on:
       - "scripts/run_phase15_6_campaign.py"
       - "scripts/v0_2/evaluate_step14_pretraining_baseline.py"
       - "scripts/v0_2/run_step14_cross_motif_training.py"
+      - "scripts/v0_2/analyze_step14_oracle_raw_evidence_ceiling.py"
       - "src/**"
       - "configs/**"
       - "requirements*.txt"

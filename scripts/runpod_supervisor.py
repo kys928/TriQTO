@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Continuously supervise detached TriQTO RunPod jobs.
 
-The RunPod worker never receives the RunPod API key.  Instead this process runs
+The RunPod worker never receives the RunPod API key. Instead this process runs
 inside GitHub Actions, where the existing credential boundary already lives.
-It repeatedly invokes the idempotent detached reconciler and exits only when
+It repeatedly invokes the hardened detached reconciler and exits only when
 there are no active control records or when its GitHub-runner lease is nearly
-exhausted.  Exit code 75 means the workflow should dispatch a successor
+exhausted. Exit code 75 means the workflow should dispatch a successor
 supervisor; it is not a scientific timeout.
 """
 from __future__ import annotations
@@ -15,24 +15,14 @@ import json
 import time
 
 import runpod_control_v2 as control
+import runpod_reconcile_hardened as hardened
 
 HANDOFF_EXIT_CODE = 75
 
-
-def is_pending_status_error(exc: Exception) -> bool:
-    """Recognize RunPod S3's nonstandard missing-object response.
-
-    Before a worker writes status.json, RunPod's S3-compatible endpoint may
-    answer GetObject with InvalidArgument + "object not found" rather than a
-    normal 404/NoSuchKey.  That is a normal startup state, not a supervisor
-    transport failure.
-    """
-    text = str(exc).lower()
-    return (
-        "invalidargument" in text
-        and "getobject" in text
-        and "object not found" in text
-    )
+# Keep the original supervisor/control seam for existing tests and callers, but
+# route that seam to the lifecycle-aware implementation in production.
+control.reconcile_detached = hardened.reconcile_detached
+is_pending_status_error = hardened.is_pending_status_error
 
 
 def main() -> None:
@@ -49,8 +39,7 @@ def main() -> None:
     if args.max_consecutive_errors < 1:
         raise SystemExit("--max-consecutive-errors must be positive")
 
-    started = time.monotonic()
-    deadline = started + args.lease_minutes * 60
+    deadline = time.monotonic() + args.lease_minutes * 60
     consecutive_errors = 0
 
     print(json.dumps({
@@ -66,29 +55,18 @@ def main() -> None:
             remaining = control.list_active_records()
             consecutive_errors = 0
         except Exception as exc:
-            if is_pending_status_error(exc):
-                remaining = control.list_active_records()
-                consecutive_errors = 0
-                print(json.dumps({
-                    "supervisor": "status-pending",
-                    "active_run_count": len(remaining),
-                    "checked_at": control.utc_now(),
-                    "message": "Worker status object has not been written yet; continuing normal polling.",
-                }))
-            else:
-                consecutive_errors += 1
-                print(json.dumps({
-                    "supervisor": "reconcile-error",
-                    "consecutive_errors": consecutive_errors,
-                    "max_consecutive_errors": args.max_consecutive_errors,
-                    "error": repr(exc),
-                    "checked_at": control.utc_now(),
-                }))
-                if consecutive_errors >= args.max_consecutive_errors:
-                    raise
-                # Short bounded retry for transient RunPod/S3 failures.
-                time.sleep(min(args.poll_seconds * consecutive_errors, 120))
-                continue
+            consecutive_errors += 1
+            print(json.dumps({
+                "supervisor": "reconcile-error",
+                "consecutive_errors": consecutive_errors,
+                "max_consecutive_errors": args.max_consecutive_errors,
+                "error": repr(exc),
+                "checked_at": control.utc_now(),
+            }))
+            if consecutive_errors >= args.max_consecutive_errors:
+                raise
+            time.sleep(min(args.poll_seconds * consecutive_errors, 120))
+            continue
 
         if not remaining:
             print(json.dumps({
