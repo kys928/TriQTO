@@ -47,6 +47,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # The Step-14 latent-frame analyzer is baked into this image and watched above.
       - name: Build and push RunPod worker image
         uses: docker/build-push-action@v6
         with:
