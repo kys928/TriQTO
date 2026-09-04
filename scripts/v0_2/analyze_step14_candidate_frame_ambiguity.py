@@ -28,6 +28,7 @@ import numpy as np
 import analyze_step14_latent_frame_inference as latent
 import analyze_step14_local_frame_canonicalization as frame
 import analyze_step14_oracle_raw_evidence_ceiling as oracle
+import run_step14_oracle_raw_evidence_ceiling as oracle_compat
 import analyze_step14_representation_fusion_head as rep14
 import benchmark_step6_cheap_baselines as baseline
 import generate_step5_matched_diagnostic_training_dataset_v3 as step5v3
@@ -321,6 +322,9 @@ def predicted_locations(
 
 def main() -> None:
     args = parse_args()
+    # Frozen Step-14 reference circuits legally contain up to 17 operations.
+    # Reuse the already-audited compatibility fix rather than widening the parser ad hoc.
+    oracle_compat.apply_frozen_support_bound()
     cfg = load_config()
     frozen = cfg["source_freeze"]
     if args.training_run_id != str(frozen["training_run_id"]):
