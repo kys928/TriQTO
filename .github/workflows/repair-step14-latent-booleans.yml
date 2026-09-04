@@ -35,16 +35,6 @@ jobs:
                   raise RuntimeError(f'Expected exactly one terminal-result literal {old!r}, found {source.count(old)}')
               source = source.replace(old, new)
           source_path.write_text(source, encoding='utf-8')
-
-          build_path = Path('.github/workflows/build-runpod-agent.yml')
-          build = build_path.read_text(encoding='utf-8')
-          watched = '      - "scripts/v0_2/analyze_step14_latent_frame_inference.py"\n'
-          if watched not in build:
-              anchor = '      - "scripts/v0_2/analyze_step14_oracle_raw_evidence_ceiling.py"\n'
-              if build.count(anchor) != 1:
-                  raise RuntimeError('RunPod build workflow anchor drift')
-              build = build.replace(anchor, anchor + watched)
-              build_path.write_text(build, encoding='utf-8')
           PY
 
       - name: Verify exact patch
@@ -54,7 +44,6 @@ jobs:
           python -m py_compile scripts/v0_2/analyze_step14_latent_frame_inference.py
           grep -F '"physical_hardware_validation": False,' scripts/v0_2/analyze_step14_latent_frame_inference.py
           grep -F '"exact_statevector_candidate_search_is_analysis_only": True,' scripts/v0_2/analyze_step14_latent_frame_inference.py
-          grep -F 'scripts/v0_2/analyze_step14_latent_frame_inference.py' .github/workflows/build-runpod-agent.yml
 
       - name: Commit repair
         shell: bash
@@ -62,10 +51,11 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add scripts/v0_2/analyze_step14_latent_frame_inference.py .github/workflows/build-runpod-agent.yml
+          git add scripts/v0_2/analyze_step14_latent_frame_inference.py
           if git diff --cached --quiet; then
             echo "Repair already applied."
             exit 0
           fi
-          git commit -m "Fix Step-14 latent result boolean literals and image rebuild trigger"
+          git commit -m "Fix Step-14 latent result boolean literals"
+          git pull --rebase origin main
           git push
