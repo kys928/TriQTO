@@ -1,4 +1,4 @@
-name: Repair Step-14 latent result booleans
+name: Repair Step-14 latent rerun residue
 
 on:
   push:
@@ -17,7 +17,7 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Apply exact Step-14 terminal-result fix
+      - name: Add safe recovery for empty failed-run output directory
         shell: bash
         run: |
           set -euo pipefail
@@ -26,14 +26,11 @@ jobs:
 
           source_path = Path('scripts/v0_2/analyze_step14_latent_frame_inference.py')
           source = source_path.read_text(encoding='utf-8')
-          replacements = {
-              '"physical_hardware_validation": false,': '"physical_hardware_validation": False,',
-              '"exact_statevector_candidate_search_is_analysis_only": true,': '"exact_statevector_candidate_search_is_analysis_only": True,',
-          }
-          for old, new in replacements.items():
-              if source.count(old) != 1:
-                  raise RuntimeError(f'Expected exactly one terminal-result literal {old!r}, found {source.count(old)}')
-              source = source.replace(old, new)
+          old = '''    out_dir = out_parent / diagnostic_id\n    if out_dir.exists():\n        raise RuntimeError(f"refusing to overwrite latent-frame diagnostic {out_dir}")\n    out_dir.mkdir()\n'''
+          new = '''    out_dir = out_parent / diagnostic_id\n    if out_dir.exists():\n        if not out_dir.is_dir() or any(out_dir.iterdir()):\n            raise RuntimeError(f"refusing to overwrite latent-frame diagnostic {out_dir}")\n        # A failed pre-write result assembly can leave only the empty directory behind.\n        out_dir.rmdir()\n    out_dir.mkdir()\n'''
+          if source.count(old) != 1:
+              raise RuntimeError(f'Expected exactly one output-directory guard, found {source.count(old)}')
+          source = source.replace(old, new)
           source_path.write_text(source, encoding='utf-8')
           PY
 
@@ -42,6 +39,8 @@ jobs:
         run: |
           set -euo pipefail
           python -m py_compile scripts/v0_2/analyze_step14_latent_frame_inference.py
+          grep -F 'if not out_dir.is_dir() or any(out_dir.iterdir()):' scripts/v0_2/analyze_step14_latent_frame_inference.py
+          grep -F 'out_dir.rmdir()' scripts/v0_2/analyze_step14_latent_frame_inference.py
           grep -F '"physical_hardware_validation": False,' scripts/v0_2/analyze_step14_latent_frame_inference.py
           grep -F '"exact_statevector_candidate_search_is_analysis_only": True,' scripts/v0_2/analyze_step14_latent_frame_inference.py
 
@@ -53,9 +52,9 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add scripts/v0_2/analyze_step14_latent_frame_inference.py
           if git diff --cached --quiet; then
-            echo "Repair already applied."
+            echo "Recovery guard already applied."
             exit 0
           fi
-          git commit -m "Fix Step-14 latent result boolean literals"
+          git commit -m "Allow Step-14 rerun after empty failed-result residue"
           git pull --rebase origin main
           git push
