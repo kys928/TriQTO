@@ -709,8 +709,8 @@ def main() -> None:
         "hypothesis_verdicts": {
             "oracle_free_latent_frame_inference": verdict,
             "hardware_facing_data_contract_in_simulation": bool(full_support),
-            "physical_hardware_validation": false,
-            "exact_statevector_candidate_search_is_analysis_only": true,
+            "physical_hardware_validation": False,
+            "exact_statevector_candidate_search_is_analysis_only": True,
         },
         "scientific_boundaries": {
             "main_model_retrained": False,
