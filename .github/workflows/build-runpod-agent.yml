@@ -48,7 +48,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Frozen Step-14 post-hoc analyzers are baked into the restricted worker image.
+      # Frozen Step-14 post-hoc analyzers, including the audited 17-operation support fix, are baked into this image.
       - name: Build and push RunPod worker image
         uses: docker/build-push-action@v6
         with:
