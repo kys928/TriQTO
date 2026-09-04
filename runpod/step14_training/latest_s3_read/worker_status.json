@@ -1,7 +1,7 @@
 {
   "command": [
     "/usr/local/bin/python",
-    "/opt/TriQTO/scripts/v0_2/analyze_step14_oracle_raw_evidence_ceiling.py",
+    "/opt/TriQTO/scripts/v0_2/analyze_step14_latent_frame_inference.py",
     "--training-run-id",
     "training_18e0b4ed6e685af30b6c4a35",
     "--selection-freeze-sha256",
@@ -9,19 +9,22 @@
     "--device",
     "cuda",
     "--progress-every",
-    "5000"
+    "1000"
   ],
-  "control_run_id": "run-1788337802-5bd8b2cc",
+  "completed_at": "2026-09-04T10:49:42.915485+00:00",
+  "control_run_id": "run-1788517096-f6ae0b95",
   "gpu": {
-    "output": "NVIDIA GeForce RTX 5090, GPU-dab7edc1-45a7-8226-a946-4171390ddce6, 32607",
+    "output": "NVIDIA GeForce RTX 4090, GPU-264be802-ad92-5d0f-f1fb-9ede66a06f6e, 24564",
     "returncode": 0,
     "stderr": ""
   },
-  "job_id": "step14-oracle-raw-evidence-20260902",
+  "job_id": "step14-latent-frame-inference-20260904",
+  "log_path": "/workspace/triqto-control/runs/step14-latent-frame-inference-20260904/run-1788517096-f6ae0b95/worker.log",
   "repo_root": "/opt/TriQTO",
+  "returncode": 1,
   "runner": "step14_training_selection",
   "schema_version": 2,
-  "scientific_operation": "decompose_oracle_raw_evidence",
-  "started_at": "2026-09-02T08:35:51.554336+00:00",
-  "state": "running"
+  "scientific_operation": "decompose_latent_frame_inference",
+  "started_at": "2026-09-04T10:22:14.948783+00:00",
+  "state": "failed"
 }

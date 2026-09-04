@@ -1,0 +1,46 @@
+latent-frame extraction 1000/36000 roots_cached=84
+latent-frame extraction 2000/36000 roots_cached=167
+latent-frame extraction 3000/36000 roots_cached=250
+latent-frame extraction 4000/36000 roots_cached=334
+latent-frame extraction 5000/36000 roots_cached=417
+latent-frame extraction 6000/36000 roots_cached=500
+latent-frame extraction 7000/36000 roots_cached=584
+latent-frame extraction 8000/36000 roots_cached=667
+latent-frame extraction 9000/36000 roots_cached=750
+latent-frame extraction 10000/36000 roots_cached=834
+latent-frame extraction 11000/36000 roots_cached=917
+latent-frame extraction 12000/36000 roots_cached=1000
+latent-frame extraction 13000/36000 roots_cached=1084
+latent-frame extraction 14000/36000 roots_cached=1167
+latent-frame extraction 15000/36000 roots_cached=1250
+latent-frame extraction 16000/36000 roots_cached=1334
+latent-frame extraction 17000/36000 roots_cached=1417
+latent-frame extraction 18000/36000 roots_cached=1500
+latent-frame extraction 19000/36000 roots_cached=1584
+latent-frame extraction 20000/36000 roots_cached=1667
+latent-frame extraction 21000/36000 roots_cached=1750
+latent-frame extraction 22000/36000 roots_cached=1834
+latent-frame extraction 23000/36000 roots_cached=1917
+latent-frame extraction 24000/36000 roots_cached=2000
+latent-frame extraction 25000/36000 roots_cached=2084
+latent-frame extraction 26000/36000 roots_cached=2167
+latent-frame extraction 27000/36000 roots_cached=2250
+latent-frame extraction 28000/36000 roots_cached=2334
+latent-frame extraction 29000/36000 roots_cached=2417
+latent-frame extraction 30000/36000 roots_cached=2500
+latent-frame extraction 31000/36000 roots_cached=2584
+latent-frame extraction 32000/36000 roots_cached=2667
+latent-frame extraction 33000/36000 roots_cached=2750
+latent-frame extraction 34000/36000 roots_cached=2834
+latent-frame extraction 35000/36000 roots_cached=2917
+latent-frame extraction 36000/36000 roots_cached=3000
+latent MIL seed=6201 fit_BA=0.7606 selection_BA=0.7325
+latent MIL seed=6202 fit_BA=0.7630 selection_BA=0.7364
+latent MIL seed=6203 fit_BA=0.7610 selection_BA=0.7382
+Traceback (most recent call last):
+  File "/opt/TriQTO/scripts/v0_2/analyze_step14_latent_frame_inference.py", line 757, in <module>
+    main()
+  File "/opt/TriQTO/scripts/v0_2/analyze_step14_latent_frame_inference.py", line 712, in main
+    "physical_hardware_validation": false,
+                                    ^^^^^
+NameError: name 'false' is not defined. Did you mean: 'False'?
