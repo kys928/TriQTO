@@ -40,7 +40,6 @@ jobs:
                   raise RuntimeError(f'missing patch anchor in {path}: {old!r}')
               p.write_text(text.replace(old, new, 1), encoding='utf-8')
 
-          # Both the launcher and the worker have separate allowed/post-selection sets.
           for path in ['scripts/runpod_step14_training_worker.py', 'scripts/runpod_step14_training_selection.py']:
               for _ in range(2):
                   replace_once(
@@ -59,11 +58,6 @@ jobs:
               '        "decompose_latent_frame_inference": "step14-latent-frame-inference",\n    }',
               '        "decompose_latent_frame_inference": "step14-latent-frame-inference",\n        "decompose_candidate_frame_ambiguity": "step14-candidate-frame-ambiguity",\n    }',
           )
-          replace_once(
-              '.github/workflows/build-runpod-agent.yml',
-              '      - "scripts/v0_2/analyze_step14_latent_frame_inference.py"\n',
-              '      - "scripts/v0_2/analyze_step14_latent_frame_inference.py"\n      - "scripts/v0_2/analyze_step14_candidate_frame_ambiguity.py"\n',
-          )
           PY
 
           python -m py_compile \
@@ -72,7 +66,6 @@ jobs:
             scripts/runpod_step14_training_selection.py
           python -m json.tool configs/v0_2/step14_candidate_frame_ambiguity_decomposition.json >/dev/null
           grep -n "decompose_candidate_frame_ambiguity" scripts/runpod_step14_training_worker.py scripts/runpod_step14_training_selection.py
-          grep -n "analyze_step14_candidate_frame_ambiguity.py" .github/workflows/build-runpod-agent.yml
 
       - name: Commit installed diagnostic
         shell: bash
@@ -82,8 +75,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add scripts/v0_2/analyze_step14_candidate_frame_ambiguity.py \
                   scripts/runpod_step14_training_worker.py \
-                  scripts/runpod_step14_training_selection.py \
-                  .github/workflows/build-runpod-agent.yml
+                  scripts/runpod_step14_training_selection.py
           if git diff --cached --quiet; then
             echo "No diagnostic installation changes."
             exit 0
