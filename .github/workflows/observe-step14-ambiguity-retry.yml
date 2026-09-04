@@ -39,10 +39,27 @@ jobs:
 
           safe_keys = [
               'id', 'name', 'desiredStatus', 'status', 'runtime', 'costPerHr',
-              'lastStatusChange', 'dataCenterId', 'machineId', 'imageName',
-              'gpuCount', 'gpuTypeId', 'interruptible', 'createdAt', 'uptimeSeconds'
+              'lastStatusChange', 'lastStartedAt', 'dataCenterId', 'machineId',
+              'imageName', 'gpuCount', 'gpuTypeId', 'interruptible', 'createdAt',
+              'uptimeSeconds', 'publicIp', 'vcpuCount', 'memoryInGb'
           ]
           safe = {key: pod.get(key) for key in safe_keys if key in pod}
+
+          machine = pod.get('machine')
+          if isinstance(machine, dict):
+              machine_safe_keys = [
+                  'id', 'dataCenterId', 'gpuDisplayName', 'gpuTypeId',
+                  'secureCloud', 'supportPublicIp', 'availableGpuCount'
+              ]
+              safe['machine'] = {
+                  key: machine.get(key) for key in machine_safe_keys if key in machine
+              }
+
+          gpu = pod.get('gpu')
+          if isinstance(gpu, dict):
+              gpu_safe_keys = ['id', 'count', 'displayName']
+              safe['gpu'] = {key: gpu.get(key) for key in gpu_safe_keys if key in gpu}
+
           safe['_available_top_level_keys'] = sorted(
               key for key in pod.keys()
               if key.lower() not in {'env', 'environment', 'dockerstartcmd', 'dockerentrypoint'}
