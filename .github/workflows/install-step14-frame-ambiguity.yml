@@ -1,4 +1,4 @@
-name: Install Step-14 Frame Ambiguity Diagnostic
+name: Repair Step-14 Frame Ambiguity Support Bound
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 jobs:
-  install:
+  repair:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,65 +20,63 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install analyzer and restricted operation
+      - name: Reuse frozen 17-operation compatibility support bound
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
-          import base64, gzip
 
-          payload = Path('.github/bootstrap/step14_candidate_frame_ambiguity.py.gz.b64').read_text(encoding='utf-8').strip()
-          Path('scripts/v0_2/analyze_step14_candidate_frame_ambiguity.py').write_bytes(
-              gzip.decompress(base64.b64decode(payload))
+          path = Path('scripts/v0_2/analyze_step14_candidate_frame_ambiguity.py')
+          text = path.read_text(encoding='utf-8')
+
+          import_old = 'import analyze_step14_oracle_raw_evidence_ceiling as oracle\n'
+          import_new = (
+              'import analyze_step14_oracle_raw_evidence_ceiling as oracle\n'
+              'import run_step14_oracle_raw_evidence_ceiling as oracle_compat\n'
           )
+          if 'import run_step14_oracle_raw_evidence_ceiling as oracle_compat' not in text:
+              if import_old not in text:
+                  raise RuntimeError('missing oracle import anchor')
+              text = text.replace(import_old, import_new, 1)
 
-          def replace_once(path, old, new):
-              p = Path(path)
-              text = p.read_text(encoding='utf-8')
-              if old not in text:
-                  raise RuntimeError(f'missing patch anchor in {path}: {old!r}')
-              p.write_text(text.replace(old, new, 1), encoding='utf-8')
-
-          for path in ['scripts/runpod_step14_training_worker.py', 'scripts/runpod_step14_training_selection.py']:
-              for _ in range(2):
-                  replace_once(
-                      path,
-                      '    "decompose_latent_frame_inference",\n}',
-                      '    "decompose_latent_frame_inference",\n    "decompose_candidate_frame_ambiguity",\n}',
-                  )
-
-          replace_once(
-              'scripts/runpod_step14_training_worker.py',
-              '        elif operation == "decompose_local_frame_canonicalization":\n            script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_local_frame_canonicalization.py"\n        else:\n            script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_latent_frame_inference.py"',
-              '        elif operation == "decompose_local_frame_canonicalization":\n            script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_local_frame_canonicalization.py"\n        elif operation == "decompose_latent_frame_inference":\n            script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_latent_frame_inference.py"\n        else:\n            script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_candidate_frame_ambiguity.py"',
+          main_old = 'def main() -> None:\n    args = parse_args()\n    cfg = load_config()\n'
+          main_new = (
+              'def main() -> None:\n'
+              '    args = parse_args()\n'
+              '    # Frozen Step-14 reference circuits legally contain up to 17 operations.\n'
+              '    # Reuse the already-audited compatibility fix rather than widening the parser ad hoc.\n'
+              '    oracle_compat.apply_frozen_support_bound()\n'
+              '    cfg = load_config()\n'
           )
-          replace_once(
-              'scripts/runpod_step14_training_selection.py',
-              '        "decompose_latent_frame_inference": "step14-latent-frame-inference",\n    }',
-              '        "decompose_latent_frame_inference": "step14-latent-frame-inference",\n        "decompose_candidate_frame_ambiguity": "step14-candidate-frame-ambiguity",\n    }',
-          )
+          if 'oracle_compat.apply_frozen_support_bound()' not in text:
+              if main_old not in text:
+                  raise RuntimeError('missing main support-bound anchor')
+              text = text.replace(main_old, main_new, 1)
+
+          path.write_text(text, encoding='utf-8')
           PY
 
-          python -m py_compile \
-            scripts/v0_2/analyze_step14_candidate_frame_ambiguity.py \
-            scripts/runpod_step14_training_worker.py \
-            scripts/runpod_step14_training_selection.py
-          python -m json.tool configs/v0_2/step14_candidate_frame_ambiguity_decomposition.json >/dev/null
-          grep -n "decompose_candidate_frame_ambiguity" scripts/runpod_step14_training_worker.py scripts/runpod_step14_training_selection.py
+          python -m py_compile scripts/v0_2/analyze_step14_candidate_frame_ambiguity.py
+          python - <<'PY'
+          import sys
+          sys.path.insert(0, 'scripts/v0_2')
+          import analyze_step14_candidate_frame_ambiguity as ambiguity
+          ambiguity.oracle_compat.apply_frozen_support_bound()
+          assert ambiguity.oracle.MAX_GATES == 17, ambiguity.oracle.MAX_GATES
+          print('verified frozen Step-14 MAX_GATES support = 17')
+          PY
 
-      - name: Commit installed diagnostic
+      - name: Commit exact support-bound repair
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add scripts/v0_2/analyze_step14_candidate_frame_ambiguity.py \
-                  scripts/runpod_step14_training_worker.py \
-                  scripts/runpod_step14_training_selection.py
+          git add scripts/v0_2/analyze_step14_candidate_frame_ambiguity.py
           if git diff --cached --quiet; then
-            echo "No diagnostic installation changes."
+            echo "No support-bound repair changes."
             exit 0
           fi
-          git commit -m "Add frozen Step-14 candidate-frame ambiguity diagnostic"
+          git commit -m "Fix Step-14 ambiguity 17-operation support bound"
           git push
