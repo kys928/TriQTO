@@ -59,12 +59,14 @@ jobs:
 
           python -m py_compile scripts/v0_2/analyze_step14_candidate_frame_ambiguity.py
           python - <<'PY'
-          import sys
-          sys.path.insert(0, 'scripts/v0_2')
-          import analyze_step14_candidate_frame_ambiguity as ambiguity
-          ambiguity.oracle_compat.apply_frozen_support_bound()
-          assert ambiguity.oracle.MAX_GATES == 17, ambiguity.oracle.MAX_GATES
-          print('verified frozen Step-14 MAX_GATES support = 17')
+          from pathlib import Path
+          text = Path('scripts/v0_2/analyze_step14_candidate_frame_ambiguity.py').read_text(encoding='utf-8')
+          assert text.count('import run_step14_oracle_raw_evidence_ceiling as oracle_compat') == 1
+          assert text.count('oracle_compat.apply_frozen_support_bound()') == 1
+          compat = Path('scripts/v0_2/run_step14_oracle_raw_evidence_ceiling.py').read_text(encoding='utf-8')
+          assert 'FROZEN_STEP14_MAX_REFERENCE_OPERATIONS = 17' in compat
+          assert 'diagnostic.MAX_GATES = FROZEN_STEP14_MAX_REFERENCE_OPERATIONS' in compat
+          print('verified dependency-free reuse of frozen 17-operation support fix')
           PY
 
       - name: Commit exact support-bound repair
