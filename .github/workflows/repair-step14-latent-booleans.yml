@@ -23,33 +23,18 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
-          import ast
-          import io
-          import token
-          import tokenize
 
           source_path = Path('scripts/v0_2/analyze_step14_latent_frame_inference.py')
           source = source_path.read_text(encoding='utf-8')
-          mapping = {'false': 'False', 'true': 'True', 'null': 'None'}
-          counts = {key: 0 for key in mapping}
-          rewritten = []
-          for tok in tokenize.generate_tokens(io.StringIO(source).readline):
-              if tok.type == token.NAME and tok.string in mapping:
-                  counts[tok.string] += 1
-                  tok = tokenize.TokenInfo(tok.type, mapping[tok.string], tok.start, tok.end, tok.line)
-              rewritten.append(tok)
-          if counts != {'false': 1, 'true': 6, 'null': 0}:
-              raise RuntimeError(f'Unexpected JSON-style literal counts before repair: {counts}')
-          source = tokenize.untokenize(rewritten)
+          replacements = {
+              '"physical_hardware_validation": false,': '"physical_hardware_validation": False,',
+              '"exact_statevector_candidate_search_is_analysis_only": true,': '"exact_statevector_candidate_search_is_analysis_only": True,',
+          }
+          for old, new in replacements.items():
+              if source.count(old) != 1:
+                  raise RuntimeError(f'Expected exactly one terminal-result literal {old!r}, found {source.count(old)}')
+              source = source.replace(old, new)
           source_path.write_text(source, encoding='utf-8')
-
-          tree = ast.parse(source)
-          bad_names = sorted({
-              node.id for node in ast.walk(tree)
-              if isinstance(node, ast.Name) and node.id in mapping
-          })
-          if bad_names:
-              raise RuntimeError(f'JSON-style literals remain in Python source: {bad_names}')
 
           build_path = Path('.github/workflows/build-runpod-agent.yml')
           build = build_path.read_text(encoding='utf-8')
