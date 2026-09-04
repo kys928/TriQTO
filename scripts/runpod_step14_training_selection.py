@@ -21,12 +21,14 @@ ALLOWED_OPERATIONS = {
     "decompose_representation",
     "decompose_oracle_raw_evidence",
     "decompose_local_frame_canonicalization",
+    "decompose_latent_frame_inference",
 }
 POST_SELECTION_OPERATIONS = {
     "evaluate_outer",
     "decompose_representation",
     "decompose_oracle_raw_evidence",
     "decompose_local_frame_canonicalization",
+    "decompose_latent_frame_inference",
 }
 ALLOWED_REQUEST_KEYS = {
     "id",
@@ -89,6 +91,7 @@ def main() -> None:
         "decompose_representation": "step14-representation-decomposition",
         "decompose_oracle_raw_evidence": "step14-oracle-raw-evidence",
         "decompose_local_frame_canonicalization": "step14-local-frame-canonicalization",
+        "decompose_latent_frame_inference": "step14-latent-frame-inference",
     }
     job_id = str(request.get("id") or f"{defaults[operation]}-{int(time.time())}")
     allowed_id_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.")

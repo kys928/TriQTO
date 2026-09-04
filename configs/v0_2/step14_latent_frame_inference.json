@@ -1,0 +1,102 @@
+{
+  "schema": "triqto.v0_2.step14_latent_frame_inference.v1",
+  "status": "FROZEN_BEFORE_EXECUTION",
+  "scientific_question": "Can the Step-14 local Pauli-frame transformation be inferred without revealing the true affected qubit or injection boundary, using only the known reference circuit plus hardware-executable finite-shot Born calibration probes and the model-visible finite-shot diagnostic bundle?",
+  "source_freeze": {
+    "training_run_id": "training_18e0b4ed6e685af30b6c4a35",
+    "selection_freeze_sha256": "sha256:af7ffaece77d16134c33b1c898afb7165c7ace5dcfccfea23f713ae242e4ed6f",
+    "development_product_id": "development_b087edfd6629ac250299391d",
+    "development_dataset_sha256": "sha256:c471919d2c2a8ca2c206228ac59774f5708fc5182c17bbfb48eca6ecf9491280",
+    "local_frame_diagnostic_id": "local_frame_540d5f72552356577c252c2e",
+    "local_frame_result_sha256": "sha256:42b03cd293d4d623b1458f558154921778824a70564e52b16a0bb3bf58e570f5",
+    "local_frame_oracle_small_probe_ba": 0.9105555555555555,
+    "raw_diagnostics_ba": 0.49402777777777773
+  },
+  "data_boundary": {
+    "allowed_partitions": ["fit", "selection"],
+    "simulator_outer_accessed": false,
+    "future_hardware_reserve_accessed": false,
+    "qpu_executed": false,
+    "main_model_retraining": false,
+    "selection_used_for_training_or_early_stopping": false
+  },
+  "location_privilege_boundary": {
+    "true_affected_qubit_forbidden_from_candidate_generation": true,
+    "true_injection_boundary_forbidden_from_candidate_generation": true,
+    "true_location_forbidden_from_scoring": true,
+    "true_location_forbidden_from_probe_training": true,
+    "true_location_forbidden_from_hyperparameter_selection": true,
+    "true_location_allowed_only_after_prediction_for_localization_audit": true
+  },
+  "candidate_set": {
+    "qubits": "all logical qubits in the known reference circuit",
+    "boundaries": "all unique boundaries immediately before or after any CX/CZ event, clipped to 1..len(circuit)-1",
+    "filter": "candidate qubit must participate in at least one operation before and at least one operation after the boundary",
+    "candidate_prior": "uniform over retained qubit-boundary pairs",
+    "uses_hidden_injection_context_class": false
+  },
+  "hardware_facing_frame_calibration": {
+    "primary": true,
+    "probe_strength_radians": 0.12,
+    "probe_strength_source": "reuse frozen Step-14 model-blind identifiability probe strength",
+    "shots_per_basis_per_sign": 4096,
+    "basis_order": ["Z", "X", "Y"],
+    "axes": ["Z", "X", "Y"],
+    "central_difference": true,
+    "plus_minus_shots_independent": true,
+    "calibration_seed": 2026090402,
+    "statevector_may_only_emulate_the_simulator_backend_that_generates_sampled_probe_counts": true,
+    "exact_statevector_values_may_not_enter_primary_features_or_scores": true,
+    "hardware_interpretation": "Each candidate response template is estimated from finite-shot plus/minus rotation probe circuits that a future QPU could execute; this simulator diagnostic does not itself validate physical hardware or probe-budget practicality."
+  },
+  "exact_frame_upper_bound": {
+    "enabled": true,
+    "analysis_only": true,
+    "uses_statevector_jacobian": true,
+    "may_not_determine_primary_verdict": true
+  },
+  "deterministic_inference": {
+    "candidate_mechanism_score": "profile Gaussian log-likelihood in shot-whitened evidence space after analytically fitting one signed scalar amplitude to one candidate-axis response",
+    "primary_pool": "uniform-prior log-mean-exp marginalization over candidate locations",
+    "secondary_pool": "maximum profile likelihood over candidate locations",
+    "no_fit_parameters": true
+  },
+  "latent_mil_probe": {
+    "enabled": true,
+    "purpose": "test whether mechanism labels alone can learn to select/marginalize candidate canonical frames without location supervision",
+    "candidate_feature": "24-d canonical feature from each finite-shot candidate frame",
+    "shared_hidden_dim": 64,
+    "dropout": 0.1,
+    "pool": "masked log-mean-exp over candidates independently for each mechanism logit",
+    "epochs": 25,
+    "batch_size": 256,
+    "optimizer": "AdamW",
+    "learning_rate": 0.003,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 1.0,
+    "probe_seeds": [6201, 6202, 6203],
+    "fit_only_normalization": true,
+    "selection_used_for_training_or_early_stopping": false,
+    "location_supervision": false
+  },
+  "statistics": {
+    "bootstrap_replicates": 1000,
+    "bootstrap_unit": "cross_motif_family_id",
+    "bootstrap_seed": 2026090403
+  },
+  "primary_support_gate": {
+    "primary_stage": "finite_shot_latent_mil_ensemble",
+    "minimum_selection_mechanism_ba": 0.75,
+    "minimum_selection_minimum_mechanism_recall": 0.65,
+    "minimum_paired_ba_gain_over_raw": 0.20,
+    "paired_gain_ci_lower_must_exceed_zero": true,
+    "minimum_fraction_of_oracle_canonicalization_gain_recovered": 0.70
+  },
+  "interpretation_policy": {
+    "full_support": "SUPPORTED_ORACLE_FREE_HARDWARE_FACING_LATENT_FRAME_INFERENCE_IN_SIMULATION",
+    "partial_support": "PARTIAL_ORACLE_FREE_LATENT_FRAME_SIGNAL",
+    "failure": "ORACLE_FREE_LATENT_FRAME_INFERENCE_NOT_SUPPORTED",
+    "physical_hardware_claim_allowed": false,
+    "architecture_change_allowed_by_this_diagnostic": false
+  }
+}

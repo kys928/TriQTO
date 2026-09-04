@@ -25,12 +25,14 @@ ALLOWED_OPERATIONS = {
     "decompose_representation",
     "decompose_oracle_raw_evidence",
     "decompose_local_frame_canonicalization",
+    "decompose_latent_frame_inference",
 }
 POST_SELECTION_OPERATIONS = {
     "evaluate_outer",
     "decompose_representation",
     "decompose_oracle_raw_evidence",
     "decompose_local_frame_canonicalization",
+    "decompose_latent_frame_inference",
 }
 TERMINAL_STATES = {"completed", "failed"}
 
@@ -80,8 +82,10 @@ def build_command(job: dict[str, Any]) -> list[str]:
             # Compatibility entrypoint fixes only the accidental 16-vs-17 gate
             # support bound; the underlying frozen v1 diagnostic is unchanged.
             script = REPO_ROOT / "scripts" / "v0_2" / "run_step14_oracle_raw_evidence_ceiling.py"
-        else:
+        elif operation == "decompose_local_frame_canonicalization":
             script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_local_frame_canonicalization.py"
+        else:
+            script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_latent_frame_inference.py"
         return [
             sys.executable,
             str(script),
