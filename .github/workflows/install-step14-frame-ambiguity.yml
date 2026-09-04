@@ -1,0 +1,87 @@
+name: Install Step-14 Frame Ambiguity Diagnostic
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/install-step14-frame-ambiguity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install frozen ambiguity analyzer and restricted worker route
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import base64, gzip
+
+          payload = "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"
+          target = Path("scripts/v0_2/analyze_step14_candidate_frame_ambiguity.py")
+          target.write_bytes(gzip.decompress(base64.b64decode(payload)))
+
+          def replace(path, old, new):
+              p = Path(path)
+              text = p.read_text(encoding="utf-8")
+              if old not in text:
+                  raise RuntimeError(f"expected patch anchor missing in {path}: {old!r}")
+              p.write_text(text.replace(old, new), encoding="utf-8")
+
+          for path in ["scripts/runpod_step14_training_worker.py", "scripts/runpod_step14_training_selection.py"]:
+              replace(path,
+                  '    "decompose_latent_frame_inference",\n}',
+                  '    "decompose_latent_frame_inference",\n    "decompose_candidate_frame_ambiguity",\n}')
+              replace(path,
+                  '    "decompose_latent_frame_inference",\n}\nTERMINAL_STATES' if path.endswith("worker.py") else '    "decompose_latent_frame_inference",\n}\nALLOWED_REQUEST_KEYS',
+                  '    "decompose_latent_frame_inference",\n    "decompose_candidate_frame_ambiguity",\n}\nTERMINAL_STATES' if path.endswith("worker.py") else '    "decompose_latent_frame_inference",\n    "decompose_candidate_frame_ambiguity",\n}\nALLOWED_REQUEST_KEYS')
+
+          replace(
+              "scripts/runpod_step14_training_worker.py",
+              '        elif operation == "decompose_local_frame_canonicalization":\n            script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_local_frame_canonicalization.py"\n        else:\n            script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_latent_frame_inference.py"',
+              '        elif operation == "decompose_local_frame_canonicalization":\n            script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_local_frame_canonicalization.py"\n        elif operation == "decompose_latent_frame_inference":\n            script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_latent_frame_inference.py"\n        else:\n            script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_candidate_frame_ambiguity.py"')
+
+          replace(
+              "scripts/runpod_step14_training_selection.py",
+              '        "decompose_latent_frame_inference": "step14-latent-frame-inference",\n    }',
+              '        "decompose_latent_frame_inference": "step14-latent-frame-inference",\n        "decompose_candidate_frame_ambiguity": "step14-candidate-frame-ambiguity",\n    }')
+
+          replace(
+              ".github/workflows/build-runpod-agent.yml",
+              '      - "scripts/v0_2/analyze_step14_latent_frame_inference.py"\n',
+              '      - "scripts/v0_2/analyze_step14_latent_frame_inference.py"\n      - "scripts/v0_2/analyze_step14_candidate_frame_ambiguity.py"\n')
+          PY
+
+          python -m py_compile \
+            scripts/v0_2/analyze_step14_candidate_frame_ambiguity.py \
+            scripts/runpod_step14_training_worker.py \
+            scripts/runpod_step14_training_selection.py
+          python -m json.tool configs/v0_2/step14_candidate_frame_ambiguity_decomposition.json >/dev/null
+
+      - name: Commit installed diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/v0_2/analyze_step14_candidate_frame_ambiguity.py \
+                  scripts/runpod_step14_training_worker.py \
+                  scripts/runpod_step14_training_selection.py \
+                  .github/workflows/build-runpod-agent.yml
+          if git diff --cached --quiet; then
+            echo "No diagnostic installation changes."
+            exit 0
+          fi
+          git commit -m "Add frozen Step-14 candidate-frame ambiguity diagnostic"
+          git push
