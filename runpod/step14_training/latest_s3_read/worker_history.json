@@ -1,16 +1,16 @@
 {
-  "control_run_id": "run-1788525795-5fa3aa19",
-  "cost_per_hour": 0.74,
+  "control_run_id": "run-1788533758-9a1e6fdf",
+  "cost_per_hour": 0.5,
   "datacenter": "EU-CZ-1",
   "expected_selection_freeze_sha256": "sha256:af7ffaece77d16134c33b1c898afb7165c7ace5dcfccfea23f713ae242e4ed6f",
   "expected_training_run_id": "training_18e0b4ed6e685af30b6c4a35",
-  "job_id": "step14-latent-frame-inference-retry-20260904",
-  "launched_at": "2026-09-04T12:43:17.596231+00:00",
+  "job_id": "step14-candidate-frame-ambiguity-20260904",
+  "launched_at": "2026-09-04T14:55:59.489325+00:00",
   "lifecycle_mode": "detached",
   "network_volume_id": "aaxciry320",
-  "pod_id": "umyq48z94u4bmy",
+  "pod_id": "jut762uw6fy1b0",
   "protocol_config": "configs/v0_2/step14_cross_motif_generalization_training.json",
-  "reconciled_at": "2026-09-04T13:15:15.054237+00:00",
+  "reconciled_at": "2026-09-04T15:00:08.505536+00:00",
   "requested_gpu_types": [
     "NVIDIA GeForce RTX 5090",
     "NVIDIA GeForce RTX 4090",
@@ -18,12 +18,12 @@
   ],
   "runner": "step14_training_selection",
   "schema_version": 2,
-  "scientific_operation": "decompose_latent_frame_inference",
-  "status_key": "triqto-control/runs/step14-latent-frame-inference-retry-20260904/run-1788525795-5fa3aa19/status.json",
+  "scientific_operation": "decompose_candidate_frame_ambiguity",
+  "status_key": "triqto-control/runs/step14-candidate-frame-ambiguity-20260904/run-1788533758-9a1e6fdf/status.json",
   "terminal_status": {
     "command": [
       "/usr/local/bin/python",
-      "/opt/TriQTO/scripts/v0_2/analyze_step14_latent_frame_inference.py",
+      "/opt/TriQTO/scripts/v0_2/analyze_step14_candidate_frame_ambiguity.py",
       "--training-run-id",
       "training_18e0b4ed6e685af30b6c4a35",
       "--selection-freeze-sha256",
@@ -33,22 +33,22 @@
       "--progress-every",
       "1000"
     ],
-    "completed_at": "2026-09-04T13:14:40.962980+00:00",
-    "control_run_id": "run-1788525795-5fa3aa19",
+    "completed_at": "2026-09-04T15:00:05.908450+00:00",
+    "control_run_id": "run-1788533758-9a1e6fdf",
     "gpu": {
-      "output": "NVIDIA GeForce RTX 4090, GPU-ab4f3676-ec5d-67ab-4dae-13aadde694c2, 49140",
+      "output": "NVIDIA GeForce RTX 3090, GPU-01d1f83b-e1c7-eb93-eb13-593d92111bfe, 24576",
       "returncode": 0,
       "stderr": ""
     },
-    "job_id": "step14-latent-frame-inference-retry-20260904",
-    "log_path": "/workspace/triqto-control/runs/step14-latent-frame-inference-retry-20260904/run-1788525795-5fa3aa19/worker.log",
+    "job_id": "step14-candidate-frame-ambiguity-20260904",
+    "log_path": "/workspace/triqto-control/runs/step14-candidate-frame-ambiguity-20260904/run-1788533758-9a1e6fdf/worker.log",
     "repo_root": "/opt/TriQTO",
-    "returncode": 0,
+    "returncode": 1,
     "runner": "step14_training_selection",
     "schema_version": 2,
-    "scientific_operation": "decompose_latent_frame_inference",
-    "started_at": "2026-09-04T12:46:56.243972+00:00",
-    "state": "completed"
+    "scientific_operation": "decompose_candidate_frame_ambiguity",
+    "started_at": "2026-09-04T14:59:50.021033+00:00",
+    "state": "failed"
   },
   "workspace": "/workspace/triqto-data/step14_cross_motif_training"
 }

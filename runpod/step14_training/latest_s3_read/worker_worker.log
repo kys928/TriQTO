@@ -1,56 +1,12 @@
-latent-frame extraction 1000/36000 roots_cached=84
-latent-frame extraction 2000/36000 roots_cached=167
-latent-frame extraction 3000/36000 roots_cached=250
-latent-frame extraction 4000/36000 roots_cached=334
-latent-frame extraction 5000/36000 roots_cached=417
-latent-frame extraction 6000/36000 roots_cached=500
-latent-frame extraction 7000/36000 roots_cached=584
-latent-frame extraction 8000/36000 roots_cached=667
-latent-frame extraction 9000/36000 roots_cached=750
-latent-frame extraction 10000/36000 roots_cached=834
-latent-frame extraction 11000/36000 roots_cached=917
-latent-frame extraction 12000/36000 roots_cached=1000
-latent-frame extraction 13000/36000 roots_cached=1084
-latent-frame extraction 14000/36000 roots_cached=1167
-latent-frame extraction 15000/36000 roots_cached=1250
-latent-frame extraction 16000/36000 roots_cached=1334
-latent-frame extraction 17000/36000 roots_cached=1417
-latent-frame extraction 18000/36000 roots_cached=1500
-latent-frame extraction 19000/36000 roots_cached=1584
-latent-frame extraction 20000/36000 roots_cached=1667
-latent-frame extraction 21000/36000 roots_cached=1750
-latent-frame extraction 22000/36000 roots_cached=1834
-latent-frame extraction 23000/36000 roots_cached=1917
-latent-frame extraction 24000/36000 roots_cached=2000
-latent-frame extraction 25000/36000 roots_cached=2084
-latent-frame extraction 26000/36000 roots_cached=2167
-latent-frame extraction 27000/36000 roots_cached=2250
-latent-frame extraction 28000/36000 roots_cached=2334
-latent-frame extraction 29000/36000 roots_cached=2417
-latent-frame extraction 30000/36000 roots_cached=2500
-latent-frame extraction 31000/36000 roots_cached=2584
-latent-frame extraction 32000/36000 roots_cached=2667
-latent-frame extraction 33000/36000 roots_cached=2750
-latent-frame extraction 34000/36000 roots_cached=2834
-latent-frame extraction 35000/36000 roots_cached=2917
-latent-frame extraction 36000/36000 roots_cached=3000
-latent MIL seed=6201 fit_BA=0.7606 selection_BA=0.7325
-latent MIL seed=6202 fit_BA=0.7630 selection_BA=0.7364
-latent MIL seed=6203 fit_BA=0.7610 selection_BA=0.7382
-{
-  "schema": "triqto.v0_2.step14_latent_frame_inference_result.v1",
-  "status": "COMPLETE_FROZEN_ORACLE_FREE_LATENT_FRAME_INFERENCE",
-  "diagnostic_id": "latent_frame_deeb1a2bdf636d1a4542ffce",
-  "diagnostic_result_sha256": "sha256:d7a7e01d037b2148820a18820235af99c6b3f29c0ebc127f2473cea5b7eee605",
-  "hypothesis_verdicts": {
-    "oracle_free_latent_frame_inference": "PARTIAL_ORACLE_FREE_LATENT_FRAME_SIGNAL",
-    "hardware_facing_data_contract_in_simulation": false,
-    "physical_hardware_validation": false,
-    "exact_statevector_candidate_search_is_analysis_only": true
-  },
-  "main_model_weights_updated": false,
-  "outer_accessed": false,
-  "future_hardware_reserve_accessed": false,
-  "qpu_executed": false,
-  "diagnostic_complete_sha256": "sha256:92a0ad3d041c6def36d11bf9dcd8f1c9943240a83d24c4734eeef12160cabdc6"
-}
+Traceback (most recent call last):
+  File "/opt/TriQTO/scripts/v0_2/analyze_step14_candidate_frame_ambiguity.py", line 649, in <module>
+    main()
+  File "/opt/TriQTO/scripts/v0_2/analyze_step14_candidate_frame_ambiguity.py", line 365, in main
+    table = build_table(cross_product, cross_rows, roots, cfg, args.progress_every)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/TriQTO/scripts/v0_2/analyze_step14_candidate_frame_ambiguity.py", line 192, in build_table
+    signature = oracle.parse_operation_signature(str(root["operation_signature"]))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/TriQTO/scripts/v0_2/analyze_step14_oracle_raw_evidence_ceiling.py", line 137, in parse_operation_signature
+    raise RuntimeError("invalid or oversized Step-14 operation signature")
+RuntimeError: invalid or oversized Step-14 operation signature

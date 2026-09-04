@@ -1,7 +1,7 @@
 {
   "command": [
     "/usr/local/bin/python",
-    "/opt/TriQTO/scripts/v0_2/analyze_step14_latent_frame_inference.py",
+    "/opt/TriQTO/scripts/v0_2/analyze_step14_candidate_frame_ambiguity.py",
     "--training-run-id",
     "training_18e0b4ed6e685af30b6c4a35",
     "--selection-freeze-sha256",
@@ -11,20 +11,20 @@
     "--progress-every",
     "1000"
   ],
-  "completed_at": "2026-09-04T13:14:40.962980+00:00",
-  "control_run_id": "run-1788525795-5fa3aa19",
+  "completed_at": "2026-09-04T15:00:05.908450+00:00",
+  "control_run_id": "run-1788533758-9a1e6fdf",
   "gpu": {
-    "output": "NVIDIA GeForce RTX 4090, GPU-ab4f3676-ec5d-67ab-4dae-13aadde694c2, 49140",
+    "output": "NVIDIA GeForce RTX 3090, GPU-01d1f83b-e1c7-eb93-eb13-593d92111bfe, 24576",
     "returncode": 0,
     "stderr": ""
   },
-  "job_id": "step14-latent-frame-inference-retry-20260904",
-  "log_path": "/workspace/triqto-control/runs/step14-latent-frame-inference-retry-20260904/run-1788525795-5fa3aa19/worker.log",
+  "job_id": "step14-candidate-frame-ambiguity-20260904",
+  "log_path": "/workspace/triqto-control/runs/step14-candidate-frame-ambiguity-20260904/run-1788533758-9a1e6fdf/worker.log",
   "repo_root": "/opt/TriQTO",
-  "returncode": 0,
+  "returncode": 1,
   "runner": "step14_training_selection",
   "schema_version": 2,
-  "scientific_operation": "decompose_latent_frame_inference",
-  "started_at": "2026-09-04T12:46:56.243972+00:00",
-  "state": "completed"
+  "scientific_operation": "decompose_candidate_frame_ambiguity",
+  "started_at": "2026-09-04T14:59:50.021033+00:00",
+  "state": "failed"
 }

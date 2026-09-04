@@ -1,5 +1,5 @@
 {
-  "_control_run_id": "run-1788525795-5fa3aa19",
+  "_control_run_id": "run-1788533758-9a1e6fdf",
   "gpu": {
     "count": 1,
     "type_ids": [
@@ -8,13 +8,13 @@
       "NVIDIA GeForce RTX 3090"
     ]
   },
-  "id": "step14-latent-frame-inference-retry-20260904",
+  "id": "step14-candidate-frame-ambiguity-20260904",
   "kind": "compute",
   "lifecycle": {
     "mode": "detached"
   },
   "task": {
-    "command": "decompose_latent_frame_inference",
+    "command": "decompose_candidate_frame_ambiguity",
     "config": "configs/v0_2/step14_cross_motif_generalization_training.json",
     "expected_selection_freeze_sha256": "sha256:af7ffaece77d16134c33b1c898afb7165c7ace5dcfccfea23f713ae242e4ed6f",
     "expected_training_run_id": "training_18e0b4ed6e685af30b6c4a35",
