@@ -1,0 +1,16 @@
+{
+  "diagnostic_id": "latent_frame_deeb1a2bdf636d1a4542ffce",
+  "diagnostic_result_sha256": "sha256:d7a7e01d037b2148820a18820235af99c6b3f29c0ebc127f2473cea5b7eee605",
+  "future_hardware_reserve_accessed": false,
+  "hypothesis_verdicts": {
+    "exact_statevector_candidate_search_is_analysis_only": true,
+    "hardware_facing_data_contract_in_simulation": false,
+    "oracle_free_latent_frame_inference": "PARTIAL_ORACLE_FREE_LATENT_FRAME_SIGNAL",
+    "physical_hardware_validation": false
+  },
+  "main_model_weights_updated": false,
+  "outer_accessed": false,
+  "qpu_executed": false,
+  "schema": "triqto.v0_2.step14_latent_frame_inference_result.v1",
+  "status": "COMPLETE_FROZEN_ORACLE_FREE_LATENT_FRAME_INFERENCE"
+}

@@ -1,0 +1,7 @@
+{
+  "diagnostic_complete_sha256": "sha256:92a0ad3d041c6def36d11bf9dcd8f1c9943240a83d24c4734eeef12160cabdc6",
+  "diagnostic_dir": "/workspace/triqto-data/step14_latent_frame_inference/latent_frame_deeb1a2bdf636d1a4542ffce",
+  "diagnostic_id": "latent_frame_deeb1a2bdf636d1a4542ffce",
+  "diagnostic_result_sha256": "sha256:d7a7e01d037b2148820a18820235af99c6b3f29c0ebc127f2473cea5b7eee605",
+  "schema": "triqto.v0_2.step14_current_latent_frame_inference.v1"
+}

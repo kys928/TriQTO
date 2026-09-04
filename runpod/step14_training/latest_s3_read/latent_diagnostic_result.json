@@ -1,0 +1,313 @@
+{
+  "counts": {
+    "candidate_count_per_example": {
+      "max": 46.0,
+      "median": 21.0,
+      "min": 10.0,
+      "p10": 14.0,
+      "p90": 34.0
+    },
+    "fit_families": 600,
+    "fit_injected_examples": 28800,
+    "selection_families": 150,
+    "selection_injected_examples": 7200
+  },
+  "diagnostic_id": "latent_frame_deeb1a2bdf636d1a4542ffce",
+  "hypothesis_verdicts": {
+    "exact_statevector_candidate_search_is_analysis_only": true,
+    "hardware_facing_data_contract_in_simulation": false,
+    "oracle_free_latent_frame_inference": "PARTIAL_ORACLE_FREE_LATENT_FRAME_SIGNAL",
+    "physical_hardware_validation": false
+  },
+  "identity": {
+    "cross_dataset_complete_sha256": "sha256:c471919d2c2a8ca2c206228ac59774f5708fc5182c17bbfb48eca6ecf9491280",
+    "cross_dataset_product_id": "development_b087edfd6629ac250299391d",
+    "example_manifest_sha256": "sha256:d66fda7c31f72fa04da1561308e10eff9b76153ea19f4d0e2e1eb9663c0970ef",
+    "future_hardware_reserve_accessed": false,
+    "latent_protocol_sha256": "sha256:e86c2df9d312948aaecffe2024189c6d011e4f51ade6531d49674c40d7fe3aea",
+    "main_model_weights_updated": false,
+    "outer_accessed": false,
+    "qpu_accessed": false,
+    "root_manifest_sha256": "sha256:47ae0823771764b72ca53a76797723b33891e5f6c4c8d99f463e2c3276907522",
+    "schema": "triqto.v0_2.step14_latent_frame_inference_result.v1",
+    "selection_freeze_sha256": "sha256:af7ffaece77d16134c33b1c898afb7165c7ace5dcfccfea23f713ae242e4ed6f",
+    "source_local_frame_diagnostic_id": "local_frame_540d5f72552356577c252c2e",
+    "source_local_frame_result_sha256": "sha256:42b03cd293d4d623b1458f558154921778824a70564e52b16a0bb3bf58e570f5",
+    "training_run_id": "training_18e0b4ed6e685af30b6c4a35"
+  },
+  "latent_mil_per_seed": {
+    "6201": {
+      "final_fit_loss": 0.5375954152478112,
+      "fit_balanced_accuracy": 0.760625,
+      "fit_recall": [
+        0.7926041666666667,
+        0.7430208333333334,
+        0.74625
+      ],
+      "seed": 6201,
+      "selection_balanced_accuracy": 0.7324999999999999,
+      "selection_recall": [
+        0.7575,
+        0.7108333333333333,
+        0.7291666666666666
+      ]
+    },
+    "6202": {
+      "final_fit_loss": 0.5354658897717793,
+      "fit_balanced_accuracy": 0.7629513888888889,
+      "fit_recall": [
+        0.7966666666666666,
+        0.7338541666666667,
+        0.7583333333333333
+      ],
+      "seed": 6202,
+      "selection_balanced_accuracy": 0.7363888888888889,
+      "selection_recall": [
+        0.76625,
+        0.6916666666666667,
+        0.75125
+      ]
+    },
+    "6203": {
+      "final_fit_loss": 0.5382995102140639,
+      "fit_balanced_accuracy": 0.7609722222222223,
+      "fit_recall": [
+        0.7491666666666666,
+        0.738125,
+        0.795625
+      ],
+      "seed": 6203,
+      "selection_balanced_accuracy": 0.7381944444444444,
+      "selection_recall": [
+        0.7241666666666666,
+        0.7008333333333333,
+        0.7895833333333333
+      ]
+    }
+  },
+  "localization_audit": {
+    "finite_latent_mil": {
+      "boundary_accuracy": 0.28319444444444447,
+      "joint_exact_accuracy": 0.27361111111111114,
+      "qubit_accuracy": 0.8427777777777777
+    },
+    "finite_profile_joint_ml": {
+      "boundary_accuracy": 0.22541666666666665,
+      "joint_exact_accuracy": 0.20944444444444443,
+      "qubit_accuracy": 0.7638888888888888
+    },
+    "note": "True locations are read only after mechanism/location predictions are formed and do not enter any primary score or training path. Exact location accuracy is audit-only because different candidate locations can induce equivalent response frames."
+  },
+  "paired_family_bootstrap_deltas": {
+    "exact_marginal_over_raw": {
+      "bootstrap_ci": [
+        0.14318750000000008,
+        0.1948645833333333
+      ],
+      "bootstrap_replicates": 1000,
+      "bootstrap_unit_count": 150,
+      "candidate": "exact_statevector_profile_marginal_upper_bound",
+      "mean_delta": 0.1691666666666668,
+      "reference": "raw_small_probe"
+    },
+    "finite_marginal_over_raw": {
+      "bootstrap_ci": [
+        0.11402083333333339,
+        0.16223263888888886
+      ],
+      "bootstrap_replicates": 1000,
+      "bootstrap_unit_count": 150,
+      "candidate": "finite_shot_profile_marginal",
+      "mean_delta": 0.13763888888888898,
+      "reference": "raw_small_probe"
+    },
+    "finite_max_over_raw": {
+      "bootstrap_ci": [
+        0.11471527777777794,
+        0.16056597222222227
+      ],
+      "bootstrap_replicates": 1000,
+      "bootstrap_unit_count": 150,
+      "candidate": "finite_shot_profile_max",
+      "mean_delta": 0.13736111111111116,
+      "reference": "raw_small_probe"
+    },
+    "finite_mil_over_raw": {
+      "bootstrap_ci": [
+        0.21694097222222228,
+        0.2680625
+      ],
+      "bootstrap_replicates": 1000,
+      "bootstrap_unit_count": 150,
+      "candidate": "finite_shot_latent_mil_ensemble",
+      "mean_delta": 0.2431944444444446,
+      "reference": "raw_small_probe"
+    },
+    "finite_mil_vs_exact_marginal": {
+      "bootstrap_ci": [
+        0.05611111111111111,
+        0.09208680555555551
+      ],
+      "bootstrap_replicates": 1000,
+      "bootstrap_unit_count": 150,
+      "candidate": "finite_shot_latent_mil_ensemble",
+      "mean_delta": 0.0740277777777778,
+      "reference": "exact_statevector_profile_marginal_upper_bound"
+    }
+  },
+  "primary_support_gate": {
+    "checks": {
+      "minimum_fraction_oracle_gain_recovered": false,
+      "minimum_paired_ba_gain_over_raw": true,
+      "minimum_selection_mechanism_ba": false,
+      "minimum_selection_minimum_mechanism_recall": true,
+      "paired_gain_ci_lower_above_zero": true
+    },
+    "oracle_canonicalization_gain_recovered_fraction": 0.5838612870956991,
+    "oracle_local_frame_ba": 0.9105555555555555,
+    "passed": false,
+    "primary_finite_shot_latent_mil_ba": 0.7372222222222223,
+    "raw_ba": 0.49402777777777773
+  },
+  "raw_baseline_per_seed": {
+    "6101": {
+      "final_fit_loss": 0.9491822364595202,
+      "fit_balanced_accuracy": 0.5477430555555555,
+      "fit_recall": [
+        0.5829166666666666,
+        0.5085416666666667,
+        0.5517708333333333
+      ],
+      "seed": 6101,
+      "selection_balanced_accuracy": 0.49222222222222217,
+      "selection_recall": [
+        0.5070833333333333,
+        0.46291666666666664,
+        0.5066666666666667
+      ]
+    },
+    "6102": {
+      "final_fit_loss": 0.9486608367496067,
+      "fit_balanced_accuracy": 0.5457291666666667,
+      "fit_recall": [
+        0.6065625,
+        0.4636458333333333,
+        0.5669791666666667
+      ],
+      "seed": 6102,
+      "selection_balanced_accuracy": 0.4905555555555556,
+      "selection_recall": [
+        0.5266666666666666,
+        0.4245833333333333,
+        0.5204166666666666
+      ]
+    },
+    "6103": {
+      "final_fit_loss": 0.9492778107855055,
+      "fit_balanced_accuracy": 0.5496180555555555,
+      "fit_recall": [
+        0.5542708333333334,
+        0.5315625,
+        0.5630208333333333
+      ],
+      "seed": 6103,
+      "selection_balanced_accuracy": 0.49180555555555555,
+      "selection_recall": [
+        0.47333333333333333,
+        0.4825,
+        0.5195833333333333
+      ]
+    }
+  },
+  "schema": "triqto.v0_2.step14_latent_frame_inference_result.v1",
+  "scientific_boundaries": {
+    "exact_statevector_jacobians_used_only_for_analysis_upper_bound": true,
+    "future_hardware_reserve_accessed": false,
+    "main_model_retrained": false,
+    "main_model_weights_updated": false,
+    "primary_candidate_frames_use_only_finite_shot_probe_evidence": true,
+    "qpu_executed": false,
+    "selection_used_for_training_or_early_stopping": false,
+    "simulator_outer_accessed": false,
+    "simulator_statevector_used_only_as_backend_emulator_for_primary_probe_counts": true,
+    "true_location_used_for_candidate_generation_scoring_or_training": false,
+    "true_location_used_only_for_post_prediction_audit": true
+  },
+  "selection_metrics": {
+    "exact_statevector_profile_marginal_upper_bound": {
+      "example_count": 7200,
+      "inference_kind": "analysis_only_exact_upper_bound",
+      "mechanism_balanced_accuracy": 0.6631944444444445,
+      "mechanism_recall": [
+        0.5916666666666667,
+        0.6016666666666667,
+        0.79625
+      ],
+      "minimum_mechanism_recall": 0.5916666666666667
+    },
+    "exact_statevector_profile_max_upper_bound": {
+      "example_count": 7200,
+      "inference_kind": "analysis_only_exact_upper_bound",
+      "mechanism_balanced_accuracy": 0.6356944444444445,
+      "mechanism_recall": [
+        0.5433333333333333,
+        0.5625,
+        0.80125
+      ],
+      "minimum_mechanism_recall": 0.5433333333333333
+    },
+    "finite_shot_latent_mil_ensemble": {
+      "example_count": 7200,
+      "inference_kind": "primary_hardware_facing_latent_mil",
+      "mechanism_balanced_accuracy": 0.7372222222222223,
+      "mechanism_recall": [
+        0.7541666666666667,
+        0.7016666666666667,
+        0.7558333333333334
+      ],
+      "minimum_mechanism_recall": 0.7016666666666667
+    },
+    "finite_shot_profile_marginal": {
+      "example_count": 7200,
+      "inference_kind": "hardware_facing_deterministic",
+      "mechanism_balanced_accuracy": 0.6316666666666667,
+      "mechanism_recall": [
+        0.5916666666666667,
+        0.5654166666666667,
+        0.7379166666666667
+      ],
+      "minimum_mechanism_recall": 0.5654166666666667
+    },
+    "finite_shot_profile_max": {
+      "example_count": 7200,
+      "inference_kind": "hardware_facing_deterministic",
+      "mechanism_balanced_accuracy": 0.6313888888888889,
+      "mechanism_recall": [
+        0.5891666666666666,
+        0.57125,
+        0.73375
+      ],
+      "minimum_mechanism_recall": 0.57125
+    },
+    "raw_small_probe": {
+      "example_count": 7200,
+      "inference_kind": "frozen_raw_baseline",
+      "mechanism_balanced_accuracy": 0.49402777777777773,
+      "mechanism_recall": [
+        0.5,
+        0.46166666666666667,
+        0.5204166666666666
+      ],
+      "minimum_mechanism_recall": 0.46166666666666667
+    }
+  },
+  "source_local_frame_verdicts": {
+    "canonical_high_capacity_ba": 0.9101388888888889,
+    "canonical_small_probe_ba": 0.9105555555555555,
+    "deterministic_canonical_rule_ba": 0.7554166666666666,
+    "local_frame_canonicalization_hypothesis": "SUPPORTED_LOCAL_FRAME_CANONICALIZATION_SIGNAL",
+    "privileged_information_remains_analysis_only": true,
+    "raw_model_visible_evidence_limit_update": "EVIDENCE_LIMIT_NOT_RESOLVED"
+  },
+  "status": "COMPLETE_FROZEN_ORACLE_FREE_LATENT_FRAME_INFERENCE"
+}
