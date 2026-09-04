@@ -1,0 +1,51 @@
+name: Observe Step-14 Ambiguity Retry
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/observe-step14-ambiguity-retry.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    env:
+      RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install control dependency
+        run: python -m pip install --quiet boto3
+      - name: Read pod control-plane status
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import sys
+          sys.path.insert(0, 'scripts')
+          import runpod_control_v2 as control
+
+          POD_ID = 'h4agujgghdq9cu'
+          pod = control.runpod_request('GET', f'/pods/{POD_ID}')
+          if not isinstance(pod, dict):
+              raise RuntimeError(f'unexpected RunPod pod response: {type(pod).__name__}')
+
+          safe_keys = [
+              'id', 'name', 'desiredStatus', 'status', 'runtime', 'costPerHr',
+              'lastStatusChange', 'dataCenterId', 'machineId', 'imageName',
+              'gpuCount', 'gpuTypeId', 'interruptible', 'createdAt', 'uptimeSeconds'
+          ]
+          safe = {key: pod.get(key) for key in safe_keys if key in pod}
+          safe['_available_top_level_keys'] = sorted(
+              key for key in pod.keys()
+              if key.lower() not in {'env', 'environment', 'dockerstartcmd', 'dockerentrypoint'}
+          )
+          print(json.dumps(safe, indent=2, sort_keys=True, default=str))
+          PY
