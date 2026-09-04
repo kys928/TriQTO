@@ -1,0 +1,68 @@
+{
+  "schema": "triqto.v0_2.step14_candidate_frame_ambiguity_decomposition.v1",
+  "status": "FROZEN_BEFORE_EXECUTION",
+  "scientific_question": "How much of the remaining Step-14 privileged local-frame advantage is associated with wrong-qubit ambiguity, wrong-boundary ambiguity, mechanism-preserving observationally equivalent boundaries, and genuinely mechanism-confusable frame geometry?",
+  "source_freeze": {
+    "training_run_id": "training_18e0b4ed6e685af30b6c4a35",
+    "selection_freeze_sha256": "sha256:af7ffaece77d16134c33b1c898afb7165c7ace5dcfccfea23f713ae242e4ed6f",
+    "development_product_id": "development_b087edfd6629ac250299391d",
+    "development_dataset_sha256": "sha256:c471919d2c2a8ca2c206228ac59774f5708fc5182c17bbfb48eca6ecf9491280",
+    "latent_protocol_sha256": "sha256:e86c2df9d312948aaecffe2024189c6d011e4f51ade6531d49674c40d7fe3aea",
+    "latent_diagnostic_id": "latent_frame_deeb1a2bdf636d1a4542ffce",
+    "latent_result_sha256": "sha256:d7a7e01d037b2148820a18820235af99c6b3f29c0ebc127f2473cea5b7eee605",
+    "latent_primary_ba": 0.7372222222222223,
+    "local_frame_diagnostic_id": "local_frame_540d5f72552356577c252c2e",
+    "local_frame_result_sha256": "sha256:42b03cd293d4d623b1458f558154921778824a70564e52b16a0bb3bf58e570f5",
+    "local_frame_oracle_small_probe_ba": 0.9105555555555555
+  },
+  "data_boundary": {
+    "allowed_partitions": ["fit", "selection"],
+    "main_model_retraining": false,
+    "main_model_weights_updated": false,
+    "selection_used_for_training_or_early_stopping": false,
+    "simulator_outer_accessed": false,
+    "future_hardware_reserve_accessed": false,
+    "qpu_executed": false
+  },
+  "decomposition_policy": {
+    "reproduce_source_latent_mil_from_fit_only": true,
+    "reproduce_source_exact_local_frame_small_probe_from_fit_only": true,
+    "apply_true_qubit_and_boundary_restrictions_only_after_candidate_logits_are_frozen": true,
+    "paired_gap_accounting_uses_oracle_correct_latent_wrong_and_reverse_disagreements": true,
+    "balanced_selection_classes_allow_ba_gap_to_be_expressed_as_net_example_count": true,
+    "counterfactual_increments_are_descriptive_not_causal_shapley_attributions": true
+  },
+  "frame_equivalence": {
+    "geometry_source": "analysis-only exact candidate Born-response Jacobians",
+    "mechanism_preserving": true,
+    "minimum_same_axis_abs_cosine": 0.98,
+    "minimum_identity_assignment_margin": 0.02,
+    "sensitivity_same_axis_abs_cosines": [0.95, 0.98, 0.995]
+  },
+  "mechanism_confusability": {
+    "definition": "absolute cosine between the response direction of the latent model's predicted wrong mechanism at its selected candidate frame and the true mechanism response direction at the true frame",
+    "minimum_wrong_axis_abs_cosine": 0.9,
+    "sensitivity_abs_cosines": [0.8, 0.9, 0.95]
+  },
+  "counterfactual_ladder": [
+    "oracle_free_full_latent_mil",
+    "true_qubit_restricted_latent_mil",
+    "true_frame_equivalence_class_latent_mil",
+    "true_boundary_single_candidate_latent_mil",
+    "true_boundary_finite_shot_small_probe",
+    "true_boundary_exact_local_frame_small_probe"
+  ],
+  "statistics": {
+    "bootstrap_replicates": 1000,
+    "bootstrap_unit": "cross_motif_family_id",
+    "bootstrap_seed": 2026090404
+  },
+  "reproduction_tolerance_ba": 1e-10,
+  "interpretation_policy": {
+    "descriptive_only": true,
+    "may_not_change_source_latent_verdict": true,
+    "may_identify_next_frozen_diagnostic": true,
+    "architecture_change_allowed_by_this_diagnostic": false,
+    "physical_hardware_claim_allowed": false
+  }
+}
