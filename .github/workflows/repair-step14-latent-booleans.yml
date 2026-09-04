@@ -1,0 +1,81 @@
+name: Repair Step-14 latent result booleans
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/repair-step14-latent-booleans.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Apply exact Step-14 terminal-result fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import ast
+
+          source_path = Path('scripts/v0_2/analyze_step14_latent_frame_inference.py')
+          source = source_path.read_text(encoding='utf-8')
+          replacements = {
+              '"physical_hardware_validation": false,': '"physical_hardware_validation": False,',
+              '"exact_statevector_candidate_search_is_analysis_only": true,': '"exact_statevector_candidate_search_is_analysis_only": True,',
+          }
+          for old, new in replacements.items():
+              count = source.count(old)
+              if count != 1:
+                  raise RuntimeError(f'Expected exactly one {old!r}, found {count}')
+              source = source.replace(old, new)
+          source_path.write_text(source, encoding='utf-8')
+
+          tree = ast.parse(source)
+          bad_names = sorted({
+              node.id for node in ast.walk(tree)
+              if isinstance(node, ast.Name) and node.id in {'true', 'false', 'null'}
+          })
+          if bad_names:
+              raise RuntimeError(f'JSON-style literals remain in Python source: {bad_names}')
+
+          build_path = Path('.github/workflows/build-runpod-agent.yml')
+          build = build_path.read_text(encoding='utf-8')
+          watched = '      - "scripts/v0_2/analyze_step14_latent_frame_inference.py"\n'
+          if watched not in build:
+              anchor = '      - "scripts/v0_2/analyze_step14_oracle_raw_evidence_ceiling.py"\n'
+              if build.count(anchor) != 1:
+                  raise RuntimeError('RunPod build workflow anchor drift')
+              build = build.replace(anchor, anchor + watched)
+              build_path.write_text(build, encoding='utf-8')
+          PY
+
+      - name: Verify exact patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile scripts/v0_2/analyze_step14_latent_frame_inference.py
+          grep -F '"physical_hardware_validation": False,' scripts/v0_2/analyze_step14_latent_frame_inference.py
+          grep -F '"exact_statevector_candidate_search_is_analysis_only": True,' scripts/v0_2/analyze_step14_latent_frame_inference.py
+          grep -F 'scripts/v0_2/analyze_step14_latent_frame_inference.py' .github/workflows/build-runpod-agent.yml
+
+      - name: Commit repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/v0_2/analyze_step14_latent_frame_inference.py .github/workflows/build-runpod-agent.yml
+          if git diff --cached --quiet; then
+            echo "Repair already applied."
+            exit 0
+          fi
+          git commit -m "Fix Step-14 latent result boolean literals and image rebuild trigger"
+          git push
