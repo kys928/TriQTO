@@ -26,6 +26,7 @@ ALLOWED_OPERATIONS = {
     "decompose_oracle_raw_evidence",
     "decompose_local_frame_canonicalization",
     "decompose_latent_frame_inference",
+    "decompose_candidate_frame_ambiguity",
 }
 POST_SELECTION_OPERATIONS = {
     "evaluate_outer",
@@ -33,6 +34,7 @@ POST_SELECTION_OPERATIONS = {
     "decompose_oracle_raw_evidence",
     "decompose_local_frame_canonicalization",
     "decompose_latent_frame_inference",
+    "decompose_candidate_frame_ambiguity",
 }
 TERMINAL_STATES = {"completed", "failed"}
 
@@ -84,8 +86,10 @@ def build_command(job: dict[str, Any]) -> list[str]:
             script = REPO_ROOT / "scripts" / "v0_2" / "run_step14_oracle_raw_evidence_ceiling.py"
         elif operation == "decompose_local_frame_canonicalization":
             script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_local_frame_canonicalization.py"
-        else:
+        elif operation == "decompose_latent_frame_inference":
             script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_latent_frame_inference.py"
+        else:
+            script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_candidate_frame_ambiguity.py"
         return [
             sys.executable,
             str(script),
