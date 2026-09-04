@@ -1,0 +1,81 @@
+{
+  "schema": "triqto.v0_2.step14_local_frame_canonicalization_result_freeze.v1",
+  "status": "FROZEN_POSTHOC_RESULT",
+  "frozen_at_utc": "2026-09-04",
+  "source": {
+    "diagnostic_id": "local_frame_540d5f72552356577c252c2e",
+    "diagnostic_status": "COMPLETE_FROZEN_LOCAL_FRAME_CANONICALIZATION",
+    "network_volume_pointer": "triqto-data/step14_local_frame_canonicalization/current_local_frame_canonicalization.json",
+    "diagnostic_result_sha256": "sha256:42b03cd293d4d623b1458f558154921778824a70564e52b16a0bb3bf58e570f5",
+    "diagnostic_complete_sha256": "sha256:7495decc59e1b6a6cb6eb88db0738f18f93c51faca949c4d3e6524f6847decd2",
+    "result_read_workflow_run": 33851494683
+  },
+  "scientific_identity": {
+    "training_run_id": "training_18e0b4ed6e685af30b6c4a35",
+    "selection_freeze_sha256": "sha256:af7ffaece77d16134c33b1c898afb7165c7ace5dcfccfea23f713ae242e4ed6f",
+    "cross_dataset_product_id": "development_b087edfd6629ac250299391d",
+    "cross_dataset_complete_sha256": "sha256:c471919d2c2a8ca2c206228ac59774f5708fc5182c17bbfb48eca6ecf9491280",
+    "protocol_config_sha256": "sha256:fedb862d1baff9ecc9269530e38e6f965c37427bcb2182dcadccabfb101b75ab",
+    "fit_families": 600,
+    "selection_families": 150,
+    "fit_injected_examples": 28800,
+    "selection_injected_examples": 7200
+  },
+  "selection_mechanism_balanced_accuracy": {
+    "raw_diagnostics": 0.49402777777777773,
+    "raw_plus_affected_qubit_oracle": 0.46291666666666664,
+    "raw_plus_affected_qubit_local_context_oracle": 0.4844444444444444,
+    "canonical_local_frame_deterministic_rule": 0.7554166666666666,
+    "canonical_local_frame_small_probe": 0.9105555555555555,
+    "canonical_local_frame_high_capacity": 0.9101388888888889
+  },
+  "selection_mechanism_recall": {
+    "canonical_local_frame_deterministic_rule": [0.70375, 0.7054166666666667, 0.8570833333333333],
+    "canonical_local_frame_small_probe": [0.9016666666666666, 0.9070833333333334, 0.9229166666666667],
+    "canonical_local_frame_high_capacity": [0.9083333333333333, 0.9025, 0.9195833333333333]
+  },
+  "paired_family_bootstrap_deltas": {
+    "canonical_small_over_raw_neighborhood": {
+      "mean": 0.42611111111111105,
+      "ci95": [0.40361111111111114, 0.45030555555555546]
+    },
+    "canonical_small_over_raw": {
+      "mean": 0.4165277777777777,
+      "ci95": [0.39402777777777775, 0.43639930555555556]
+    },
+    "deterministic_rule_over_raw": {
+      "mean": 0.2613888888888889,
+      "ci95": [0.23833333333333329, 0.2876388888888889]
+    },
+    "high_capacity_over_small": {
+      "mean": -0.00041666666666650976,
+      "ci95": [-0.0036111111111112315, 0.0031944444444442803]
+    }
+  },
+  "frame_geometry": {
+    "root_count": 3000,
+    "median_condition_number": 5.311611623213643,
+    "fraction_minimum_axis_angle_below_15deg": 0.255,
+    "fraction_minimum_singular_below_0p1": 0.44033333333333335,
+    "median_minimum_axis_angle_deg": 42.023901580986774,
+    "median_minimum_singular_value": 0.26039939783623933,
+    "median_canonicalization_residual_fraction": 0.5792350052956189
+  },
+  "formal_verdicts": {
+    "local_frame_canonicalization_hypothesis": "SUPPORTED_LOCAL_FRAME_CANONICALIZATION_SIGNAL",
+    "raw_model_visible_evidence_limit_update": "EVIDENCE_LIMIT_NOT_RESOLVED"
+  },
+  "claim_boundary": {
+    "main_model_retrained": false,
+    "main_model_weights_updated": false,
+    "selection_used_for_probe_training_or_early_stopping": false,
+    "simulator_outer_accessed": false,
+    "future_hardware_reserve_accessed": false,
+    "qpu_executed": false,
+    "true_affected_qubit_and_injection_boundary_used_for_canonical_frame": true,
+    "privileged_location_information_analysis_only": true,
+    "exact_frame_calculator_uses_simulator_statevector": true,
+    "hardware_deployability_proven": false
+  },
+  "frozen_interpretation": "The same finite-shot model-visible evidence becomes strongly transferable across unseen Step-14 circuit families after exact local Pauli-frame canonicalization: mechanism BA rises from 0.4940 raw to 0.9106 with a small probe, while a deterministic canonical-coordinate rule alone reaches 0.7554. Increasing probe capacity gives no meaningful gain. This supports a circuit-dependent local-frame/invariance representation defect as a dominant mechanism-generalization bottleneck. It does not yet establish hardware-facing deployability because the analysis used the true affected qubit and true injection boundary and an exact simulator-statevector frame calculator."
+}
