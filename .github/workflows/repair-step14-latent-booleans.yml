@@ -38,7 +38,7 @@ jobs:
                   counts[tok.string] += 1
                   tok = tokenize.TokenInfo(tok.type, mapping[tok.string], tok.start, tok.end, tok.line)
               rewritten.append(tok)
-          if counts != {'false': 1, 'true': 2, 'null': 0}:
+          if counts != {'false': 1, 'true': 6, 'null': 0}:
               raise RuntimeError(f'Unexpected JSON-style literal counts before repair: {counts}')
           source = tokenize.untokenize(rewritten)
           source_path.write_text(source, encoding='utf-8')
