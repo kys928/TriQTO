@@ -41,7 +41,7 @@ jobs:
           import boto3
           from botocore.config import Config
 
-          CONTROL_RUN_ID = 'run-1788517096-f6ae0b95'
+          CONTROL_RUN_ID = 'run-1788525795-5fa3aa19'
           bucket = os.environ['RUNPOD_NETWORK_VOLUME_ID']
           endpoint = os.environ['RUNPOD_S3_ENDPOINT']
           region = os.environ['RUNPOD_DATACENTER_ID'].lower()
