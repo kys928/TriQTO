@@ -678,7 +678,10 @@ def main() -> None:
     out_parent.mkdir(parents=True, exist_ok=True)
     out_dir = out_parent / diagnostic_id
     if out_dir.exists():
-        raise RuntimeError(f"refusing to overwrite latent-frame diagnostic {out_dir}")
+        if not out_dir.is_dir() or any(out_dir.iterdir()):
+            raise RuntimeError(f"refusing to overwrite latent-frame diagnostic {out_dir}")
+        # A failed pre-write result assembly can leave only the empty directory behind.
+        out_dir.rmdir()
     out_dir.mkdir()
 
     result = {
