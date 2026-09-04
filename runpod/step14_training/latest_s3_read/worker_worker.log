@@ -37,10 +37,20 @@ latent-frame extraction 36000/36000 roots_cached=3000
 latent MIL seed=6201 fit_BA=0.7606 selection_BA=0.7325
 latent MIL seed=6202 fit_BA=0.7630 selection_BA=0.7364
 latent MIL seed=6203 fit_BA=0.7610 selection_BA=0.7382
-Traceback (most recent call last):
-  File "/opt/TriQTO/scripts/v0_2/analyze_step14_latent_frame_inference.py", line 757, in <module>
-    main()
-  File "/opt/TriQTO/scripts/v0_2/analyze_step14_latent_frame_inference.py", line 712, in main
+{
+  "schema": "triqto.v0_2.step14_latent_frame_inference_result.v1",
+  "status": "COMPLETE_FROZEN_ORACLE_FREE_LATENT_FRAME_INFERENCE",
+  "diagnostic_id": "latent_frame_deeb1a2bdf636d1a4542ffce",
+  "diagnostic_result_sha256": "sha256:d7a7e01d037b2148820a18820235af99c6b3f29c0ebc127f2473cea5b7eee605",
+  "hypothesis_verdicts": {
+    "oracle_free_latent_frame_inference": "PARTIAL_ORACLE_FREE_LATENT_FRAME_SIGNAL",
+    "hardware_facing_data_contract_in_simulation": false,
     "physical_hardware_validation": false,
-                                    ^^^^^
-NameError: name 'false' is not defined. Did you mean: 'False'?
+    "exact_statevector_candidate_search_is_analysis_only": true
+  },
+  "main_model_weights_updated": false,
+  "outer_accessed": false,
+  "future_hardware_reserve_accessed": false,
+  "qpu_executed": false,
+  "diagnostic_complete_sha256": "sha256:92a0ad3d041c6def36d11bf9dcd8f1c9943240a83d24c4734eeef12160cabdc6"
+}

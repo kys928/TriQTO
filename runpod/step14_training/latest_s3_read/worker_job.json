@@ -1,5 +1,5 @@
 {
-  "_control_run_id": "run-1788517096-f6ae0b95",
+  "_control_run_id": "run-1788525795-5fa3aa19",
   "gpu": {
     "count": 1,
     "type_ids": [
@@ -8,7 +8,7 @@
       "NVIDIA GeForce RTX 3090"
     ]
   },
-  "id": "step14-latent-frame-inference-20260904",
+  "id": "step14-latent-frame-inference-retry-20260904",
   "kind": "compute",
   "lifecycle": {
     "mode": "detached"
