@@ -42,7 +42,7 @@ jobs:
           from botocore.config import Config
           from botocore.exceptions import ClientError
 
-          CONTROL_RUN_ID = 'run-1788533758-9a1e6fdf'
+          CONTROL_RUN_ID = 'run-1788535566-c5833396'
           bucket = os.environ['RUNPOD_NETWORK_VOLUME_ID']
           endpoint = os.environ['RUNPOD_S3_ENDPOINT']
           region = os.environ['RUNPOD_DATACENTER_ID'].lower()
