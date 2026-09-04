@@ -31,7 +31,7 @@ jobs:
       - name: Install boto3
         run: python -m pip install --quiet boto3
 
-      - name: Read Step-14 training and worker artifacts directly from S3
+      - name: Read Step-14 training, latent diagnostic, and worker artifacts directly from S3
         shell: bash
         run: |
           set -euo pipefail
@@ -75,6 +75,26 @@ jobs:
               json.loads(text)
               with open(f'{output}/{name}', 'w', encoding='utf-8') as f:
                   f.write(text)
+
+          latent_root = 'triqto-data/step14_latent_frame_inference'
+          latent_pointer_text = read_text(f'{latent_root}/current_latent_frame_inference.json')
+          latent_pointer = json.loads(latent_pointer_text)
+          diagnostic_dir = str(latent_pointer['diagnostic_dir'])
+          if not diagnostic_dir.startswith('/workspace/'):
+              raise RuntimeError(f'Unexpected latent diagnostic_dir: {diagnostic_dir!r}')
+          diagnostic_key = diagnostic_dir[len('/workspace/'):].rstrip('/')
+          if not diagnostic_key.startswith(latent_root + '/latent_frame_'):
+              raise RuntimeError(f'Refusing unexpected latent diagnostic key: {diagnostic_key!r}')
+
+          with open(f'{output}/latent_current_latent_frame_inference.json', 'w', encoding='utf-8') as f:
+              f.write(latent_pointer_text)
+          for name in ['diagnostic_result.json', 'diagnostic_complete.json']:
+              text = read_text(f'{diagnostic_key}/{name}')
+              json.loads(text)
+              with open(f'{output}/latent_{name}', 'w', encoding='utf-8') as f:
+                  f.write(text)
+              print(f'=== latent {name} ===')
+              print(text)
 
           paginator = client.get_paginator('list_objects_v2')
           suffix = f'/{CONTROL_RUN_ID}/status.json'
