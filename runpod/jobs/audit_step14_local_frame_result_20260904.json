@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "id": "audit-step14-local-frame-result-20260904",
+  "kind": "storage",
+  "storage": {
+    "operation": "read_text",
+    "path": "triqto-data/step14_local_frame_canonicalization/local_frame_540d5f72552356577c252c2e/diagnostic_result.json",
+    "max_bytes": 1048576
+  }
+}
