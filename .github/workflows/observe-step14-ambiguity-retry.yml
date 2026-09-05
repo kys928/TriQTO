@@ -32,7 +32,7 @@ jobs:
           sys.path.insert(0, 'scripts')
           import runpod_control_v2 as control
 
-          POD_ID = 'h4agujgghdq9cu'
+          POD_ID = 'lszb9lfound6ub'
           pod = control.runpod_request('GET', f'/pods/{POD_ID}')
           if not isinstance(pod, dict):
               raise RuntimeError(f'unexpected RunPod pod response: {type(pod).__name__}')
