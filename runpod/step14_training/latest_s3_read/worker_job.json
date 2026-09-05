@@ -1,14 +1,12 @@
 {
-  "_control_run_id": "run-1788533758-9a1e6fdf",
+  "_control_run_id": "run-1788596908-5ab88fc9",
   "gpu": {
     "count": 1,
     "type_ids": [
-      "NVIDIA GeForce RTX 5090",
-      "NVIDIA GeForce RTX 4090",
-      "NVIDIA GeForce RTX 3090"
+      "NVIDIA GeForce RTX 4090"
     ]
   },
-  "id": "step14-candidate-frame-ambiguity-20260904",
+  "id": "step14-candidate-frame-ambiguity-retry-4090-20260905",
   "kind": "compute",
   "lifecycle": {
     "mode": "detached"
