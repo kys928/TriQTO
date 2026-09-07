@@ -27,6 +27,7 @@ ALLOWED_OPERATIONS = {
     "decompose_local_frame_canonicalization",
     "decompose_latent_frame_inference",
     "decompose_candidate_frame_ambiguity",
+    "fit_equivalence_aware_latent_frame",
 }
 POST_SELECTION_OPERATIONS = {
     "evaluate_outer",
@@ -35,6 +36,7 @@ POST_SELECTION_OPERATIONS = {
     "decompose_local_frame_canonicalization",
     "decompose_latent_frame_inference",
     "decompose_candidate_frame_ambiguity",
+    "fit_equivalence_aware_latent_frame",
 }
 TERMINAL_STATES = {"completed", "failed"}
 
@@ -88,8 +90,10 @@ def build_command(job: dict[str, Any]) -> list[str]:
             script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_local_frame_canonicalization.py"
         elif operation == "decompose_latent_frame_inference":
             script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_latent_frame_inference.py"
-        else:
+        elif operation == "decompose_candidate_frame_ambiguity":
             script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_candidate_frame_ambiguity.py"
+        else:
+            script = REPO_ROOT / "scripts" / "v0_2" / "fit_step14_equivalence_aware_latent_frame.py"
         return [
             sys.executable,
             str(script),
