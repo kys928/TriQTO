@@ -1,0 +1,123 @@
+{
+  "schema": "triqto.v0_2.step14_equivalence_aware_latent_frame_development.v1",
+  "status": "FROZEN_BEFORE_FIT_ONLY_DEVELOPMENT",
+  "scientific_question": "Can an oracle-free mechanism-preserving response-frame equivalence posterior recover materially more of the privileged local-frame signal than uniform candidate marginalization, without true-location supervision or main-model retraining?",
+  "source_freeze": {
+    "training_run_id": "training_18e0b4ed6e685af30b6c4a35",
+    "selection_freeze_sha256": "sha256:af7ffaece77d16134c33b1c898afb7165c7ace5dcfccfea23f713ae242e4ed6f",
+    "development_product_id": "development_b087edfd6629ac250299391d",
+    "development_dataset_sha256": "sha256:c471919d2c2a8ca2c206228ac59774f5708fc5182c17bbfb48eca6ecf9491280",
+    "latent_protocol_sha256": "sha256:e86c2df9d312948aaecffe2024189c6d011e4f51ade6531d49674c40d7fe3aea",
+    "source_latent_diagnostic_id": "latent_frame_deeb1a2bdf636d1a4542ffce",
+    "source_latent_result_sha256": "sha256:d7a7e01d037b2148820a18820235af99c6b3f29c0ebc127f2473cea5b7eee605",
+    "source_ambiguity_diagnostic_id": "frame_ambiguity_e0c139fbd93ce1bb543ccc34",
+    "source_ambiguity_result_sha256": "sha256:eac533a5e1ff84a2ed6c026f1b91abbe0c874eb7c6f0cc0d9a6ed1d61edc9412"
+  },
+  "development_data_boundary": {
+    "allowed_partition": "fit",
+    "selection_artifacts_may_be_loaded": false,
+    "selection_labels_may_be_read": false,
+    "selection_metrics_may_determine_any_choice": false,
+    "simulator_outer_accessed": false,
+    "future_hardware_reserve_accessed": false,
+    "qpu_executed": false,
+    "main_model_retrained": false,
+    "main_model_weights_updated": false
+  },
+  "location_privilege_boundary": {
+    "true_affected_qubit_forbidden_from_candidate_generation": true,
+    "true_injection_boundary_forbidden_from_candidate_generation": true,
+    "true_location_forbidden_from_features": true,
+    "true_location_forbidden_from_scoring": true,
+    "true_location_forbidden_from_training": true,
+    "true_location_forbidden_from_hyperparameter_selection": true,
+    "exact_statevector_frame_geometry_forbidden_from_deployable_similarity": true
+  },
+  "candidate_and_calibration_contract": {
+    "candidate_set": "exactly the frozen Step-14 latent plausible_candidates rule",
+    "frame_calibration": "exactly the frozen finite-shot plus/minus X/Y/Z calibration rule",
+    "candidate_feature": "exactly the frozen 24-d finite-shot canonical feature",
+    "candidate_mechanism_profile_score": "exactly the frozen finite-shot signed-amplitude profile Gaussian log-likelihood",
+    "statevector_may_only_emulate_sampled_probe_counts": true
+  },
+  "equivalence_aware_inference": {
+    "candidate_network": "reproduce the frozen shared 24->64->3 latent MIL candidate network trained with the original uniform log-mean-exp bag objective; equivalence awareness enters only after candidate logits are formed",
+    "network_seeds": [6201, 6202, 6203],
+    "reuse_frozen_latent_mil_training_hyperparameters": true,
+    "pairwise_similarity": {
+      "axis_normalization": "L2-normalize each finite-shot X/Y/Z response column independently",
+      "matrix": "absolute cosine matrix between the three normalized axes of candidate i and candidate j",
+      "same_axis_summary": "minimum diagonal absolute cosine",
+      "identity_assignment_margin": "mean diagonal absolute cosine minus best non-identity axis-permutation mean absolute cosine",
+      "mechanism_preserving_gate": "identity_assignment_margin > 0",
+      "kernel": "exp(-(1-minimum_same_axis_abs_cosine)/tau) when the mechanism-preserving gate is satisfied; zero otherwise; diagonal forced to one"
+    },
+    "candidate_frame_evidence": "log-mean-exp over the three frozen finite-shot candidate-mechanism profile log-likelihoods",
+    "frame_posterior": "softmax(candidate_frame_evidence/frame_temperature - log(kernel_density)) over valid candidate anchors",
+    "kernel_density": "sum of pairwise equivalence-kernel weights from an anchor to all valid candidates",
+    "equivalence_smoothed_mechanism_logits": "kernel-weighted log-mean-exp of learned candidate mechanism logits within each anchor neighborhood",
+    "final_mechanism_logits": "log-sum-exp of equivalence-smoothed mechanism logits under the frame posterior",
+    "exact_boundary_accuracy_is_not_an_optimization_objective": true
+  },
+  "fit_only_hyperparameter_selection": {
+    "family_level_folds": 3,
+    "fold_rule": "first eight bytes of SHA256(family_id) interpreted as unsigned integer mod 3",
+    "tau_grid": [0.02, 0.05, 0.1],
+    "frame_temperature_grid": [0.5, 1.0, 2.0],
+    "candidate_network_retrained_per_cv_fold": true,
+    "network_seeds_per_fold": [6201, 6202, 6203],
+    "objective_order": [
+      "higher pooled cross-fitted mechanism balanced accuracy",
+      "higher pooled cross-fitted minimum mechanism recall",
+      "smaller absolute log-ratio of tau to 0.05",
+      "smaller absolute log-ratio of frame_temperature to 1.0",
+      "smaller tau",
+      "smaller frame_temperature"
+    ],
+    "selection_partition_used": false
+  },
+  "final_fit_bundle": {
+    "train_on_all_fit_families_after_hyperparameter_choice": true,
+    "seeds": [6201, 6202, 6203],
+    "save_candidate_network_state_dict": true,
+    "save_fit_only_normalization": true,
+    "save_selected_tau_and_frame_temperature": true,
+    "fresh_holdout_generation_forbidden_until_bundle_and_freeze_are_persisted": true
+  },
+  "fresh_holdout_precommitment": {
+    "base_seed": 2026090701,
+    "family_count": 150,
+    "variants_per_family": 4,
+    "examples_per_root": 13,
+    "mechanism_target_examples_expected": 7200,
+    "generator_contract": "same Step-14 cross-motif grammar, strengths, shots, finite-shot sampling, model-blind identifiability admission, and signature exclusions; new seed namespace and family identifiers only",
+    "must_be_disjoint_from_existing_fit_selection_simulator_outer_and_future_reserve": true,
+    "existing_simulator_outer_materialized_or_accessed": false,
+    "future_hardware_reserve_materialized_or_accessed": false,
+    "holdout_may_not_be_generated_before_final_method_freeze": true,
+    "holdout_selects_nothing": true,
+    "one_shot_evaluation": true
+  },
+  "confirmatory_statistics_and_support_gates": {
+    "bootstrap_replicates": 1000,
+    "bootstrap_seed": 2026090702,
+    "bootstrap_unit": "fresh_holdout_family_id",
+    "raw_baseline": "fit-only raw small probe evaluated on the same fresh holdout",
+    "privileged_reference": "true-location exact local-frame small probe evaluated analysis-only after oracle-free predictions are frozen",
+    "minimum_mechanism_balanced_accuracy": 0.75,
+    "minimum_minimum_mechanism_recall": 0.65,
+    "minimum_paired_ba_gain_over_raw": 0.20,
+    "paired_gain_bootstrap_ci_lower_must_exceed_zero": true,
+    "minimum_fraction_of_oracle_canonicalization_gain_recovered": 0.70,
+    "old_selection_reference_ba_for_70pct_gain_recovery_only": 0.7856,
+    "old_selection_reference_is_not_a_fresh_holdout_gate": true
+  },
+  "interpretation_policy": {
+    "full_support": "SUPPORTED_EQUIVALENCE_AWARE_ORACLE_FREE_LATENT_FRAME_INFERENCE_IN_SIMULATION",
+    "partial_support": "PARTIAL_EQUIVALENCE_AWARE_ORACLE_FREE_LATENT_FRAME_SIGNAL",
+    "failure": "EQUIVALENCE_AWARE_ORACLE_FREE_LATENT_FRAME_INFERENCE_NOT_SUPPORTED",
+    "physical_hardware_claim_allowed": false,
+    "causal_claim_that_boundary_ambiguity_is_the_only_failure_source_allowed": false,
+    "architecture_change_allowed_by_this_diagnostic": false
+  }
+}
