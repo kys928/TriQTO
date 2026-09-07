@@ -1,0 +1,56 @@
+{
+  "schema": "triqto.v0_2.step14_candidate_frame_ambiguity_evidence_manifest.v1",
+  "status": "IMMUTABLE_COMPLETED_EVIDENCE",
+  "diagnostic_id": "frame_ambiguity_e0c139fbd93ce1bb543ccc34",
+  "diagnostic_result_sha256": "sha256:eac533a5e1ff84a2ed6c026f1b91abbe0c874eb7c6f0cc0d9a6ed1d61edc9412",
+  "diagnostic_complete_sha256": "sha256:e57de6005f3f6634ecdb3458eff91e99240bf075775f34ad0acdbf90cd6ef386",
+  "source_latent_diagnostic_id": "latent_frame_deeb1a2bdf636d1a4542ffce",
+  "source_latent_result_sha256": "sha256:d7a7e01d037b2148820a18820235af99c6b3f29c0ebc127f2473cea5b7eee605",
+  "source_local_frame_diagnostic_id": "local_frame_540d5f72552356577c252c2e",
+  "source_local_frame_result_sha256": "sha256:42b03cd293d4d623b1458f558154921778824a70564e52b16a0bb3bf58e570f5",
+  "training_run_id": "training_18e0b4ed6e685af30b6c4a35",
+  "selection_freeze_sha256": "sha256:af7ffaece77d16134c33b1c898afb7165c7ace5dcfccfea23f713ae242e4ed6f",
+  "control_run_id": "run-1788596908-5ab88fc9",
+  "job_id": "step14-candidate-frame-ambiguity-retry-4090-20260905",
+  "pod_id": "lszb9lfound6ub",
+  "gpu": "NVIDIA GeForce RTX 4090",
+  "started_at_utc": "2026-09-05T08:32:32.888388+00:00",
+  "completed_at_utc": "2026-09-05T08:59:07.522843+00:00",
+  "returncode": 0,
+  "s3": {
+    "result_key": "triqto-data/step14_candidate_frame_ambiguity/frame_ambiguity_e0c139fbd93ce1bb543ccc34/diagnostic_result.json",
+    "complete_key": "triqto-data/step14_candidate_frame_ambiguity/frame_ambiguity_e0c139fbd93ce1bb543ccc34/diagnostic_complete.json",
+    "pointer_key": "triqto-data/step14_candidate_frame_ambiguity/current_candidate_frame_ambiguity.json",
+    "worker_status_key": "triqto-control/runs/step14-candidate-frame-ambiguity-retry-4090-20260905/run-1788596908-5ab88fc9/status.json",
+    "worker_history_key": "triqto-control/history/run-1788596908-5ab88fc9.json"
+  },
+  "scientific_boundaries": {
+    "main_model_retrained": false,
+    "main_model_weights_updated": false,
+    "selection_used_for_training_or_early_stopping": false,
+    "true_location_used_for_deployable_candidate_scoring_or_training": false,
+    "true_location_used_only_for_post_prediction_audit_and_counterfactual_masks": true,
+    "exact_statevector_geometry_used_only_for_equivalence_confusability_audit": true,
+    "simulator_outer_accessed": false,
+    "future_hardware_reserve_accessed": false,
+    "qpu_executed": false
+  },
+  "key_frozen_results": {
+    "oracle_free_full_latent_mil_ba": 0.7372222222222223,
+    "true_qubit_restricted_latent_mil_ba": 0.7713888888888888,
+    "true_boundary_single_candidate_latent_mil_ba": 0.8788888888888889,
+    "true_frame_equivalence_class_latent_mil_ba": 0.8847222222222223,
+    "true_boundary_finite_shot_small_probe_ba": 0.8861111111111111,
+    "true_boundary_exact_local_frame_small_probe_ba": 0.9105555555555555,
+    "gross_oracle_correct_latent_wrong": 1435,
+    "reverse_latent_correct_oracle_wrong": 187,
+    "net_selection_examples_in_gap": 1248,
+    "gross_loss_location_categories": {
+      "wrong_qubit": 530,
+      "non_equivalent_wrong_boundary": 862,
+      "observationally_equivalent_wrong_boundary": 21,
+      "exact_location_but_wrong_mechanism": 22
+    }
+  },
+  "immutability_note": "The S3 diagnostic directory is content-addressed by the frozen diagnostic id and the exact JSON payloads are pinned by SHA-256 above. Any later repository snapshot is a convenience copy and must hash-match these values; it may not replace or reinterpret this evidence."
+}
