@@ -83,8 +83,6 @@ def build_command(job: dict[str, Any]) -> list[str]:
         if operation == "decompose_representation":
             script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_representation_fusion_head.py"
         elif operation == "decompose_oracle_raw_evidence":
-            # Compatibility entrypoint fixes only the accidental 16-vs-17 gate
-            # support bound; the underlying frozen v1 diagnostic is unchanged.
             script = REPO_ROOT / "scripts" / "v0_2" / "run_step14_oracle_raw_evidence_ceiling.py"
         elif operation == "decompose_local_frame_canonicalization":
             script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_local_frame_canonicalization.py"
@@ -93,7 +91,7 @@ def build_command(job: dict[str, Any]) -> list[str]:
         elif operation == "decompose_candidate_frame_ambiguity":
             script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_candidate_frame_ambiguity.py"
         else:
-            script = REPO_ROOT / "scripts" / "v0_2" / "fit_step14_equivalence_aware_latent_frame.py"
+            script = REPO_ROOT / "scripts" / "v0_2" / "fit_step14_equivalence_aware_latent_frame_strict.py"
         return [
             sys.executable,
             str(script),
@@ -130,12 +128,6 @@ def build_command(job: dict[str, Any]) -> list[str]:
 
 
 def _existing_terminal_status(path: Path) -> dict[str, Any] | None:
-    """Return a previously persisted terminal status without mutating it.
-
-    RunPod may restart a container whose process exits non-zero while the Pod's
-    desired state remains RUNNING. Re-entering the same control run must never
-    replace a terminal status with ``running`` or truncate its worker log.
-    """
     if not path.is_file():
         return None
     try:
@@ -171,19 +163,13 @@ def run() -> int:
 
     previous = _existing_terminal_status(status_path)
     if previous is not None:
-        print(
-            json.dumps(
-                {
-                    "job_id": job_id,
-                    "control_run_id": control_run_id,
-                    "state": "restart-refused-terminal-status-preserved",
-                    "terminal_state": previous.get("state"),
-                    "log_path": previous.get("log_path", str(log_path)),
-                },
-                sort_keys=True,
-            ),
-            flush=True,
-        )
+        print(json.dumps({
+            "job_id": job_id,
+            "control_run_id": control_run_id,
+            "state": "restart-refused-terminal-status-preserved",
+            "terminal_state": previous.get("state"),
+            "log_path": previous.get("log_path", str(log_path)),
+        }, sort_keys=True), flush=True)
         return _terminal_returncode(previous)
 
     common.atomic_json(run_dir / "job.json", job)
