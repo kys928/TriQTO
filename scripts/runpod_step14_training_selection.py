@@ -23,6 +23,7 @@ ALLOWED_OPERATIONS = {
     "decompose_local_frame_canonicalization",
     "decompose_latent_frame_inference",
     "decompose_candidate_frame_ambiguity",
+    "fit_equivalence_aware_latent_frame",
 }
 POST_SELECTION_OPERATIONS = {
     "evaluate_outer",
@@ -31,6 +32,7 @@ POST_SELECTION_OPERATIONS = {
     "decompose_local_frame_canonicalization",
     "decompose_latent_frame_inference",
     "decompose_candidate_frame_ambiguity",
+    "fit_equivalence_aware_latent_frame",
 }
 ALLOWED_REQUEST_KEYS = {
     "id",
@@ -95,6 +97,7 @@ def main() -> None:
         "decompose_local_frame_canonicalization": "step14-local-frame-canonicalization",
         "decompose_latent_frame_inference": "step14-latent-frame-inference",
         "decompose_candidate_frame_ambiguity": "step14-candidate-frame-ambiguity",
+        "fit_equivalence_aware_latent_frame": "step14-equivalence-aware-fit",
     }
     job_id = str(request.get("id") or f"{defaults[operation]}-{int(time.time())}")
     allowed_id_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.")
