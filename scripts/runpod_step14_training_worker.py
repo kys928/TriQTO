@@ -77,7 +77,7 @@ def build_command(job: dict[str, Any]) -> list[str]:
             final_sha = str(task.get("expected_final_method_freeze_payload_sha256", ""))
             if not final_sha.startswith("sha256:") or len(final_sha) != 71:
                 raise ValueError("fresh holdout generation requires the final method freeze payload SHA-256")
-            script = REPO_ROOT / "scripts" / "v0_2" / "generate_step14_equivalence_aware_fresh_holdout.py"
+            script = REPO_ROOT / "scripts" / "v0_2" / "generate_step14_equivalence_aware_fresh_holdout_redacted.py"
             return [
                 sys.executable,
                 str(script),
