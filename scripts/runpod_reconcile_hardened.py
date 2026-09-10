@@ -20,6 +20,27 @@ TERMINAL_WORKER_STATES = {"completed", "failed"}
 TERMINAL_POD_STATES = {"EXITED", "TERMINATED"}
 
 
+# Preserve the hardened reconciler's tested compatibility surface while using
+# the current control-plane primitives. The aliases are deliberately created at
+# module import so tests and older supervisors can monkeypatch them safely.
+if not hasattr(control, "list_active_records"):
+    def _list_active_records() -> list[tuple[str, dict[str, Any]]]:
+        return control.list_json_objects(control.ACTIVE_PREFIX)
+
+    control.list_active_records = _list_active_records  # type: ignore[attr-defined]
+
+if not hasattr(control, "archive_and_remove"):
+    def _archive_and_remove(
+        key: str,
+        record: dict[str, Any],
+        terminal: dict[str, Any],
+    ) -> None:
+        outcome = str(terminal.get("state", "terminal"))
+        control.archive_active(key, record, outcome=outcome, detail={"status": terminal})
+
+    control.archive_and_remove = _archive_and_remove  # type: ignore[attr-defined]
+
+
 def is_pending_status_error(exc: Exception) -> bool:
     text = str(exc).lower()
     return (
@@ -56,12 +77,8 @@ def pod_desired_status(pod_id: str) -> str | None:
     return str(raw).upper() if raw is not None else None
 
 
-def archive(key: str, record: dict[str, Any], status: dict[str, Any], outcome: str) -> None:
-    control.archive_active(key, record, outcome=outcome, detail={"status": status})
-
-
 def reconcile_detached() -> None:
-    records = control.list_json_objects(control.ACTIVE_PREFIX)
+    records = control.list_active_records()  # type: ignore[attr-defined]
     print(json.dumps({"active_run_count": len(records), "checked_at": control.utc_now()}))
     for key, record in records:
         job_id = str(record.get("job_id", ""))
@@ -83,7 +100,11 @@ def reconcile_detached() -> None:
 
         if worker_state in TERMINAL_WORKER_STATES:
             control.delete_pod(pod_id, best_effort=True)
-            archive(key, record, status or {"state": worker_state}, worker_state)
+            control.archive_and_remove(  # type: ignore[attr-defined]
+                key,
+                record,
+                status or {"state": worker_state},
+            )
             print(json.dumps({"pod_id": pod_id, "cleanup": "terminal-worker-cleaned"}))
             continue
 
@@ -105,12 +126,20 @@ def reconcile_detached() -> None:
             "worker_status": status,
         }
         if desired == "TERMINATED":
-            archive(key, record, terminal, "pod_terminal_with_stale_worker_status")
-            print(json.dumps({"pod_id": pod_id, "cleanup": "already-terminated", "stale_worker_state": worker_state}))
+            control.archive_and_remove(key, record, terminal)  # type: ignore[attr-defined]
+            print(json.dumps({
+                "pod_id": pod_id,
+                "cleanup": "already-terminated",
+                "stale_worker_state": worker_state,
+            }))
         else:
             control.delete_pod(pod_id, best_effort=True)
-            archive(key, record, terminal, "pod_terminal_with_stale_worker_status")
-            print(json.dumps({"pod_id": pod_id, "cleanup": "exited-pod-deleted", "stale_worker_state": worker_state}))
+            control.archive_and_remove(key, record, terminal)  # type: ignore[attr-defined]
+            print(json.dumps({
+                "pod_id": pod_id,
+                "cleanup": "exited-pod-deleted",
+                "stale_worker_state": worker_state,
+            }))
 
 
 def main() -> None:
