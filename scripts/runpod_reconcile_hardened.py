@@ -45,8 +45,6 @@ def pod_desired_status(pod_id: str) -> str | None:
     try:
         pod = control.runpod_request("GET", f"/pods/{pod_id}")
     except Exception as exc:
-        # A transient/not-yet-visible Pod lookup must never cause us to drop the
-        # active record: doing so could orphan a subsequently visible RUNNING Pod.
         text = str(exc).lower()
         if "http 404" in text or "not found" in text:
             print(json.dumps({"pod_id": pod_id, "pod_lifecycle": "not-visible", "action": "keep-active"}))
@@ -58,8 +56,12 @@ def pod_desired_status(pod_id: str) -> str | None:
     return str(raw).upper() if raw is not None else None
 
 
+def archive(key: str, record: dict[str, Any], status: dict[str, Any], outcome: str) -> None:
+    control.archive_active(key, record, outcome=outcome, detail={"status": status})
+
+
 def reconcile_detached() -> None:
-    records = control.list_active_records()
+    records = control.list_json_objects(control.ACTIVE_PREFIX)
     print(json.dumps({"active_run_count": len(records), "checked_at": control.utc_now()}))
     for key, record in records:
         job_id = str(record.get("job_id", ""))
@@ -80,14 +82,13 @@ def reconcile_detached() -> None:
         }))
 
         if worker_state in TERMINAL_WORKER_STATES:
-            if control.delete_pod(pod_id, best_effort=True):
-                control.archive_and_remove(key, record, status or {"state": worker_state})
+            control.delete_pod(pod_id, best_effort=True)
+            archive(key, record, status or {"state": worker_state}, worker_state)
+            print(json.dumps({"pod_id": pod_id, "cleanup": "terminal-worker-cleaned"}))
             continue
 
         desired = pod_desired_status(pod_id)
         if desired not in TERMINAL_POD_STATES:
-            # Crucial safety boundary: RUNNING/unknown Pods are left untouched,
-            # irrespective of elapsed time or how stale status.json is.
             print(json.dumps({
                 "job_id": job_id,
                 "control_run_id": control_run_id,
@@ -104,13 +105,12 @@ def reconcile_detached() -> None:
             "worker_status": status,
         }
         if desired == "TERMINATED":
-            # Nothing remains to delete; retire the stale control record.
-            control.archive_and_remove(key, record, terminal)
+            archive(key, record, terminal, "pod_terminal_with_stale_worker_status")
             print(json.dumps({"pod_id": pod_id, "cleanup": "already-terminated", "stale_worker_state": worker_state}))
-        elif control.delete_pod(pod_id, best_effort=True):
-            # EXITED means the container has already stopped, so deletion cannot
-            # interrupt a live scientific process.
-            control.archive_and_remove(key, record, terminal)
+        else:
+            control.delete_pod(pod_id, best_effort=True)
+            archive(key, record, terminal, "pod_terminal_with_stale_worker_status")
+            print(json.dumps({"pod_id": pod_id, "cleanup": "exited-pod-deleted", "stale_worker_state": worker_state}))
 
 
 def main() -> None:
