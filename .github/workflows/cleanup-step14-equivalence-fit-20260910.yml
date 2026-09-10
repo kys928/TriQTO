@@ -1,0 +1,101 @@
+name: Cleanup Completed Step-14 Equivalence FIT Pod
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cleanup-step14-equivalence-fit-20260910.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
+      RUNPOD_S3_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
+      RUNPOD_S3_SECRET_ACCESS_KEY: ${{ secrets.RUNPOD_S3_SECRET_ACCESS_KEY }}
+      RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
+      RUNPOD_DATACENTER_ID: ${{ vars.RUNPOD_DATACENTER_ID }}
+      RUNPOD_S3_ENDPOINT: ${{ vars.RUNPOD_S3_ENDPOINT }}
+
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install boto3
+        run: python -m pip install --quiet boto3
+
+      - name: Verify terminal worker, delete pod, archive control record
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from urllib.request import Request, urlopen
+          from urllib.error import HTTPError
+          import boto3
+          from botocore.config import Config
+          from botocore.exceptions import ClientError
+
+          JOB_ID = "step14-equivalence-aware-fit-20260907"
+          CONTROL_RUN_ID = "run-1789028661-d972f979"
+          POD_ID = "ep8t8n7msaoj4w"
+          bucket = os.environ["RUNPOD_NETWORK_VOLUME_ID"]
+          s3 = boto3.client(
+              "s3",
+              endpoint_url=os.environ["RUNPOD_S3_ENDPOINT"],
+              region_name=os.environ["RUNPOD_DATACENTER_ID"].lower(),
+              aws_access_key_id=os.environ["RUNPOD_S3_ACCESS_KEY_ID"],
+              aws_secret_access_key=os.environ["RUNPOD_S3_SECRET_ACCESS_KEY"],
+              config=Config(signature_version="s3v4", retries={"max_attempts":8,"mode":"standard"}),
+          )
+          status_key = f"triqto-control/runs/{JOB_ID}/{CONTROL_RUN_ID}/status.json"
+          status = json.loads(s3.get_object(Bucket=bucket, Key=status_key)["Body"].read().decode())
+          if status.get("state") not in {"completed", "failed"}:
+              raise RuntimeError(f"Refusing cleanup: worker not terminal: {status.get('state')!r}")
+
+          req = Request(
+              f"https://rest.runpod.io/v1/pods/{POD_ID}",
+              headers={
+                  "Authorization": f"Bearer {os.environ['RUNPOD_API_KEY']}",
+                  "Accept": "application/json",
+                  "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 TriQTO-RunPod-Control/2",
+              },
+              method="DELETE",
+          )
+          deleted = False
+          try:
+              with urlopen(req, timeout=60) as resp:
+                  resp.read()
+                  deleted = True
+          except HTTPError as exc:
+              if exc.code != 404:
+                  raise
+
+          active_key = f"triqto-control/active/{CONTROL_RUN_ID}.json"
+          history_key = f"triqto-control/history/{CONTROL_RUN_ID}.json"
+          try:
+              raw = s3.get_object(Bucket=bucket, Key=active_key)["Body"].read().decode()
+              active = json.loads(raw)
+          except ClientError as exc:
+              code = str(exc.response.get("Error", {}).get("Code", ""))
+              if code not in {"NoSuchKey", "404"}:
+                  raise
+              active = None
+          if active is not None:
+              payload = {
+                  **active,
+                  "outcome": str(status["state"]),
+                  "archived_at": datetime.now(timezone.utc).isoformat(),
+                  "detail": {"status": status, "cleanup_workflow": "cleanup-step14-equivalence-fit-20260910"},
+              }
+              s3.put_object(Bucket=bucket, Key=history_key, Body=(json.dumps(payload, indent=2, sort_keys=True)+"\n").encode(), ContentType="application/json")
+              s3.delete_object(Bucket=bucket, Key=active_key)
+          print(json.dumps({"worker_state":status["state"],"pod_id":POD_ID,"pod_deleted_or_absent": True,"delete_request_succeeded":deleted,"history_archived": active is not None}, indent=2))
+          PY
