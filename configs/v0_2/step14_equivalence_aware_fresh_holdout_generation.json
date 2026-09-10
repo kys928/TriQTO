@@ -1,0 +1,138 @@
+{
+  "completion_boundary": {
+    "future_hardware_reserve_accessed": false,
+    "model_evaluated": false,
+    "oracle_free_predictions_frozen": false,
+    "qpu_executed": false,
+    "required_status": "COMPLETE_FROZEN_FRESH_HOLDOUT_UNEVALUATED",
+    "selection_metrics_used": false,
+    "simulator_outer_accessed": false
+  },
+  "disjointness": {
+    "fresh_rng_namespace_required": true,
+    "future_reserve_disjointness_basis": "independent base-seed and nonoverlapping family-index namespace; future reserve is not materialized or inspected",
+    "inspect_future_hardware_reserve": false,
+    "inspect_selection_mechanism_labels": false,
+    "inspect_simulator_outer": false,
+    "nonoverlapping_family_index_namespace_required": true,
+    "reject_family_signature_collision_with_materialized_fit_or_selection": true
+  },
+  "eda": {
+    "decision_policy": {
+      "distributional_surprises_are_reported_not_repaired": true,
+      "eda_may_change_hyperparameters": false,
+      "eda_may_drop_or_filter_valid_rows": false,
+      "eda_may_tune_method": false,
+      "hard_qc_failures_only": [
+        "count mismatch",
+        "duplicate fresh family signature",
+        "collision with materialized fit/selection family signature",
+        "duplicate fresh root graph",
+        "artifact hash mismatch",
+        "nonfinite numeric artifact value",
+        "forbidden blind-manifest field",
+        "raw/post artifact inventory mismatch"
+      ]
+    },
+    "post": {
+      "label_blind": true,
+      "may_access_mechanism_class": false,
+      "may_access_strength": false,
+      "may_access_true_location": false,
+      "may_run_model_inference": false,
+      "required": true,
+      "statistics": [
+        "all predeclared blind structural support summaries",
+        "row-count preservation",
+        "target/control preservation",
+        "forbidden-column absence",
+        "required-field completeness",
+        "artifact inventory identity",
+        "artifact hash integrity",
+        "numeric finite-value audit"
+      ],
+      "uses_blind_manifests_only": true
+    },
+    "pre": {
+      "label_blind": true,
+      "may_access_mechanism_class": false,
+      "may_access_strength": false,
+      "may_access_true_location": false,
+      "may_run_model_inference": false,
+      "required": true,
+      "runs_after_raw_materialization_before_blind_manifest_preprocessing": true,
+      "statistics": [
+        "family/root/example counts",
+        "reference-control/target counts",
+        "examples per root",
+        "n-qubit support",
+        "topology-class support",
+        "injection-context support",
+        "operation-count distribution",
+        "family-signature uniqueness",
+        "artifact hash integrity",
+        "artifact byte-size distribution",
+        "numeric finite-value audit",
+        "artifact key-schema frequencies"
+      ]
+    }
+  },
+  "final_method_freeze": {
+    "freeze_payload_sha256": "sha256:b63454e2198fd36b6a54055365b20af26d0e3a3fefc5fcf8785e78ff6514489b",
+    "method_id": "equiv_fit_4df8aea718950bdc2650a03b",
+    "path": "configs/v0_2/step14_equivalence_aware_latent_frame_final_method_freeze.json",
+    "required_schema": "triqto.v0_2.step14_equivalence_aware_final_method_freeze.v1",
+    "required_status": "FINAL_METHOD_FROZEN_BEFORE_FRESH_HOLDOUT",
+    "selected_frame_temperature": 2.0,
+    "selected_tau": 0.02
+  },
+  "holdout": {
+    "base_seed": 2026090701,
+    "examples_per_root": 13,
+    "expected_example_count": 7800,
+    "expected_reference_controls": 600,
+    "expected_root_count": 600,
+    "expected_target_examples": 7200,
+    "family_count": 150,
+    "family_index_namespace_offset": 10000,
+    "model_evaluation_during_generation": false,
+    "one_shot_evaluation": true,
+    "partition_name": "fresh_equivalence_holdout",
+    "qpu_access": false,
+    "selects_nothing": true,
+    "variants_per_family": 4
+  },
+  "preprocessing": {
+    "blind_example_role_field": "evaluation_role with values reference_control or target; mechanism class remains sealed",
+    "blind_model_ready_manifests_location": "manifests/",
+    "forbidden_in_blind_manifests": [
+      "mechanism",
+      "affected_qubit",
+      "injection_boundary_rank",
+      "injection_boundary",
+      "strength",
+      "identifiability_min_delta_norm",
+      "identifiability_min_pairwise_distance"
+    ],
+    "kind": "REDACTION_AND_SEALING_ONLY",
+    "numeric_measurements_transformed": false,
+    "raw_scientific_artifacts_modified": false,
+    "raw_truth_manifests_location": "sealed_truth/",
+    "required": true,
+    "rows_filtered_or_dropped": false
+  },
+  "purpose": "Generate exactly one fresh unseen simulator holdout for the already-frozen equivalence-aware Step-14 method, with label-blind pre/post EDA and redaction-only preprocessing before any model evaluation.",
+  "schema": "triqto.v0_2.step14_equivalence_aware_fresh_holdout_generation.v1",
+  "source_contract": {
+    "architecture_or_model_change": false,
+    "reuse_exact_finite_shot_acquisition": true,
+    "reuse_exact_model_blind_identifiability_admission": true,
+    "reuse_exact_shot_design": true,
+    "reuse_exact_step12_and_step11_signature_exclusions": true,
+    "reuse_exact_step14_circuit_grammar": true,
+    "reuse_exact_strength_design": true,
+    "step12_signature_exclusion_source": "configs/v0_2/step12_independent_phase_generalization.json",
+    "step14_protocol": "configs/v0_2/step14_cross_motif_generalization_training.json"
+  },
+  "status": "FROZEN_BEFORE_FRESH_HOLDOUT_GENERATION"
+}
