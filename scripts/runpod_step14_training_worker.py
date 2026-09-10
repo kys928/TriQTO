@@ -2,8 +2,9 @@
 """Restricted RunPod worker for frozen Step-14 scientific operations.
 
 Allowed stages are deliberately typed: pretraining baseline, fit/selection
-training, one-shot post-selection outer evaluation, or frozen post-selection
-diagnostics that never update the main model.
+training, one-shot post-selection outer evaluation, frozen post-selection
+diagnostics, equivalence-aware FIT development, or final-freeze-gated fresh
+holdout generation.
 """
 from __future__ import annotations
 
@@ -28,6 +29,7 @@ ALLOWED_OPERATIONS = {
     "decompose_latent_frame_inference",
     "decompose_candidate_frame_ambiguity",
     "fit_equivalence_aware_latent_frame",
+    "generate_equivalence_aware_fresh_holdout",
 }
 POST_SELECTION_OPERATIONS = {
     "evaluate_outer",
@@ -37,7 +39,9 @@ POST_SELECTION_OPERATIONS = {
     "decompose_latent_frame_inference",
     "decompose_candidate_frame_ambiguity",
     "fit_equivalence_aware_latent_frame",
+    "generate_equivalence_aware_fresh_holdout",
 }
+FINAL_METHOD_FREEZE_OPERATIONS = {"generate_equivalence_aware_fresh_holdout"}
 TERMINAL_STATES = {"completed", "failed"}
 
 
@@ -68,6 +72,28 @@ def build_command(job: dict[str, Any]) -> list[str]:
             raise ValueError("post-selection Step-14 operation requires a frozen training run id")
         if not freeze_sha.startswith("sha256:") or len(freeze_sha) != 71:
             raise ValueError("post-selection Step-14 operation requires the frozen selection-freeze SHA-256")
+
+        if operation in FINAL_METHOD_FREEZE_OPERATIONS:
+            final_sha = str(task.get("expected_final_method_freeze_payload_sha256", ""))
+            if not final_sha.startswith("sha256:") or len(final_sha) != 71:
+                raise ValueError("fresh holdout generation requires the final method freeze payload SHA-256")
+            script = REPO_ROOT / "scripts" / "v0_2" / "generate_step14_equivalence_aware_fresh_holdout.py"
+            return [
+                sys.executable,
+                str(script),
+                "--training-run-id",
+                run_id,
+                "--selection-freeze-sha256",
+                freeze_sha,
+                "--final-method-freeze-payload-sha256",
+                final_sha,
+                "--progress-every",
+                str(progress_every),
+            ]
+
+        if task.get("expected_final_method_freeze_payload_sha256") is not None:
+            raise ValueError("final-method-freeze identity is reserved for fresh holdout generation")
+
         if operation == "evaluate_outer":
             script = REPO_ROOT / "scripts" / "v0_2" / "run_step14_frozen_outer_pipeline.py"
             return [
@@ -107,6 +133,8 @@ def build_command(job: dict[str, Any]) -> list[str]:
 
     if task.get("expected_training_run_id") is not None or task.get("expected_selection_freeze_sha256") is not None:
         raise ValueError("baseline/training stage may not consume a Step-14 selection freeze")
+    if task.get("expected_final_method_freeze_payload_sha256") is not None:
+        raise ValueError("baseline/training stage may not consume a final method freeze")
 
     if operation == "evaluate_pretraining_baseline":
         script = REPO_ROOT / "scripts" / "v0_2" / "evaluate_step14_pretraining_baseline.py"
