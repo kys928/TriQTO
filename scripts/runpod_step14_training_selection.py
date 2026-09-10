@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Launch frozen Step-14 baseline, training, outer evaluation, or diagnostics."""
+"""Launch frozen Step-14 baseline, training, outer evaluation, diagnostics, or fresh holdout generation."""
 from __future__ import annotations
 
 import argparse
@@ -24,6 +24,7 @@ ALLOWED_OPERATIONS = {
     "decompose_latent_frame_inference",
     "decompose_candidate_frame_ambiguity",
     "fit_equivalence_aware_latent_frame",
+    "generate_equivalence_aware_fresh_holdout",
 }
 POST_SELECTION_OPERATIONS = {
     "evaluate_outer",
@@ -33,7 +34,9 @@ POST_SELECTION_OPERATIONS = {
     "decompose_latent_frame_inference",
     "decompose_candidate_frame_ambiguity",
     "fit_equivalence_aware_latent_frame",
+    "generate_equivalence_aware_fresh_holdout",
 }
+FINAL_METHOD_FREEZE_OPERATIONS = {"generate_equivalence_aware_fresh_holdout"}
 ALLOWED_REQUEST_KEYS = {
     "id",
     "operation",
@@ -43,6 +46,7 @@ ALLOWED_REQUEST_KEYS = {
     "progress_every",
     "expected_training_run_id",
     "expected_selection_freeze_sha256",
+    "expected_final_method_freeze_payload_sha256",
 }
 
 
@@ -65,6 +69,14 @@ def load_request(path: Path) -> dict:
             raise ValueError(f"{operation} requires expected_selection_freeze_sha256")
     elif value.get("expected_training_run_id") is not None or value.get("expected_selection_freeze_sha256") is not None:
         raise ValueError("frozen selection identifiers are only allowed for post-selection operations")
+
+    final_sha = value.get("expected_final_method_freeze_payload_sha256")
+    if operation in FINAL_METHOD_FREEZE_OPERATIONS:
+        final_sha = str(final_sha or "")
+        if not final_sha.startswith("sha256:") or len(final_sha) != 71:
+            raise ValueError(f"{operation} requires expected_final_method_freeze_payload_sha256")
+    elif final_sha is not None:
+        raise ValueError("final-method-freeze identity is only allowed for fresh-holdout generation")
     return value
 
 
@@ -98,6 +110,7 @@ def main() -> None:
         "decompose_latent_frame_inference": "step14-latent-frame-inference",
         "decompose_candidate_frame_ambiguity": "step14-candidate-frame-ambiguity",
         "fit_equivalence_aware_latent_frame": "step14-equivalence-aware-fit",
+        "generate_equivalence_aware_fresh_holdout": "step14-equivalence-aware-fresh-holdout",
     }
     job_id = str(request.get("id") or f"{defaults[operation]}-{int(time.time())}")
     allowed_id_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.")
@@ -121,6 +134,10 @@ def main() -> None:
     if operation in POST_SELECTION_OPERATIONS:
         task["expected_training_run_id"] = str(request["expected_training_run_id"])
         task["expected_selection_freeze_sha256"] = str(request["expected_selection_freeze_sha256"])
+    if operation in FINAL_METHOD_FREEZE_OPERATIONS:
+        task["expected_final_method_freeze_payload_sha256"] = str(
+            request["expected_final_method_freeze_payload_sha256"]
+        )
 
     control_run_id = f"run-{int(time.time())}-{secrets.token_hex(4)}"
     worker_job = {
@@ -190,6 +207,10 @@ def main() -> None:
         if operation in POST_SELECTION_OPERATIONS:
             record["expected_training_run_id"] = task["expected_training_run_id"]
             record["expected_selection_freeze_sha256"] = task["expected_selection_freeze_sha256"]
+        if operation in FINAL_METHOD_FREEZE_OPERATIONS:
+            record["expected_final_method_freeze_payload_sha256"] = task[
+                "expected_final_method_freeze_payload_sha256"
+            ]
         control.internal_put_json(control.active_key(control_run_id), record)
         registered = True
         print(json.dumps(record, indent=2))
