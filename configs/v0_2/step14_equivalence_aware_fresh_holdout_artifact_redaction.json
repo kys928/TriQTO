@@ -1,0 +1,86 @@
+{
+  "schema": "triqto.v0_2.step14_equivalence_aware_fresh_holdout_artifact_redaction.v1",
+  "status": "FROZEN_BEFORE_FRESH_HOLDOUT_GENERATION",
+  "base_generation_protocol": {
+    "path": "configs/v0_2/step14_equivalence_aware_fresh_holdout_generation.json",
+    "git_blob_sha": "d4cb9dbd01f9e4488f5fc2ff51099c8d9507d97a",
+    "required_schema": "triqto.v0_2.step14_equivalence_aware_fresh_holdout_generation.v1",
+    "required_status": "FROZEN_BEFORE_FRESH_HOLDOUT_GENERATION"
+  },
+  "final_method_freeze_payload_sha256": "sha256:b63454e2198fd36b6a54055365b20af26d0e3a3fefc5fcf8785e78ff6514489b",
+  "purpose": "Strengthen the already-frozen holdout preprocessing boundary by sealing raw truth-bearing NPZs and publishing separate x-only blind NPZs before any oracle-free model evaluation.",
+  "raw_artifact_policy": {
+    "location": "sealed_truth/raw_artifacts/",
+    "bytes_may_change": false,
+    "sha256_must_match_generation_time_hash": true,
+    "may_be_used_by_oracle_free_evaluator_before_primary_predictions_are_frozen": false,
+    "pre_eda_may_read_target_or_privileged_array_values": false,
+    "pre_eda_may_enumerate_array_names_for_schema_qc": true,
+    "pre_eda_numeric_qc_is_restricted_to_x_prefix": true
+  },
+  "blind_artifact_policy": {
+    "location": "blind_artifacts/",
+    "allowed_array_prefixes": ["x__"],
+    "forbidden_array_prefixes": ["y__", "audit__", "meta__"],
+    "all_source_x_arrays_must_be_copied": true,
+    "x_array_names_dtypes_shapes_and_values_must_be_identical_to_raw": true,
+    "row_count_must_be_preserved": true,
+    "artifact_count_must_be_preserved": true,
+    "numeric_measurements_may_be_transformed": false,
+    "forbidden_supervision_values_may_be_copied": false
+  },
+  "required_x_arrays": [
+    "x__diagnostic_basis_codes",
+    "x__delta_global_parity",
+    "x__delta_local_expectations",
+    "x__delta_pairwise_correlations",
+    "x__graph_gate_names",
+    "x__graph_gate_parameter_cos",
+    "x__graph_gate_parameter_ptr",
+    "x__graph_gate_parameter_sin",
+    "x__graph_gate_qubit_indices",
+    "x__graph_gate_qubit_ptr",
+    "x__layout_logical_to_physical",
+    "x__observed_shots",
+    "x__pair_indices",
+    "x__reference_available_mask",
+    "x__reference_kind_code",
+    "x__reference_shots"
+  ],
+  "eda_policy": {
+    "pre_filename": "eda_pre_preprocessing.json",
+    "pre_operates_on": "raw artifact x-arrays plus blind structural projections; no y/audit/meta values",
+    "post_filename": "eda_post_preprocessing.json",
+    "post_operates_on": "blind manifests and x-only blind artifacts",
+    "pre_and_post_x_payload_inventory_sha256_must_match": true,
+    "pre_and_post_x_numeric_summaries_must_match": true,
+    "post_forbidden_prefix_count_must_be_zero": true,
+    "eda_may_change_method_or_hyperparameters": false,
+    "eda_may_drop_or_filter_valid_rows": false,
+    "model_inference_during_eda": false
+  },
+  "preprocessing_audit_policy": {
+    "filename": "preprocessing_audit.json",
+    "must_record_raw_artifact_inventory_sha256": true,
+    "must_record_blind_artifact_inventory_sha256": true,
+    "must_record_x_payload_inventory_sha256": true,
+    "must_record_forbidden_prefix_removal_counts": true,
+    "must_record_raw_bytes_preserved": true,
+    "must_record_x_values_preserved": true
+  },
+  "completion": {
+    "required_files": [
+      "dataset_complete.json",
+      "eda_pre_preprocessing.json",
+      "preprocessing_audit.json",
+      "eda_post_preprocessing.json"
+    ],
+    "required_dataset_status": "COMPLETE_FROZEN_FRESH_HOLDOUT_UNEVALUATED",
+    "model_evaluated": false,
+    "oracle_free_predictions_frozen": false,
+    "simulator_outer_accessed": false,
+    "future_hardware_reserve_accessed": false,
+    "qpu_executed": false
+  },
+  "supersession_scope": "This addendum changes only the artifact-level redaction/sealing implementation and replaces raw-vs-post byte-inventory identity with raw-byte preservation plus pre-vs-post x-payload identity. All generator, seed, family-count, split, method, gate, claim, and one-shot evaluation commitments remain unchanged."
+}
