@@ -1,0 +1,107 @@
+{
+  "boundaries": {
+    "checkpoint_changes_permitted": false,
+    "future_hardware_reserve_accessed": false,
+    "hyperparameter_changes_permitted": false,
+    "method_changes_permitted": false,
+    "qpu_executed": false,
+    "selection_metrics_used": false,
+    "simulator_outer_accessed": false,
+    "threshold_changes_permitted": false
+  },
+  "holdout_identity": {
+    "blind_artifact_inventory_sha256": "sha256:96455879abdfbbbf3f81844517c8a3bcb184d30afcfa68c528f85d087778dd55",
+    "dataset_complete_sha256": "sha256:515cc17016894506e040d79bfef2dd7bf1c605578deccfb4fbef2ba865794675",
+    "family_count": 150,
+    "product_id": "fresh_holdout_f805dd871059cb342dafbd59",
+    "root_count": 600,
+    "target_example_count": 7200,
+    "x_payload_inventory_sha256": "sha256:d132aea0457001a55cc461aa73714984edfb0e9aec04e8623c5334b039609289"
+  },
+  "interpretation": {
+    "causal_claim_that_boundary_ambiguity_is_the_only_failure_source_allowed": false,
+    "failure": "EQUIVALENCE_AWARE_ORACLE_FREE_LATENT_FRAME_INFERENCE_NOT_SUPPORTED",
+    "full_support": "SUPPORTED_EQUIVALENCE_AWARE_ORACLE_FREE_LATENT_FRAME_INFERENCE_IN_SIMULATION",
+    "partial_rule": "if full support fails, call partial only when paired-gain bootstrap CI lower bound > 0 and oracle-free BA >= 0.60; otherwise failure",
+    "partial_support": "PARTIAL_EQUIVALENCE_AWARE_ORACLE_FREE_LATENT_FRAME_SIGNAL",
+    "physical_hardware_claim_allowed": false
+  },
+  "method_identity": {
+    "candidate_network_seeds": [
+      6201,
+      6202,
+      6203
+    ],
+    "checkpoint_sha256": {
+      "candidate_network_seed6201.pt": "sha256:861f9cd1d20b2b3d53d5a04d969e06bb0d539e59084bc3e47ff34c9a0ed8d416",
+      "candidate_network_seed6202.pt": "sha256:2469148e71d8fa7b200edac65adc4c0d0c745dd0ab9ffc37cf915216985c56c8",
+      "candidate_network_seed6203.pt": "sha256:4bd586b015b0a9aaa863d856108da2552eee3e62259574e1adb6f60ee1e3c40f"
+    },
+    "final_method_freeze_payload_sha256": "sha256:b63454e2198fd36b6a54055365b20af26d0e3a3fefc5fcf8785e78ff6514489b",
+    "fit_complete_sha256": "sha256:0bf8d7c16685f8d1121bb3b549fc6c5cd7caa3d1a53e446bbe3db5bfeb4b4880",
+    "fit_development_result_sha256": "sha256:3a05f59032d6ab46ed29f13181d6bb3ed65bdafeb67b1347c87667521e6995a5",
+    "frame_temperature": 2.0,
+    "method_bundle_sha256": "sha256:b074e9278ee9d77465cc88b655ec214c0f477ae8aaa4bb157c3c600fc7d38f0b",
+    "method_id": "equiv_fit_4df8aea718950bdc2650a03b",
+    "tau": 0.02
+  },
+  "phase_a_oracle_free_prediction_freeze": {
+    "candidate_features": "exact frozen 24-D finite-shot canonical candidate features",
+    "candidate_network_ensemble": "arithmetic mean of candidate logits from frozen seeds 6201/6202/6203",
+    "candidate_set_and_finite_shot_calibration": "exact frozen Step-14 latent-frame rules",
+    "input": "fresh holdout blind manifests plus x-only blind NPZs only",
+    "pooling": "frozen equivalence-aware pooling with tau=0.02 and frame_temperature=2.0",
+    "prediction_freeze_required_before_phase_b": true,
+    "prediction_rows": "exactly the 7200 blind-manifest rows whose evaluation_role is target",
+    "sealed_truth_access_forbidden": true,
+    "true_location_access_forbidden": true,
+    "true_mechanism_access_forbidden": true
+  },
+  "phase_b_confirmatory_scoring": {
+    "fresh_holdout_used_for_training_or_tuning": false,
+    "may_read_sealed_truth_only_after_prediction_freeze_hash_verifies": true,
+    "privileged_exact_local_frame_reference": {
+      "analysis_only": true,
+      "ensemble": "arithmetic mean of fresh-holdout logits across seeds",
+      "feature": "24-D canonical_local_frame from exact true-location statevector response Jacobian and frozen ridge canonicalization",
+      "fresh_truth_location_used_only_after_oracle_free_predictions_frozen": true,
+      "high_capacity": false,
+      "probe": "existing SmallProbe one-hidden-layer 64-unit MLP",
+      "probe_seeds": [
+        6101,
+        6102,
+        6103
+      ],
+      "selection_partition_used": false,
+      "training_partition": "original Step-14 FIT only"
+    },
+    "raw_baseline": {
+      "ensemble": "arithmetic mean of fresh-holdout logits across seeds",
+      "feature": "analyze_step14_oracle_raw_evidence_ceiling.raw_diagnostic_features",
+      "fit_only_standardization": true,
+      "high_capacity": false,
+      "probe": "existing SmallProbe one-hidden-layer 64-unit MLP",
+      "probe_seeds": [
+        6101,
+        6102,
+        6103
+      ],
+      "selection_partition_used": false,
+      "training_partition": "original Step-14 FIT only"
+    }
+  },
+  "schema": "triqto.v0_2.step14_equivalence_aware_fresh_holdout_confirmatory.v1",
+  "statistics_and_support_gates": {
+    "bootstrap_replicates": 1000,
+    "bootstrap_seed": 2026090702,
+    "bootstrap_unit": "fresh_holdout_family_id",
+    "gain_recovery_formula": "(equivalence_aware_BA - fresh_raw_BA) / (fresh_exact_oracle_BA - fresh_raw_BA)",
+    "minimum_fraction_of_oracle_canonicalization_gain_recovered": 0.7,
+    "minimum_mechanism_balanced_accuracy": 0.75,
+    "minimum_minimum_mechanism_recall": 0.65,
+    "minimum_paired_ba_gain_over_raw": 0.2,
+    "old_selection_reference_ba_0p7856_is_not_a_fresh_holdout_gate": true,
+    "paired_gain_bootstrap_ci_lower_must_exceed_zero": true
+  },
+  "status": "FROZEN_AFTER_HOLDOUT_GENERATION_BEFORE_MODEL_INFERENCE"
+}
