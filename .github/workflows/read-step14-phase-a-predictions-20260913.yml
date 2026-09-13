@@ -67,6 +67,19 @@ jobs:
           def sha(data):
               return "sha256:" + hashlib.sha256(data).hexdigest()
 
+          def dump_control_prefix(prefix):
+              print("=== CONTROL_OBJECTS ===")
+              response = s3.list_objects_v2(Bucket=bucket, Prefix=prefix + "/")
+              for item in response.get("Contents", []):
+                  key = str(item["Key"])
+                  print(key)
+                  if key.endswith(("status.json", "worker.log", "stdout.log", "stderr.log", "result.json")):
+                      raw = maybe_bytes(key)
+                      if raw is not None:
+                          print(f"--- {key} ---")
+                          text = raw.decode(errors="replace")
+                          print("\n".join(text.splitlines()[-200:]))
+
           control_prefix = f"triqto-control/runs/{JOB_ID}/{CONTROL_RUN_ID}"
           root = "triqto-data/step14_equivalence_aware_fresh_holdout_confirmation"
           pointer_key = root + "/current_oracle_free_predictions.json"
@@ -81,12 +94,10 @@ jobs:
               if status_raw is not None:
                   try:
                       status = json.loads(status_raw)
-                      print(f"poll {attempt}: worker_status={status.get('status')} pod={status.get('pod_id')}", flush=True)
-                      if str(status.get("status", "")).lower() in {"failed", "error", "cancelled", "canceled"}:
-                          log_raw = maybe_bytes(control_prefix + "/worker.log")
-                          if log_raw is not None:
-                              print("=== WORKER_LOG_TAIL ===")
-                              print("\n".join(log_raw.decode(errors="replace").splitlines()[-160:]))
+                      worker_state = str(status.get("state", status.get("status", ""))).lower()
+                      print(f"poll {attempt}: worker_state={worker_state} pod={status.get('pod_id')}", flush=True)
+                      if worker_state in {"failed", "error", "cancelled", "canceled"}:
+                          dump_control_prefix(control_prefix)
                           raise RuntimeError(f"Phase-A worker terminal failure: {status}")
                   except json.JSONDecodeError:
                       print(f"poll {attempt}: control status present but not JSON", flush=True)
@@ -94,10 +105,7 @@ jobs:
                   print(f"poll {attempt}: worker status not written yet", flush=True)
               time.sleep(15)
           else:
-              log_raw = maybe_bytes(control_prefix + "/worker.log")
-              if log_raw is not None:
-                  print("=== WORKER_LOG_TAIL ===")
-                  print("\n".join(log_raw.decode(errors="replace").splitlines()[-160:]))
+              dump_control_prefix(control_prefix)
               raise RuntimeError("Phase-A prediction pointer did not appear within bounded observer window")
 
           pointer = json.loads(pointer_raw)
