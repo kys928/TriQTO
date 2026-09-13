@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
-"""Restricted RunPod worker for frozen Step-14 scientific operations.
-
-Allowed stages are deliberately typed: pretraining baseline, fit/selection
-training, one-shot post-selection outer evaluation, frozen post-selection
-diagnostics, equivalence-aware FIT development, or final-freeze-gated fresh
-holdout generation.
-"""
+"""Restricted RunPod worker for frozen Step-14 scientific operations."""
 from __future__ import annotations
 
 import json
@@ -30,6 +24,8 @@ ALLOWED_OPERATIONS = {
     "decompose_candidate_frame_ambiguity",
     "fit_equivalence_aware_latent_frame",
     "generate_equivalence_aware_fresh_holdout",
+    "predict_equivalence_aware_fresh_holdout",
+    "score_equivalence_aware_fresh_holdout",
 }
 POST_SELECTION_OPERATIONS = {
     "evaluate_outer",
@@ -40,9 +36,27 @@ POST_SELECTION_OPERATIONS = {
     "decompose_candidate_frame_ambiguity",
     "fit_equivalence_aware_latent_frame",
     "generate_equivalence_aware_fresh_holdout",
+    "predict_equivalence_aware_fresh_holdout",
+    "score_equivalence_aware_fresh_holdout",
 }
-FINAL_METHOD_FREEZE_OPERATIONS = {"generate_equivalence_aware_fresh_holdout"}
+FINAL_METHOD_FREEZE_OPERATIONS = {
+    "generate_equivalence_aware_fresh_holdout",
+    "predict_equivalence_aware_fresh_holdout",
+    "score_equivalence_aware_fresh_holdout",
+}
+FRESH_HOLDOUT_IDENTITY_OPERATIONS = {
+    "predict_equivalence_aware_fresh_holdout",
+    "score_equivalence_aware_fresh_holdout",
+}
+PREDICTION_FREEZE_OPERATIONS = {"score_equivalence_aware_fresh_holdout"}
 TERMINAL_STATES = {"completed", "failed"}
+
+
+def _require_sha(task: dict[str, Any], key: str, label: str) -> str:
+    value = str(task.get(key, ""))
+    if not value.startswith("sha256:") or len(value) != 71:
+        raise ValueError(label)
+    return value
 
 
 def build_command(job: dict[str, Any]) -> list[str]:
@@ -73,38 +87,85 @@ def build_command(job: dict[str, Any]) -> list[str]:
         if not freeze_sha.startswith("sha256:") or len(freeze_sha) != 71:
             raise ValueError("post-selection Step-14 operation requires the frozen selection-freeze SHA-256")
 
+        final_sha = None
         if operation in FINAL_METHOD_FREEZE_OPERATIONS:
-            final_sha = str(task.get("expected_final_method_freeze_payload_sha256", ""))
-            if not final_sha.startswith("sha256:") or len(final_sha) != 71:
-                raise ValueError("fresh holdout generation requires the final method freeze payload SHA-256")
+            final_sha = _require_sha(
+                task,
+                "expected_final_method_freeze_payload_sha256",
+                "final-freeze-gated Step-14 operation requires the final method freeze payload SHA-256",
+            )
+        elif task.get("expected_final_method_freeze_payload_sha256") is not None:
+            raise ValueError("final-method-freeze identity is reserved for final-freeze-gated operations")
+
+        product_id = None
+        dataset_sha = None
+        if operation in FRESH_HOLDOUT_IDENTITY_OPERATIONS:
+            product_id = str(task.get("expected_fresh_holdout_product_id", ""))
+            if not product_id.startswith("fresh_holdout_") or len(product_id) > 96:
+                raise ValueError("fresh-holdout prediction/scoring requires the frozen fresh holdout product id")
+            dataset_sha = _require_sha(
+                task,
+                "expected_fresh_holdout_dataset_complete_sha256",
+                "fresh-holdout prediction/scoring requires the dataset-complete SHA-256",
+            )
+        elif task.get("expected_fresh_holdout_product_id") is not None or task.get("expected_fresh_holdout_dataset_complete_sha256") is not None:
+            raise ValueError("fresh-holdout identity is reserved for fresh-holdout prediction/scoring")
+
+        prediction_sha = None
+        if operation in PREDICTION_FREEZE_OPERATIONS:
+            prediction_sha = _require_sha(
+                task,
+                "expected_oracle_free_prediction_complete_sha256",
+                "confirmatory scoring requires the oracle-free prediction completion SHA-256",
+            )
+        elif task.get("expected_oracle_free_prediction_complete_sha256") is not None:
+            raise ValueError("oracle-free prediction completion identity is reserved for confirmatory scoring")
+
+        if operation == "generate_equivalence_aware_fresh_holdout":
             script = REPO_ROOT / "scripts" / "v0_2" / "generate_step14_equivalence_aware_fresh_holdout_redacted.py"
             return [
-                sys.executable,
-                str(script),
-                "--training-run-id",
-                run_id,
-                "--selection-freeze-sha256",
-                freeze_sha,
-                "--final-method-freeze-payload-sha256",
-                final_sha,
-                "--progress-every",
-                str(progress_every),
+                sys.executable, str(script),
+                "--training-run-id", run_id,
+                "--selection-freeze-sha256", freeze_sha,
+                "--final-method-freeze-payload-sha256", str(final_sha),
+                "--progress-every", str(progress_every),
             ]
 
-        if task.get("expected_final_method_freeze_payload_sha256") is not None:
-            raise ValueError("final-method-freeze identity is reserved for fresh holdout generation")
+        if operation == "predict_equivalence_aware_fresh_holdout":
+            script = REPO_ROOT / "scripts" / "v0_2" / "predict_step14_equivalence_aware_fresh_holdout_blind.py"
+            return [
+                sys.executable, str(script),
+                "--training-run-id", run_id,
+                "--selection-freeze-sha256", freeze_sha,
+                "--final-method-freeze-payload-sha256", str(final_sha),
+                "--fresh-holdout-product-id", str(product_id),
+                "--fresh-holdout-dataset-complete-sha256", str(dataset_sha),
+                "--device", "cuda",
+                "--progress-every", str(progress_every),
+            ]
+
+        if operation == "score_equivalence_aware_fresh_holdout":
+            script = REPO_ROOT / "scripts" / "v0_2" / "score_step14_equivalence_aware_fresh_holdout_confirmatory_cached.py"
+            return [
+                sys.executable, str(script),
+                "--training-run-id", run_id,
+                "--selection-freeze-sha256", freeze_sha,
+                "--final-method-freeze-payload-sha256", str(final_sha),
+                "--fresh-holdout-product-id", str(product_id),
+                "--fresh-holdout-dataset-complete-sha256", str(dataset_sha),
+                "--oracle-free-prediction-complete-sha256", str(prediction_sha),
+                "--device", "cuda",
+                "--progress-every", str(progress_every),
+            ]
 
         if operation == "evaluate_outer":
             script = REPO_ROOT / "scripts" / "v0_2" / "run_step14_frozen_outer_pipeline.py"
             return [
                 sys.executable,
                 str(script),
-                "--training-run-id",
-                run_id,
-                "--selection-freeze-sha256",
-                freeze_sha,
-                "--progress-every",
-                str(progress_every),
+                "--training-run-id", run_id,
+                "--selection-freeze-sha256", freeze_sha,
+                "--progress-every", str(progress_every),
             ]
         if operation == "decompose_representation":
             script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_representation_fusion_head.py"
@@ -121,20 +182,22 @@ def build_command(job: dict[str, Any]) -> list[str]:
         return [
             sys.executable,
             str(script),
-            "--training-run-id",
-            run_id,
-            "--selection-freeze-sha256",
-            freeze_sha,
-            "--device",
-            "cuda",
-            "--progress-every",
-            str(progress_every),
+            "--training-run-id", run_id,
+            "--selection-freeze-sha256", freeze_sha,
+            "--device", "cuda",
+            "--progress-every", str(progress_every),
         ]
 
     if task.get("expected_training_run_id") is not None or task.get("expected_selection_freeze_sha256") is not None:
         raise ValueError("baseline/training stage may not consume a Step-14 selection freeze")
-    if task.get("expected_final_method_freeze_payload_sha256") is not None:
-        raise ValueError("baseline/training stage may not consume a final method freeze")
+    for key in (
+        "expected_final_method_freeze_payload_sha256",
+        "expected_fresh_holdout_product_id",
+        "expected_fresh_holdout_dataset_complete_sha256",
+        "expected_oracle_free_prediction_complete_sha256",
+    ):
+        if task.get(key) is not None:
+            raise ValueError(f"baseline/training stage may not consume {key}")
 
     if operation == "evaluate_pretraining_baseline":
         script = REPO_ROOT / "scripts" / "v0_2" / "evaluate_step14_pretraining_baseline.py"
@@ -144,14 +207,10 @@ def build_command(job: dict[str, Any]) -> list[str]:
     return [
         sys.executable,
         str(script),
-        "--config",
-        config,
-        "--output-parent",
-        str(workspace),
-        "--device",
-        "cuda",
-        "--progress-every",
-        str(progress_every),
+        "--config", config,
+        "--output-parent", str(workspace),
+        "--device", "cuda",
+        "--progress-every", str(progress_every),
     ]
 
 
