@@ -13,7 +13,7 @@ permissions:
 jobs:
   read:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     env:
       RUNPOD_S3_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
       RUNPOD_S3_SECRET_ACCESS_KEY: ${{ secrets.RUNPOD_S3_SECRET_ACCESS_KEY }}
@@ -29,12 +29,12 @@ jobs:
       - name: Install boto3
         run: python -m pip install --quiet boto3
 
-      - name: Read blind Phase-A status and prediction freeze only
+      - name: Poll blind Phase-A prediction freeze and verify hashes
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
-          import hashlib, json, os
+          import hashlib, json, os, time
           import boto3
           from botocore.config import Config
           from botocore.exceptions import ClientError
@@ -68,23 +68,38 @@ jobs:
               return "sha256:" + hashlib.sha256(data).hexdigest()
 
           control_prefix = f"triqto-control/runs/{JOB_ID}/{CONTROL_RUN_ID}"
-          status_raw = maybe_bytes(control_prefix + "/status.json")
-          print("=== CONTROL_STATUS ===")
-          print(status_raw.decode() if status_raw is not None else "ABSENT")
-          log_raw = maybe_bytes(control_prefix + "/worker.log")
-          print("=== WORKER_LOG_TAIL ===")
-          if log_raw is None:
-              print("ABSENT")
-          else:
-              print("\n".join(log_raw.decode(errors="replace").splitlines()[-120:]))
-
           root = "triqto-data/step14_equivalence_aware_fresh_holdout_confirmation"
           pointer_key = root + "/current_oracle_free_predictions.json"
-          pointer_raw = maybe_bytes(pointer_key)
-          print("=== PHASE_A_POINTER ===")
-          if pointer_raw is None:
-              print("ABSENT")
-              raise SystemExit(0)
+
+          pointer_raw = None
+          for attempt in range(1, 61):
+              pointer_raw = maybe_bytes(pointer_key)
+              status_raw = maybe_bytes(control_prefix + "/status.json")
+              if pointer_raw is not None:
+                  print(f"Phase-A prediction pointer appeared on poll {attempt}", flush=True)
+                  break
+              if status_raw is not None:
+                  try:
+                      status = json.loads(status_raw)
+                      print(f"poll {attempt}: worker_status={status.get('status')} pod={status.get('pod_id')}", flush=True)
+                      if str(status.get("status", "")).lower() in {"failed", "error", "cancelled", "canceled"}:
+                          log_raw = maybe_bytes(control_prefix + "/worker.log")
+                          if log_raw is not None:
+                              print("=== WORKER_LOG_TAIL ===")
+                              print("\n".join(log_raw.decode(errors="replace").splitlines()[-160:]))
+                          raise RuntimeError(f"Phase-A worker terminal failure: {status}")
+                  except json.JSONDecodeError:
+                      print(f"poll {attempt}: control status present but not JSON", flush=True)
+              else:
+                  print(f"poll {attempt}: worker status not written yet", flush=True)
+              time.sleep(15)
+          else:
+              log_raw = maybe_bytes(control_prefix + "/worker.log")
+              if log_raw is not None:
+                  print("=== WORKER_LOG_TAIL ===")
+                  print("\n".join(log_raw.decode(errors="replace").splitlines()[-160:]))
+              raise RuntimeError("Phase-A prediction pointer did not appear within bounded observer window")
+
           pointer = json.loads(pointer_raw)
           if pointer.get("status") != "PREDICTIONS_FROZEN_BEFORE_TRUTH_ACCESS":
               raise RuntimeError(f"unexpected Phase-A pointer status: {pointer}")
@@ -92,10 +107,10 @@ jobs:
               raise RuntimeError("Phase-A pointer holdout identity drift")
           if bool(pointer.get("sealed_truth_accessed", True)):
               raise RuntimeError("Phase-A pointer reports sealed-truth access")
-          print(json.dumps(pointer, indent=2, sort_keys=True))
 
           prediction_dir = str(pointer["prediction_dir"])
-          if not prediction_dir.startswith("/workspace/triqto-data/step14_equivalence_aware_fresh_holdout_confirmation/predictions_"):
+          expected_prefix = "/workspace/triqto-data/step14_equivalence_aware_fresh_holdout_confirmation/predictions_"
+          if not prediction_dir.startswith(expected_prefix):
               raise RuntimeError(f"unexpected prediction dir: {prediction_dir}")
           pred_prefix = prediction_dir.removeprefix("/workspace/").rstrip("/")
           csv_raw = get_bytes(pred_prefix + "/oracle_free_predictions.csv")
@@ -106,17 +121,24 @@ jobs:
           for field in ("sealed_truth_accessed", "true_location_accessed", "true_mechanism_accessed"):
               if bool(complete.get(field, True)):
                   raise RuntimeError(f"completion reports forbidden access: {field}")
+          if int(complete.get("prediction_count", -1)) != 7200:
+              raise RuntimeError(f"unexpected prediction count: {complete.get('prediction_count')}")
+
           csv_sha = sha(csv_raw)
           complete_sha = sha(complete_raw)
           if csv_sha != pointer["oracle_free_predictions_sha256"]:
               raise RuntimeError("prediction CSV hash mismatch")
           if complete_sha != pointer["oracle_free_predictions_complete_sha256"]:
               raise RuntimeError("prediction completion hash mismatch")
+
           print("=== VERIFIED_PHASE_A_IDENTIFIERS ===")
           print(json.dumps({
               "prediction_id": pointer["prediction_id"],
               "oracle_free_predictions_sha256": csv_sha,
               "oracle_free_predictions_complete_sha256": complete_sha,
+              "prediction_count": 7200,
               "sealed_truth_accessed": False,
+              "true_location_accessed": False,
+              "true_mechanism_accessed": False,
           }, indent=2, sort_keys=True))
           PY
