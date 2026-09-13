@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Launch frozen Step-14 baseline, training, outer evaluation, diagnostics, or fresh holdout generation."""
+"""Launch frozen Step-14 baseline, training, diagnostics, or confirmatory operations."""
 from __future__ import annotations
 
 import argparse
@@ -25,6 +25,8 @@ ALLOWED_OPERATIONS = {
     "decompose_candidate_frame_ambiguity",
     "fit_equivalence_aware_latent_frame",
     "generate_equivalence_aware_fresh_holdout",
+    "predict_equivalence_aware_fresh_holdout",
+    "score_equivalence_aware_fresh_holdout",
 }
 POST_SELECTION_OPERATIONS = {
     "evaluate_outer",
@@ -35,8 +37,19 @@ POST_SELECTION_OPERATIONS = {
     "decompose_candidate_frame_ambiguity",
     "fit_equivalence_aware_latent_frame",
     "generate_equivalence_aware_fresh_holdout",
+    "predict_equivalence_aware_fresh_holdout",
+    "score_equivalence_aware_fresh_holdout",
 }
-FINAL_METHOD_FREEZE_OPERATIONS = {"generate_equivalence_aware_fresh_holdout"}
+FINAL_METHOD_FREEZE_OPERATIONS = {
+    "generate_equivalence_aware_fresh_holdout",
+    "predict_equivalence_aware_fresh_holdout",
+    "score_equivalence_aware_fresh_holdout",
+}
+FRESH_HOLDOUT_IDENTITY_OPERATIONS = {
+    "predict_equivalence_aware_fresh_holdout",
+    "score_equivalence_aware_fresh_holdout",
+}
+PREDICTION_FREEZE_OPERATIONS = {"score_equivalence_aware_fresh_holdout"}
 ALLOWED_REQUEST_KEYS = {
     "id",
     "operation",
@@ -47,7 +60,17 @@ ALLOWED_REQUEST_KEYS = {
     "expected_training_run_id",
     "expected_selection_freeze_sha256",
     "expected_final_method_freeze_payload_sha256",
+    "expected_fresh_holdout_product_id",
+    "expected_fresh_holdout_dataset_complete_sha256",
+    "expected_oracle_free_prediction_complete_sha256",
 }
+
+
+def _require_sha256(value: object, label: str) -> str:
+    text = str(value or "")
+    if not text.startswith("sha256:") or len(text) != 71:
+        raise ValueError(f"requires {label}")
+    return text
 
 
 def load_request(path: Path) -> dict:
@@ -60,6 +83,7 @@ def load_request(path: Path) -> dict:
     operation = str(value.get("operation", ""))
     if operation not in ALLOWED_OPERATIONS:
         raise ValueError(f"Unsupported Step-14 operation: {operation!r}")
+
     if operation in POST_SELECTION_OPERATIONS:
         run_id = str(value.get("expected_training_run_id", ""))
         freeze_sha = str(value.get("expected_selection_freeze_sha256", ""))
@@ -72,11 +96,25 @@ def load_request(path: Path) -> dict:
 
     final_sha = value.get("expected_final_method_freeze_payload_sha256")
     if operation in FINAL_METHOD_FREEZE_OPERATIONS:
-        final_sha = str(final_sha or "")
-        if not final_sha.startswith("sha256:") or len(final_sha) != 71:
-            raise ValueError(f"{operation} requires expected_final_method_freeze_payload_sha256")
+        _require_sha256(final_sha, "expected_final_method_freeze_payload_sha256")
     elif final_sha is not None:
-        raise ValueError("final-method-freeze identity is only allowed for fresh-holdout generation")
+        raise ValueError("final-method-freeze identity is only allowed for final-freeze-gated operations")
+
+    product_id = value.get("expected_fresh_holdout_product_id")
+    dataset_sha = value.get("expected_fresh_holdout_dataset_complete_sha256")
+    if operation in FRESH_HOLDOUT_IDENTITY_OPERATIONS:
+        product_id = str(product_id or "")
+        if not product_id.startswith("fresh_holdout_") or len(product_id) > 96:
+            raise ValueError(f"{operation} requires expected_fresh_holdout_product_id")
+        _require_sha256(dataset_sha, "expected_fresh_holdout_dataset_complete_sha256")
+    elif product_id is not None or dataset_sha is not None:
+        raise ValueError("fresh-holdout product identity is only allowed for fresh-holdout prediction/scoring")
+
+    prediction_sha = value.get("expected_oracle_free_prediction_complete_sha256")
+    if operation in PREDICTION_FREEZE_OPERATIONS:
+        _require_sha256(prediction_sha, "expected_oracle_free_prediction_complete_sha256")
+    elif prediction_sha is not None:
+        raise ValueError("oracle-free prediction completion identity is only allowed for confirmatory scoring")
     return value
 
 
@@ -111,6 +149,8 @@ def main() -> None:
         "decompose_candidate_frame_ambiguity": "step14-candidate-frame-ambiguity",
         "fit_equivalence_aware_latent_frame": "step14-equivalence-aware-fit",
         "generate_equivalence_aware_fresh_holdout": "step14-equivalence-aware-fresh-holdout",
+        "predict_equivalence_aware_fresh_holdout": "step14-equivalence-aware-fresh-holdout-predict",
+        "score_equivalence_aware_fresh_holdout": "step14-equivalence-aware-fresh-holdout-confirmatory",
     }
     job_id = str(request.get("id") or f"{defaults[operation]}-{int(time.time())}")
     allowed_id_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.")
@@ -137,6 +177,15 @@ def main() -> None:
     if operation in FINAL_METHOD_FREEZE_OPERATIONS:
         task["expected_final_method_freeze_payload_sha256"] = str(
             request["expected_final_method_freeze_payload_sha256"]
+        )
+    if operation in FRESH_HOLDOUT_IDENTITY_OPERATIONS:
+        task["expected_fresh_holdout_product_id"] = str(request["expected_fresh_holdout_product_id"])
+        task["expected_fresh_holdout_dataset_complete_sha256"] = str(
+            request["expected_fresh_holdout_dataset_complete_sha256"]
+        )
+    if operation in PREDICTION_FREEZE_OPERATIONS:
+        task["expected_oracle_free_prediction_complete_sha256"] = str(
+            request["expected_oracle_free_prediction_complete_sha256"]
         )
 
     control_run_id = f"run-{int(time.time())}-{secrets.token_hex(4)}"
@@ -204,13 +253,16 @@ def main() -> None:
             "workspace": WORKSPACE,
             "protocol_config": CONFIG,
         }
-        if operation in POST_SELECTION_OPERATIONS:
-            record["expected_training_run_id"] = task["expected_training_run_id"]
-            record["expected_selection_freeze_sha256"] = task["expected_selection_freeze_sha256"]
-        if operation in FINAL_METHOD_FREEZE_OPERATIONS:
-            record["expected_final_method_freeze_payload_sha256"] = task[
-                "expected_final_method_freeze_payload_sha256"
-            ]
+        for key in (
+            "expected_training_run_id",
+            "expected_selection_freeze_sha256",
+            "expected_final_method_freeze_payload_sha256",
+            "expected_fresh_holdout_product_id",
+            "expected_fresh_holdout_dataset_complete_sha256",
+            "expected_oracle_free_prediction_complete_sha256",
+        ):
+            if key in task:
+                record[key] = task[key]
         control.internal_put_json(control.active_key(control_run_id), record)
         registered = True
         print(json.dumps(record, indent=2))
