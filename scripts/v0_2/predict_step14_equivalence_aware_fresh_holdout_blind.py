@@ -172,7 +172,7 @@ def extract_blind_table(
         pair_gates.append(root_cache["gate"])
         ids.append(str(row["example_id"]))
         families.append(str(row["family_id"]))
-        variants.append(str(row["variant_id"]))
+        variants.append(str(root["variant_index"]))
         roots.append(root_index)
         if progress_every and position % progress_every == 0:
             print(
@@ -190,7 +190,7 @@ def extract_blind_table(
         "gate": pad_pair_bool(pair_gates, max_candidates),
         "example_id": ids,
         "family_id": families,
-        "variant_id": variants,
+        "variant_index": variants,
         "root_index": roots,
         "root_count": len(cache),
     }
@@ -199,7 +199,7 @@ def extract_blind_table(
 def write_predictions(path: Path, table: Mapping[str, Any], logits: np.ndarray) -> None:
     temp = path.with_name(f".{path.name}.tmp-{uuid.uuid4().hex}")
     fields = [
-        "example_id", "family_id", "variant_id", "root_index", "candidate_count",
+        "example_id", "family_id", "variant_index", "root_index", "candidate_count",
         "predicted_index", "logit_0", "logit_1", "logit_2",
     ]
     with temp.open("w", encoding="utf-8", newline="") as h:
@@ -209,7 +209,7 @@ def write_predictions(path: Path, table: Mapping[str, Any], logits: np.ndarray) 
             writer.writerow({
                 "example_id": table["example_id"][i],
                 "family_id": table["family_id"][i],
-                "variant_id": table["variant_id"][i],
+                "variant_index": table["variant_index"][i],
                 "root_index": int(table["root_index"][i]),
                 "candidate_count": int(np.asarray(table["mask"])[i].sum()),
                 "predicted_index": int(np.argmax(logits[i])),
@@ -272,7 +272,10 @@ def main() -> None:
     if len(target_rows) != int(hold["target_example_count"]):
         raise RuntimeError(f"expected {hold['target_example_count']} target rows, got {len(target_rows)}")
     safe_roots = {
-        int(row["root_index"]): {"operation_signature": str(row["operation_signature"])}
+        int(row["root_index"]): {
+            "operation_signature": str(row["operation_signature"]),
+            "variant_index": str(row["variant_index"]),
+        }
         for row in roots
     }
     if len(safe_roots) != int(hold["root_count"]):
