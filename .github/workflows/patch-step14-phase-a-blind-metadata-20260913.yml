@@ -1,0 +1,89 @@
+name: Patch Step-14 Phase-A Blind Metadata
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/patch-step14-phase-a-blind-metadata-20260913.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply metadata-only Phase-A repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          phase = Path("scripts/v0_2/predict_step14_equivalence_aware_fresh_holdout_blind.py")
+          text = phase.read_text(encoding="utf-8")
+          replacements = [
+              (
+                  '        variants.append(str(row["variant_id"]))\n',
+                  '        variants.append(str(root["variant_index"]))\n',
+              ),
+              (
+                  '        "variant_id": variants,\n',
+                  '        "variant_index": variants,\n',
+              ),
+              (
+                  '        "example_id", "family_id", "variant_id", "root_index", "candidate_count",\n',
+                  '        "example_id", "family_id", "variant_index", "root_index", "candidate_count",\n',
+              ),
+              (
+                  '                "variant_id": table["variant_id"][i],\n',
+                  '                "variant_index": table["variant_index"][i],\n',
+              ),
+              (
+                  '    safe_roots = {\n        int(row["root_index"]): {"operation_signature": str(row["operation_signature"])}\n        for row in roots\n    }\n',
+                  '    safe_roots = {\n        int(row["root_index"]): {\n            "operation_signature": str(row["operation_signature"]),\n            "variant_index": str(row["variant_index"]),\n        }\n        for row in roots\n    }\n',
+              ),
+          ]
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise RuntimeError(f"expected exactly one metadata patch target, got {count}: {old!r}")
+              text = text.replace(old, new)
+          if 'row["variant_id"]' in text:
+              raise RuntimeError("privileged/unavailable variant_id dependency remains in Phase A")
+          phase.write_text(text, encoding="utf-8")
+
+          build = Path(".github/workflows/build-runpod-agent.yml")
+          b = build.read_text(encoding="utf-8")
+          anchor = '      - "scripts/v0_2/analyze_step14_candidate_frame_ambiguity.py"\n'
+          addition = (
+              anchor
+              + '      - "scripts/v0_2/predict_step14_equivalence_aware_fresh_holdout_blind.py"\n'
+              + '      - "scripts/v0_2/score_step14_equivalence_aware_fresh_holdout_confirmatory.py"\n'
+              + '      - "scripts/v0_2/score_step14_equivalence_aware_fresh_holdout_confirmatory_cached.py"\n'
+              + '      - "scripts/v0_2/step14_equivalence_aware_common.py"\n'
+          )
+          if b.count(anchor) != 1:
+              raise RuntimeError("build workflow anchor drift")
+          if "predict_step14_equivalence_aware_fresh_holdout_blind.py" not in b:
+              b = b.replace(anchor, addition)
+          build.write_text(b, encoding="utf-8")
+          PY
+
+          python -m py_compile scripts/v0_2/predict_step14_equivalence_aware_fresh_holdout_blind.py
+          git diff --check
+          git diff -- scripts/v0_2/predict_step14_equivalence_aware_fresh_holdout_blind.py .github/workflows/build-runpod-agent.yml
+
+      - name: Commit repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/v0_2/predict_step14_equivalence_aware_fresh_holdout_blind.py .github/workflows/build-runpod-agent.yml
+          git commit -m "Fix blind Phase-A variant metadata contract"
+          git push origin HEAD:main
