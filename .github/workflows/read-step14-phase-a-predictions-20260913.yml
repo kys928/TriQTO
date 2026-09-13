@@ -1,0 +1,122 @@
+name: Read Step-14 Phase-A Prediction Freeze
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/read-step14-phase-a-predictions-20260913.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RUNPOD_S3_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
+      RUNPOD_S3_SECRET_ACCESS_KEY: ${{ secrets.RUNPOD_S3_SECRET_ACCESS_KEY }}
+      RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
+      RUNPOD_DATACENTER_ID: ${{ vars.RUNPOD_DATACENTER_ID }}
+      RUNPOD_S3_ENDPOINT: ${{ vars.RUNPOD_S3_ENDPOINT }}
+
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install boto3
+        run: python -m pip install --quiet boto3
+
+      - name: Read blind Phase-A status and prediction freeze only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, os
+          import boto3
+          from botocore.config import Config
+          from botocore.exceptions import ClientError
+
+          JOB_ID = "step14-equivalence-aware-fresh-holdout-predict-20260913-retry1"
+          CONTROL_RUN_ID = "run-1789314216-22ba917d"
+          EXPECTED_HOLDOUT = "fresh_holdout_f805dd871059cb342dafbd59"
+          bucket = os.environ["RUNPOD_NETWORK_VOLUME_ID"]
+          endpoint = os.environ["RUNPOD_S3_ENDPOINT"]
+          region = os.environ["RUNPOD_DATACENTER_ID"].lower()
+          s3 = boto3.client(
+              "s3", endpoint_url=endpoint, region_name=region,
+              aws_access_key_id=os.environ["RUNPOD_S3_ACCESS_KEY_ID"],
+              aws_secret_access_key=os.environ["RUNPOD_S3_SECRET_ACCESS_KEY"],
+              config=Config(signature_version="s3v4", retries={"max_attempts": 8, "mode": "standard"}),
+          )
+
+          def get_bytes(key):
+              return s3.get_object(Bucket=bucket, Key=key)["Body"].read()
+
+          def maybe_bytes(key):
+              try:
+                  return get_bytes(key)
+              except ClientError as exc:
+                  code = str(exc.response.get("Error", {}).get("Code", ""))
+                  if code in {"NoSuchKey", "404"}:
+                      return None
+                  raise
+
+          def sha(data):
+              return "sha256:" + hashlib.sha256(data).hexdigest()
+
+          control_prefix = f"triqto-control/runs/{JOB_ID}/{CONTROL_RUN_ID}"
+          status_raw = maybe_bytes(control_prefix + "/status.json")
+          print("=== CONTROL_STATUS ===")
+          print(status_raw.decode() if status_raw is not None else "ABSENT")
+          log_raw = maybe_bytes(control_prefix + "/worker.log")
+          print("=== WORKER_LOG_TAIL ===")
+          if log_raw is None:
+              print("ABSENT")
+          else:
+              print("\n".join(log_raw.decode(errors="replace").splitlines()[-120:]))
+
+          root = "triqto-data/step14_equivalence_aware_fresh_holdout_confirmation"
+          pointer_key = root + "/current_oracle_free_predictions.json"
+          pointer_raw = maybe_bytes(pointer_key)
+          print("=== PHASE_A_POINTER ===")
+          if pointer_raw is None:
+              print("ABSENT")
+              raise SystemExit(0)
+          pointer = json.loads(pointer_raw)
+          if pointer.get("status") != "PREDICTIONS_FROZEN_BEFORE_TRUTH_ACCESS":
+              raise RuntimeError(f"unexpected Phase-A pointer status: {pointer}")
+          if pointer.get("fresh_holdout_product_id") != EXPECTED_HOLDOUT:
+              raise RuntimeError("Phase-A pointer holdout identity drift")
+          if bool(pointer.get("sealed_truth_accessed", True)):
+              raise RuntimeError("Phase-A pointer reports sealed-truth access")
+          print(json.dumps(pointer, indent=2, sort_keys=True))
+
+          prediction_dir = str(pointer["prediction_dir"])
+          if not prediction_dir.startswith("/workspace/triqto-data/step14_equivalence_aware_fresh_holdout_confirmation/predictions_"):
+              raise RuntimeError(f"unexpected prediction dir: {prediction_dir}")
+          pred_prefix = prediction_dir.removeprefix("/workspace/").rstrip("/")
+          csv_raw = get_bytes(pred_prefix + "/oracle_free_predictions.csv")
+          complete_raw = get_bytes(pred_prefix + "/oracle_free_predictions_complete.json")
+          complete = json.loads(complete_raw)
+          if complete.get("status") != "PREDICTIONS_FROZEN_BEFORE_TRUTH_ACCESS":
+              raise RuntimeError("unexpected prediction completion status")
+          for field in ("sealed_truth_accessed", "true_location_accessed", "true_mechanism_accessed"):
+              if bool(complete.get(field, True)):
+                  raise RuntimeError(f"completion reports forbidden access: {field}")
+          csv_sha = sha(csv_raw)
+          complete_sha = sha(complete_raw)
+          if csv_sha != pointer["oracle_free_predictions_sha256"]:
+              raise RuntimeError("prediction CSV hash mismatch")
+          if complete_sha != pointer["oracle_free_predictions_complete_sha256"]:
+              raise RuntimeError("prediction completion hash mismatch")
+          print("=== VERIFIED_PHASE_A_IDENTIFIERS ===")
+          print(json.dumps({
+              "prediction_id": pointer["prediction_id"],
+              "oracle_free_predictions_sha256": csv_sha,
+              "oracle_free_predictions_complete_sha256": complete_sha,
+              "sealed_truth_accessed": False,
+          }, indent=2, sort_keys=True))
+          PY
