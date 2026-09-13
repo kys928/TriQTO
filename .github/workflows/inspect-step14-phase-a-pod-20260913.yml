@@ -26,9 +26,18 @@ jobs:
           from urllib.request import Request, urlopen
           from urllib.error import HTTPError
           pod_id = "cjzyoc49lcxx48"
+          user_agent = (
+              "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+              "(KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 "
+              "TriQTO-RunPod-Control/2"
+          )
           req = Request(
               f"https://rest.runpod.io/v1/pods/{pod_id}",
-              headers={"Authorization": f"Bearer {os.environ['RUNPOD_API_KEY']}", "Accept": "application/json"},
+              headers={
+                  "Authorization": f"Bearer {os.environ['RUNPOD_API_KEY']}",
+                  "Accept": "application/json",
+                  "User-Agent": user_agent,
+              },
           )
           try:
               with urlopen(req, timeout=60) as response:
