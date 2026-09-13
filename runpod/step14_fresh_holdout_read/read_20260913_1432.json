@@ -1,0 +1,10 @@
+{
+  "purpose": "blind_safe_qc_read_after_fresh_holdout_generation",
+  "control_run_id": "run-1789309824-89a2a439",
+  "allowed_outputs": [
+    "dataset_complete.json",
+    "eda_pre_preprocessing.json",
+    "preprocessing_audit.json",
+    "eda_post_preprocessing.json"
+  ]
+}
