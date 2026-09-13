@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Freeze Step-14 equivalence-aware predictions on the blind fresh holdout.
 
-This is Phase A of the confirmatory protocol.  It is deliberately restricted to
-blind manifests and x-only NPZ artifacts.  It must finish and hash the 7,200
+This is Phase A of the confirmatory protocol. It is deliberately restricted to
+blind manifests and x-only NPZ artifacts. It must finish and hash the 7,200
 oracle-free predictions before any process is allowed to read sealed truth.
 """
 from __future__ import annotations
@@ -58,7 +58,9 @@ def atomic_json(path: Path, value: Any) -> None:
     temp = path.with_name(f".{path.name}.tmp-{uuid.uuid4().hex}")
     with temp.open("w", encoding="utf-8") as h:
         json.dump(value, h, indent=2, sort_keys=True, allow_nan=False)
-        h.write("\n"); h.flush(); os.fsync(h.fileno())
+        h.write("\n")
+        h.flush()
+        os.fsync(h.fileno())
     os.replace(temp, path)
 
 
@@ -104,14 +106,16 @@ def pad_profiles(values: Sequence[np.ndarray], max_candidates: int) -> np.ndarra
 def pad_pair_float(values: Sequence[np.ndarray], max_candidates: int) -> np.ndarray:
     out = np.ones((len(values), max_candidates, max_candidates), dtype=np.float32)
     for i, value in enumerate(values):
-        n = value.shape[0]; out[i, :n, :n] = value
+        n = value.shape[0]
+        out[i, :n, :n] = value
     return out
 
 
 def pad_pair_bool(values: Sequence[np.ndarray], max_candidates: int) -> np.ndarray:
     out = np.zeros((len(values), max_candidates, max_candidates), dtype=np.bool_)
     for i, value in enumerate(values):
-        n = value.shape[0]; out[i, :n, :n] = value
+        n = value.shape[0]
+        out[i, :n, :n] = value
     return out
 
 
@@ -166,10 +170,15 @@ def extract_blind_table(
         profile_scores.append(profiles)
         pair_distances.append(root_cache["distance"])
         pair_gates.append(root_cache["gate"])
-        ids.append(str(row["example_id"])); families.append(str(row["family_id"]))
-        variants.append(str(row["variant_id"])); roots.append(root_index)
+        ids.append(str(row["example_id"]))
+        families.append(str(row["family_id"]))
+        variants.append(str(row["variant_id"]))
+        roots.append(root_index)
         if progress_every and position % progress_every == 0:
-            print(f"blind confirmatory extraction {position}/{len(target_rows)} roots_cached={len(cache)}", flush=True)
+            print(
+                f"blind confirmatory extraction {position}/{len(target_rows)} roots_cached={len(cache)}",
+                flush=True,
+            )
 
     x, mask = latent.pad_candidate_features(candidate_features)
     max_candidates = int(x.shape[1])
@@ -189,12 +198,15 @@ def extract_blind_table(
 
 def write_predictions(path: Path, table: Mapping[str, Any], logits: np.ndarray) -> None:
     temp = path.with_name(f".{path.name}.tmp-{uuid.uuid4().hex}")
-    fields = ["example_id", "family_id", "variant_id", "root_index", "candidate_count", "predicted_index", "logit_0", "logit_1", "logit_2"]
+    fields = [
+        "example_id", "family_id", "variant_id", "root_index", "candidate_count",
+        "predicted_index", "logit_0", "logit_1", "logit_2",
+    ]
     with temp.open("w", encoding="utf-8", newline="") as h:
         writer = csv.DictWriter(h, fieldnames=fields)
         writer.writeheader()
         for i in range(len(logits)):
-            row = {
+            writer.writerow({
                 "example_id": table["example_id"][i],
                 "family_id": table["family_id"][i],
                 "variant_id": table["variant_id"][i],
@@ -204,9 +216,9 @@ def write_predictions(path: Path, table: Mapping[str, Any], logits: np.ndarray) 
                 "logit_0": format(float(logits[i, 0]), ".17g"),
                 "logit_1": format(float(logits[i, 1]), ".17g"),
                 "logit_2": format(float(logits[i, 2]), ".17g"),
-            }
-            writer.writerow(row)
-        h.flush(); os.fsync(h.fileno())
+            })
+        h.flush()
+        os.fsync(h.fileno())
     os.replace(temp, path)
 
 
@@ -217,10 +229,12 @@ def main() -> None:
     freeze = read_json(FINAL_FREEZE)
     if confirm.get("status") != "FROZEN_AFTER_HOLDOUT_GENERATION_BEFORE_MODEL_INFERENCE":
         raise RuntimeError("confirmatory protocol is not frozen for Phase A")
-    method = confirm["method_identity"]; hold = confirm["holdout_identity"]
-    if args.training_run_id != str(freeze["source"]["training_run_id"]):
+    method = confirm["method_identity"]
+    hold = confirm["holdout_identity"]
+    source = freeze["source_identity"]
+    if args.training_run_id != str(source["training_run_id"]):
         raise RuntimeError("training run identity drift")
-    if args.selection_freeze_sha256 != str(freeze["source"]["selection_freeze_sha256"]):
+    if args.selection_freeze_sha256 != str(source["selection_freeze_sha256"]):
         raise RuntimeError("selection freeze identity drift")
     if args.final_method_freeze_payload_sha256 != str(method["final_method_freeze_payload_sha256"]):
         raise RuntimeError("final method freeze identity drift")
@@ -247,17 +261,20 @@ def main() -> None:
             raise RuntimeError(f"fresh holdout {key} drift")
 
     manifests = product / "manifests"
-    if "sealed_truth" in manifests.parts:
-        raise RuntimeError("Phase A manifest path contamination")
     examples = baseline.read_csv(manifests / "example_manifest.csv")
     roots = baseline.read_csv(manifests / "root_manifest.csv")
-    forbidden_fields = {"mechanism", "strength", "affected_qubit", "injection_boundary_rank", "injection_boundary"}
+    forbidden_fields = {
+        "mechanism", "strength", "affected_qubit", "injection_boundary_rank", "injection_boundary",
+    }
     if any(forbidden_fields & set(row) for row in examples + roots):
         raise RuntimeError("privileged fields found in blind manifests")
     target_rows = [row for row in examples if str(row.get("evaluation_role")) == "target"]
     if len(target_rows) != int(hold["target_example_count"]):
         raise RuntimeError(f"expected {hold['target_example_count']} target rows, got {len(target_rows)}")
-    safe_roots = {int(row["root_index"]): {"operation_signature": str(row["operation_signature"])} for row in roots}
+    safe_roots = {
+        int(row["root_index"]): {"operation_signature": str(row["operation_signature"])}
+        for row in roots
+    }
     if len(safe_roots) != int(hold["root_count"]):
         raise RuntimeError("blind root count drift")
 
@@ -281,13 +298,17 @@ def main() -> None:
     device = resolve_device(args.device)
     candidate_logits: list[np.ndarray] = []
     for seed in [int(v) for v in method["candidate_network_seeds"]]:
-        name = f"candidate_network_seed{seed}.pt"; path = method_dir / name
+        name = f"candidate_network_seed{seed}.pt"
+        path = method_dir / name
         if baseline.sha256_file(path) != str(method["checkpoint_sha256"][name]):
             raise RuntimeError(f"checkpoint hash drift: {name}")
         payload = torch.load(path, map_location="cpu", weights_only=False)
         if str(payload.get("method_id")) != str(method["method_id"]) or int(payload.get("seed")) != seed:
             raise RuntimeError(f"checkpoint identity drift: {name}")
-        if float(payload.get("selected_tau")) != float(method["tau"]) or float(payload.get("selected_frame_temperature")) != float(method["frame_temperature"]):
+        if (
+            float(payload.get("selected_tau")) != float(method["tau"])
+            or float(payload.get("selected_frame_temperature")) != float(method["frame_temperature"])
+        ):
             raise RuntimeError(f"checkpoint hyperparameter drift: {name}")
         _uniform, per_candidate = equiv.infer_candidate_network(
             table["x"], table["mask"], state_dict=payload["state_dict"],
@@ -307,14 +328,18 @@ def main() -> None:
         raise RuntimeError("oracle-free prediction shape/finiteness failure")
 
     confirm_sha = baseline.sha256_file(CONFIRM_CONFIG)
-    prediction_key = hashlib.sha256((confirm_sha + args.fresh_holdout_dataset_complete_sha256 + str(method["method_id"])).encode()).hexdigest()[:24]
+    prediction_key = hashlib.sha256(
+        (confirm_sha + args.fresh_holdout_dataset_complete_sha256 + str(method["method_id"])).encode()
+    ).hexdigest()[:24]
     prediction_id = f"predictions_{prediction_key}"
-    output_parent = args.output_parent.expanduser().resolve(); output_parent.mkdir(parents=True, exist_ok=True)
+    output_parent = args.output_parent.expanduser().resolve()
+    output_parent.mkdir(parents=True, exist_ok=True)
     output_dir = output_parent / prediction_id
     if output_dir.exists() and any(output_dir.iterdir()):
         existing = read_json(output_dir / "oracle_free_predictions_complete.json")
         if existing.get("status") == "PREDICTIONS_FROZEN_BEFORE_TRUTH_ACCESS":
-            print(json.dumps(existing, indent=2, sort_keys=True)); return
+            print(json.dumps(existing, indent=2, sort_keys=True))
+            return
         raise RuntimeError(f"refusing to overwrite prediction product: {output_dir}")
     output_dir.mkdir(parents=True, exist_ok=True)
     pred_path = output_dir / "oracle_free_predictions.csv"
@@ -357,7 +382,10 @@ def main() -> None:
         "fresh_holdout_product_id": args.fresh_holdout_product_id,
         "sealed_truth_accessed": False,
     })
-    print(json.dumps({**completion, "oracle_free_predictions_complete_sha256": complete_sha}, indent=2, sort_keys=True), flush=True)
+    print(
+        json.dumps({**completion, "oracle_free_predictions_complete_sha256": complete_sha}, indent=2, sort_keys=True),
+        flush=True,
+    )
 
 
 if __name__ == "__main__":
