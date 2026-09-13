@@ -54,29 +54,13 @@ jobs:
                   raise RuntimeError(f"expected exactly one metadata patch target, got {count}: {old!r}")
               text = text.replace(old, new)
           if 'row["variant_id"]' in text:
-              raise RuntimeError("privileged/unavailable variant_id dependency remains in Phase A")
+              raise RuntimeError("unavailable variant_id dependency remains in Phase A")
           phase.write_text(text, encoding="utf-8")
-
-          build = Path(".github/workflows/build-runpod-agent.yml")
-          b = build.read_text(encoding="utf-8")
-          anchor = '      - "scripts/v0_2/analyze_step14_candidate_frame_ambiguity.py"\n'
-          addition = (
-              anchor
-              + '      - "scripts/v0_2/predict_step14_equivalence_aware_fresh_holdout_blind.py"\n'
-              + '      - "scripts/v0_2/score_step14_equivalence_aware_fresh_holdout_confirmatory.py"\n'
-              + '      - "scripts/v0_2/score_step14_equivalence_aware_fresh_holdout_confirmatory_cached.py"\n'
-              + '      - "scripts/v0_2/step14_equivalence_aware_common.py"\n'
-          )
-          if b.count(anchor) != 1:
-              raise RuntimeError("build workflow anchor drift")
-          if "predict_step14_equivalence_aware_fresh_holdout_blind.py" not in b:
-              b = b.replace(anchor, addition)
-          build.write_text(b, encoding="utf-8")
           PY
 
           python -m py_compile scripts/v0_2/predict_step14_equivalence_aware_fresh_holdout_blind.py
           git diff --check
-          git diff -- scripts/v0_2/predict_step14_equivalence_aware_fresh_holdout_blind.py .github/workflows/build-runpod-agent.yml
+          git diff -- scripts/v0_2/predict_step14_equivalence_aware_fresh_holdout_blind.py
 
       - name: Commit repair
         shell: bash
@@ -84,6 +68,6 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add scripts/v0_2/predict_step14_equivalence_aware_fresh_holdout_blind.py .github/workflows/build-runpod-agent.yml
+          git add scripts/v0_2/predict_step14_equivalence_aware_fresh_holdout_blind.py
           git commit -m "Fix blind Phase-A variant metadata contract"
           git push origin HEAD:main
