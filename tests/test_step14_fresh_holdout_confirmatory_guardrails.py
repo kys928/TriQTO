@@ -51,7 +51,7 @@ def test_launcher_predict_requires_fresh_holdout_identity(tmp_path: Path) -> Non
     request["expected_fresh_holdout_product_id"] = PRODUCT_ID
     path = tmp_path / "request.json"
     path.write_text(json.dumps(request), encoding="utf-8")
-    with pytest.raises(ValueError, match="dataset-complete"):
+    with pytest.raises(ValueError, match="expected_fresh_holdout_dataset_complete_sha256"):
         launcher.load_request(path)
 
 
@@ -61,7 +61,7 @@ def test_launcher_score_requires_prediction_freeze_identity(tmp_path: Path) -> N
     request["expected_fresh_holdout_dataset_complete_sha256"] = DATASET_SHA
     path = tmp_path / "request.json"
     path.write_text(json.dumps(request), encoding="utf-8")
-    with pytest.raises(ValueError, match="oracle-free prediction"):
+    with pytest.raises(ValueError, match="expected_oracle_free_prediction_complete_sha256"):
         launcher.load_request(path)
 
 
