@@ -1,0 +1,44 @@
+name: Inspect Step-14 Phase-A Pod
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/inspect-step14-phase-a-pod-20260913.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
+    steps:
+      - name: Inspect allocated Phase-A pod
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from urllib.request import Request, urlopen
+          from urllib.error import HTTPError
+          pod_id = "cjzyoc49lcxx48"
+          req = Request(
+              f"https://rest.runpod.io/v1/pods/{pod_id}",
+              headers={"Authorization": f"Bearer {os.environ['RUNPOD_API_KEY']}", "Accept": "application/json"},
+          )
+          try:
+              with urlopen(req, timeout=60) as response:
+                  pod = json.loads(response.read().decode())
+          except HTTPError as exc:
+              raise RuntimeError(f"RunPod pod lookup failed HTTP {exc.code}: {exc.read().decode(errors='replace')}") from exc
+          allowed = {
+              "id", "name", "desiredStatus", "lastStatusChange", "machineId", "gpuCount",
+              "gpuTypeId", "adjustedCostPerHr", "costPerHr", "imageName", "dataCenterId",
+              "interruptible", "uptimeInSeconds", "createdAt", "publicIp"
+          }
+          print(json.dumps({k: v for k, v in pod.items() if k in allowed}, indent=2, sort_keys=True))
+          PY
