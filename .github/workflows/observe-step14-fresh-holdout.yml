@@ -1,0 +1,90 @@
+name: Observe Step-14 Fresh Holdout
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/observe-step14-fresh-holdout.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    env:
+      RUNPOD_S3_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
+      RUNPOD_S3_SECRET_ACCESS_KEY: ${{ secrets.RUNPOD_S3_SECRET_ACCESS_KEY }}
+      RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
+      RUNPOD_DATACENTER_ID: ${{ vars.RUNPOD_DATACENTER_ID }}
+      RUNPOD_S3_ENDPOINT: ${{ vars.RUNPOD_S3_ENDPOINT }}
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install observer dependency
+        run: python -m pip install --quiet boto3
+      - name: Trace exact fresh-holdout worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import json, os, time
+          import boto3
+          from botocore.config import Config
+          from botocore.exceptions import ClientError
+
+          JOB_ID = "step14-equivalence-aware-fresh-holdout-20260910"
+          CONTROL_RUN_ID = "run-1789309824-89a2a439"
+          PREFIX = f"triqto-control/runs/{JOB_ID}/{CONTROL_RUN_ID}/"
+          TERMINAL = {"completed", "failed"}
+          client = boto3.client(
+              "s3",
+              endpoint_url=os.environ["RUNPOD_S3_ENDPOINT"],
+              region_name=os.environ["RUNPOD_DATACENTER_ID"].lower(),
+              aws_access_key_id=os.environ["RUNPOD_S3_ACCESS_KEY_ID"],
+              aws_secret_access_key=os.environ["RUNPOD_S3_SECRET_ACCESS_KEY"],
+              config=Config(signature_version="s3v4", retries={"max_attempts":8,"mode":"standard"}),
+          )
+          bucket = os.environ["RUNPOD_NETWORK_VOLUME_ID"]
+          def read_text(name):
+              try:
+                  return client.get_object(Bucket=bucket, Key=PREFIX+name)["Body"].read().decode("utf-8")
+              except ClientError as exc:
+                  if str(exc.response.get("Error",{}).get("Code","")) in {"NoSuchKey","404","NotFound"}:
+                      return None
+                  raise
+
+          seen = ""
+          last_state = None
+          for poll in range(120):
+              status_text = read_text("status.json")
+              log_text = read_text("worker.log") or ""
+              if status_text is None:
+                  print(json.dumps({"poll":poll,"state":"heartbeat-pending"}), flush=True)
+              else:
+                  status = json.loads(status_text)
+                  state = str(status.get("state","unknown"))
+                  if state != last_state:
+                      print(json.dumps({
+                          "poll": poll,
+                          "state": state,
+                          "started_at": status.get("started_at"),
+                          "completed_at": status.get("completed_at"),
+                          "returncode": status.get("returncode"),
+                          "gpu": (status.get("gpu") or {}).get("output"),
+                      }, sort_keys=True), flush=True)
+                      last_state = state
+                  if log_text != seen:
+                      delta = log_text[len(seen):] if log_text.startswith(seen) else "\n[observer: worker.log rewritten]\n" + log_text
+                      if delta:
+                          print(delta, end="" if delta.endswith("\n") else "\n", flush=True)
+                      seen = log_text
+                  if state in TERMINAL:
+                      print(json.dumps({"observer":"terminal","state":state,"poll":poll}), flush=True)
+                      raise SystemExit(0 if state == "completed" else 1)
+              time.sleep(20)
+          print(json.dumps({"observer":"trace-window-ended","last_state":last_state}), flush=True)
+          PY
