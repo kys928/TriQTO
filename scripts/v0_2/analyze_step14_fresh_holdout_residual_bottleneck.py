@@ -573,10 +573,6 @@ def main() -> None:
             std=np.asarray(payload["normalization_std"], dtype=np.float32),
             latent_cfg=latent_cfg, device=device,
         )
-        full = equiv.equivalence_aware_pool_batch(
-            candidates, table["profiles"], table["distance"], table["gate"], table["mask"],
-            tau=tau, frame_temperature=temperature,
-        )
         _u1, tf = equiv.infer_candidate_network(
             true_finite_bag, single_mask, state_dict=payload["state_dict"],
             mean=np.asarray(payload["normalization_mean"], dtype=np.float32),
@@ -590,13 +586,15 @@ def main() -> None:
             latent_cfg=latent_cfg, device=device,
         )
         seed_candidate_logits.append(candidates)
-        seed_full_logits.append(full)
         seed_true_finite_logits.append(tf[:, 0, :])
         seed_true_exact_logits.append(te[:, 0, :])
         print(f"posthoc frozen candidate network seed={seed} complete", flush=True)
 
     candidate_logits = np.mean(np.stack(seed_candidate_logits), axis=0)
-    reproduced_full = np.mean(np.stack(seed_full_logits), axis=0)
+    reproduced_full = equiv.equivalence_aware_pool_batch(
+        candidate_logits, table["profiles"], table["distance"], table["gate"], table["mask"],
+        tau=tau, frame_temperature=temperature,
+    )
     if not np.array_equal(np.argmax(reproduced_full, axis=1), np.argmax(frozen_logits, axis=1)):
         raise RuntimeError("posthoc reproduction changed a frozen Phase-A argmax")
     max_logit_abs_diff = float(np.max(np.abs(reproduced_full - frozen_logits)))
