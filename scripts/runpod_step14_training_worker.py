@@ -13,6 +13,7 @@ import runpod_worker as common
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONTROL_ROOT = Path("/workspace/triqto-control/runs")
 CONFIG = "configs/v0_2/step14_cross_motif_generalization_training.json"
+RESIDUAL_POSTHOC = "diagnose_equivalence_aware_fresh_holdout_residual"
 ALLOWED_OPERATIONS = {
     "evaluate_pretraining_baseline",
     "train_selection",
@@ -26,6 +27,7 @@ ALLOWED_OPERATIONS = {
     "generate_equivalence_aware_fresh_holdout",
     "predict_equivalence_aware_fresh_holdout",
     "score_equivalence_aware_fresh_holdout",
+    RESIDUAL_POSTHOC,
 }
 POST_SELECTION_OPERATIONS = {
     "evaluate_outer",
@@ -38,17 +40,21 @@ POST_SELECTION_OPERATIONS = {
     "generate_equivalence_aware_fresh_holdout",
     "predict_equivalence_aware_fresh_holdout",
     "score_equivalence_aware_fresh_holdout",
+    RESIDUAL_POSTHOC,
 }
 FINAL_METHOD_FREEZE_OPERATIONS = {
     "generate_equivalence_aware_fresh_holdout",
     "predict_equivalence_aware_fresh_holdout",
     "score_equivalence_aware_fresh_holdout",
+    RESIDUAL_POSTHOC,
 }
 FRESH_HOLDOUT_IDENTITY_OPERATIONS = {
     "predict_equivalence_aware_fresh_holdout",
     "score_equivalence_aware_fresh_holdout",
+    RESIDUAL_POSTHOC,
 }
-PREDICTION_FREEZE_OPERATIONS = {"score_equivalence_aware_fresh_holdout"}
+PREDICTION_FREEZE_OPERATIONS = {"score_equivalence_aware_fresh_holdout", RESIDUAL_POSTHOC}
+CONFIRMATORY_RESULT_OPERATIONS = {RESIDUAL_POSTHOC}
 TERMINAL_STATES = {"completed", "failed"}
 
 
@@ -102,24 +108,40 @@ def build_command(job: dict[str, Any]) -> list[str]:
         if operation in FRESH_HOLDOUT_IDENTITY_OPERATIONS:
             product_id = str(task.get("expected_fresh_holdout_product_id", ""))
             if not product_id.startswith("fresh_holdout_") or len(product_id) > 96:
-                raise ValueError("fresh-holdout prediction/scoring requires the frozen fresh holdout product id")
+                raise ValueError("fresh-holdout prediction/scoring/posthoc requires the frozen fresh holdout product id")
             dataset_sha = _require_sha(
                 task,
                 "expected_fresh_holdout_dataset_complete_sha256",
-                "fresh-holdout prediction/scoring requires the dataset-complete SHA-256",
+                "fresh-holdout prediction/scoring/posthoc requires the dataset-complete SHA-256",
             )
         elif task.get("expected_fresh_holdout_product_id") is not None or task.get("expected_fresh_holdout_dataset_complete_sha256") is not None:
-            raise ValueError("fresh-holdout identity is reserved for fresh-holdout prediction/scoring")
+            raise ValueError("fresh-holdout identity is reserved for fresh-holdout prediction/scoring/posthoc")
 
         prediction_sha = None
         if operation in PREDICTION_FREEZE_OPERATIONS:
             prediction_sha = _require_sha(
                 task,
                 "expected_oracle_free_prediction_complete_sha256",
-                "confirmatory scoring requires the oracle-free prediction completion SHA-256",
+                "confirmatory/posthoc operation requires the oracle-free prediction completion SHA-256",
             )
         elif task.get("expected_oracle_free_prediction_complete_sha256") is not None:
-            raise ValueError("oracle-free prediction completion identity is reserved for confirmatory scoring")
+            raise ValueError("oracle-free prediction completion identity is reserved for confirmatory/posthoc operations")
+
+        confirm_result_sha = None
+        confirm_complete_sha = None
+        if operation in CONFIRMATORY_RESULT_OPERATIONS:
+            confirm_result_sha = _require_sha(
+                task,
+                "expected_confirmatory_result_sha256",
+                "spent-holdout posthoc requires confirmatory result SHA-256",
+            )
+            confirm_complete_sha = _require_sha(
+                task,
+                "expected_confirmatory_complete_sha256",
+                "spent-holdout posthoc requires confirmatory completion SHA-256",
+            )
+        elif task.get("expected_confirmatory_result_sha256") is not None or task.get("expected_confirmatory_complete_sha256") is not None:
+            raise ValueError("confirmatory result identities are reserved for the spent-holdout posthoc operation")
 
         if operation == "generate_equivalence_aware_fresh_holdout":
             script = REPO_ROOT / "scripts" / "v0_2" / "generate_step14_equivalence_aware_fresh_holdout_redacted.py"
@@ -154,6 +176,22 @@ def build_command(job: dict[str, Any]) -> list[str]:
                 "--fresh-holdout-product-id", str(product_id),
                 "--fresh-holdout-dataset-complete-sha256", str(dataset_sha),
                 "--oracle-free-prediction-complete-sha256", str(prediction_sha),
+                "--device", "cuda",
+                "--progress-every", str(progress_every),
+            ]
+
+        if operation == RESIDUAL_POSTHOC:
+            script = REPO_ROOT / "scripts" / "v0_2" / "analyze_step14_fresh_holdout_residual_bottleneck.py"
+            return [
+                sys.executable, str(script),
+                "--training-run-id", run_id,
+                "--selection-freeze-sha256", freeze_sha,
+                "--final-method-freeze-payload-sha256", str(final_sha),
+                "--fresh-holdout-product-id", str(product_id),
+                "--fresh-holdout-dataset-complete-sha256", str(dataset_sha),
+                "--oracle-free-prediction-complete-sha256", str(prediction_sha),
+                "--confirmatory-result-sha256", str(confirm_result_sha),
+                "--confirmatory-complete-sha256", str(confirm_complete_sha),
                 "--device", "cuda",
                 "--progress-every", str(progress_every),
             ]
@@ -195,6 +233,8 @@ def build_command(job: dict[str, Any]) -> list[str]:
         "expected_fresh_holdout_product_id",
         "expected_fresh_holdout_dataset_complete_sha256",
         "expected_oracle_free_prediction_complete_sha256",
+        "expected_confirmatory_result_sha256",
+        "expected_confirmatory_complete_sha256",
     ):
         if task.get(key) is not None:
             raise ValueError(f"baseline/training stage may not consume {key}")
