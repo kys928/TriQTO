@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -81,3 +82,19 @@ def test_seed_prediction_distinct_counts_rejects_empty_seed_set() -> None:
             tau=1.0,
             temperature=1.0,
         )
+
+
+def test_quantile_labels_serialize_open_bounds_without_nonfinite_numbers() -> None:
+    labels, edges = residual.quantile_labels(
+        np.asarray([0.0, 1.0, 2.0, 3.0], dtype=np.float64),
+        2,
+    )
+
+    np.testing.assert_array_equal(labels, np.asarray(["Q1", "Q1", "Q2", "Q2"], dtype=object))
+    assert edges == ["-inf", 1.5, "inf"]
+    assert json.loads(json.dumps({"edges": edges}, allow_nan=False)) == {"edges": edges}
+
+
+def test_quantile_labels_rejects_nonfinite_input() -> None:
+    with pytest.raises(RuntimeError, match="nonempty finite vector"):
+        residual.quantile_labels(np.asarray([0.0, np.inf], dtype=np.float64), 2)

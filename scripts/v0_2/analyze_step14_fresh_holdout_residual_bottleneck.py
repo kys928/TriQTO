@@ -42,7 +42,7 @@ HOLDOUT_PARENT = Path("/workspace/triqto-data/step14_equivalence_aware_fresh_hol
 METHOD_PARENT = Path("/workspace/triqto-data/step14_equivalence_aware_development")
 CONFIRM_PARENT = Path("/workspace/triqto-data/step14_equivalence_aware_fresh_holdout_confirmation")
 OUTPUT_PARENT = Path("/workspace/triqto-data/step14_fresh_holdout_residual_bottleneck")
-SCHEMA = "triqto.v0_2.step14_fresh_holdout_residual_bottleneck_result.v1"
+SCHEMA = "triqto.v0_2.step14_fresh_holdout_residual_bottleneck_result.v2"
 
 
 def parse_args() -> argparse.Namespace:
@@ -553,8 +553,12 @@ def fixed_bins(values: np.ndarray, edges: Sequence[float]) -> np.ndarray:
     return labels
 
 
-def quantile_labels(values: np.ndarray, q: int) -> tuple[np.ndarray, list[float]]:
+def quantile_labels(values: np.ndarray, q: int) -> tuple[np.ndarray, list[float | str]]:
     arr = np.asarray(values, dtype=np.float64)
+    if arr.ndim != 1 or len(arr) == 0 or not np.all(np.isfinite(arr)):
+        raise RuntimeError("quantile stratification requires a nonempty finite vector")
+    if q < 1:
+        raise ValueError("quantile bin count must be positive")
     edges = np.quantile(arr, np.linspace(0.0, 1.0, q + 1)).astype(np.float64)
     edges[0] = -np.inf
     edges[-1] = np.inf
@@ -562,7 +566,15 @@ def quantile_labels(values: np.ndarray, q: int) -> tuple[np.ndarray, list[float]
     for i, v in enumerate(arr):
         k = int(np.searchsorted(edges[1:-1], v, side="right"))
         labels[i] = f"Q{k+1}"
-    return labels, [float(v) for v in edges]
+    serialized_edges: list[float | str] = []
+    for edge in edges:
+        if np.isneginf(edge):
+            serialized_edges.append("-inf")
+        elif np.isposinf(edge):
+            serialized_edges.append("inf")
+        else:
+            serialized_edges.append(float(edge))
+    return labels, serialized_edges
 
 
 def write_per_example(path: Path, rows: Sequence[Mapping[str, Any]]) -> None:
@@ -879,7 +891,9 @@ def main() -> None:
         })
 
     protocol_sha = sha(POSTHOC_CONFIG)
-    key = hashlib.sha256((protocol_sha + args.confirmatory_result_sha256).encode()).hexdigest()[:24]
+    key = hashlib.sha256(
+        (protocol_sha + args.confirmatory_result_sha256 + SCHEMA).encode()
+    ).hexdigest()[:24]
     diagnostic_id = f"residual_bottleneck_{key}"
     out_dir = args.output_parent.expanduser().resolve() / diagnostic_id
     if out_dir.exists() and any(out_dir.iterdir()):
