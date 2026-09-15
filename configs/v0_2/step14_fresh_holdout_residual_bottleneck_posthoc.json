@@ -1,0 +1,87 @@
+{
+  "schema": "triqto.v0_2.step14_fresh_holdout_residual_bottleneck_posthoc.v1",
+  "status": "FROZEN_POST_CONFIRMATION_BEFORE_POSTHOC_EXECUTION",
+  "purpose": "Diagnose the residual oracle-free mechanism-classification gap on the already-spent fresh holdout without retraining, reselection, threshold changes, or reuse as confirmatory evidence.",
+  "source_identity": {
+    "training_run_id": "training_18e0b4ed6e685af30b6c4a35",
+    "selection_freeze_sha256": "sha256:af7ffaece77d16134c33b1c898afb7165c7ace5dcfccfea23f713ae242e4ed6f",
+    "final_method_freeze_payload_sha256": "sha256:b63454e2198fd36b6a54055365b20af26d0e3a3fefc5fcf8785e78ff6514489b",
+    "fresh_holdout_product_id": "fresh_holdout_f805dd871059cb342dafbd59",
+    "fresh_holdout_dataset_complete_sha256": "sha256:515cc17016894506e040d79bfef2dd7bf1c605578deccfb4fbef2ba865794675",
+    "oracle_free_prediction_id": "predictions_98d2562eb48f43271c7b9edf",
+    "oracle_free_predictions_sha256": "sha256:a5c9151ef2cddf3bd9213b0649dcdbccd28ad8a8adb597e73a0b1cec626bf2ec",
+    "oracle_free_predictions_complete_sha256": "sha256:e6c39fe4a101687a7a911377624f1c626380778162943da2e5a1ee7514648280",
+    "confirmatory_result_id": "confirmatory_b031474ed1c7dd18b28b524c",
+    "confirmatory_result_sha256": "sha256:a01987ee6967f4505e25b3e52acda2b19fdd90964dff9d7cc561da88e32505d4",
+    "confirmatory_complete_sha256": "sha256:5eab7664f394a13d3676e02be8c83d74c33d8b405233676d4a63f654e23f04fc",
+    "confirmatory_oracle_free_ba": 0.7475,
+    "confirmatory_exact_oracle_ba": 0.9084722222222222
+  },
+  "scientific_boundary": {
+    "holdout_is_spent": true,
+    "posthoc_descriptive_only": true,
+    "may_guide_new_development_cycle": true,
+    "may_not_change_or_reinterpret_confirmatory_gates": true,
+    "may_not_claim_reconfirmation_on_this_holdout": true,
+    "main_model_retraining": false,
+    "candidate_network_retraining": false,
+    "hyperparameter_reselection": false,
+    "threshold_tuning": false,
+    "simulator_outer_accessed": false,
+    "future_hardware_reserve_accessed": false,
+    "qpu_executed": false
+  },
+  "oracle_ladder": [
+    "frozen_oracle_free_equivalence_aware",
+    "same_head_true_qubit_restricted",
+    "same_head_true_boundary_finite_frame",
+    "same_head_true_response_equivalence_class",
+    "fit_only_finite_shot_true_frame_small_probe",
+    "fit_only_exact_true_frame_small_probe"
+  ],
+  "response_equivalence": {
+    "geometry_source": "analysis-only exact candidate Born-response Jacobians",
+    "mechanism_preserving": true,
+    "minimum_same_axis_abs_cosine": 0.98,
+    "minimum_identity_assignment_margin": 0.02,
+    "source_definition": "configs/v0_2/step14_candidate_frame_ambiguity_decomposition.json"
+  },
+  "candidate_coverage_ranking": {
+    "rank_definition": "descending density-corrected anchor frame posterior used by the frozen equivalence-aware pooling rule",
+    "equivalence_mass_definition": "sum of density-corrected anchor posterior over candidates satisfying the frozen exact response-equivalence definition relative to the true frame",
+    "posterior_entropy": "natural-log Shannon entropy over the density-corrected anchor posterior",
+    "density_counterfactual": "repeat the identical frozen pooling rule after removing only the -log(kernel_density) anchor correction; no logits, tau, temperature, or kernel gate changes"
+  },
+  "finite_shot_snr": {
+    "name": "standardized_evidence_rms_snr_proxy",
+    "formula": "sqrt(mean((delta * weights)^2))",
+    "interpretation": "RMS finite-shot standardized evidence magnitude; weights are the frozen paired-shot inverse-standard-error weights"
+  },
+  "error_stratification": {
+    "mechanism_class": true,
+    "qubit_count": true,
+    "circuit_family": true,
+    "boundary_depth": {
+      "normalized_formula": "injection_boundary_rank / circuit_gate_count",
+      "bins": [0.0, 0.3333333333333333, 0.6666666666666666, 1.000000000001]
+    },
+    "true_frame_minimum_pairwise_axis_angle_deg_bins": [0.0, 15.0, 25.0, 45.0, 90.000001],
+    "response_equivalence_class_size_bins": [1, 2, 3, 5, 1000000],
+    "finite_shot_snr_quantile_bins": 4,
+    "candidate_posterior_entropy_quantile_bins": 4,
+    "seed_disagreement": "number of distinct mechanism argmax predictions across frozen candidate-network seeds after full equivalence-aware pooling"
+  },
+  "statistics": {
+    "paired_family_bootstrap_replicates": 1000,
+    "paired_family_bootstrap_seed": 2026091501,
+    "bootstrap_unit": "fresh_family_id"
+  },
+  "required_outputs": [
+    "diagnostic_result.json",
+    "oracle_ladder.json",
+    "candidate_coverage_ranking.json",
+    "error_stratification.json",
+    "per_example_posthoc.csv",
+    "diagnostic_complete.json"
+  ]
+}
