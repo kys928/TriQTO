@@ -1,0 +1,98 @@
+name: Verify Step-14 Phase-A Retry2 Freeze
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/verify-step14-phase-a-retry2-20260915.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      RUNPOD_S3_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
+      RUNPOD_S3_SECRET_ACCESS_KEY: ${{ secrets.RUNPOD_S3_SECRET_ACCESS_KEY }}
+      RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
+      RUNPOD_DATACENTER_ID: ${{ vars.RUNPOD_DATACENTER_ID }}
+      RUNPOD_S3_ENDPOINT: ${{ vars.RUNPOD_S3_ENDPOINT }}
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --quiet boto3
+      - name: Verify frozen Phase-A bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv, hashlib, io, json, os
+          import boto3
+          from botocore.config import Config
+
+          JOB_ID = "step14-equivalence-aware-fresh-holdout-predict-20260913-retry2"
+          CONTROL_RUN_ID = "run-1789316359-1846431f"
+          EXPECTED_HOLDOUT = "fresh_holdout_f805dd871059cb342dafbd59"
+          bucket = os.environ["RUNPOD_NETWORK_VOLUME_ID"]
+          s3 = boto3.client(
+              "s3",
+              endpoint_url=os.environ["RUNPOD_S3_ENDPOINT"],
+              region_name=os.environ["RUNPOD_DATACENTER_ID"].lower(),
+              aws_access_key_id=os.environ["RUNPOD_S3_ACCESS_KEY_ID"],
+              aws_secret_access_key=os.environ["RUNPOD_S3_SECRET_ACCESS_KEY"],
+              config=Config(signature_version="s3v4"),
+          )
+          def get(key):
+              return s3.get_object(Bucket=bucket, Key=key)["Body"].read()
+          def sha(raw):
+              return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+          status = json.loads(get(f"triqto-control/runs/{JOB_ID}/{CONTROL_RUN_ID}/status.json"))
+          if str(status.get("state")).lower() != "completed" or int(status.get("returncode", -1)) != 0:
+              raise RuntimeError(f"retry2 worker not completed cleanly: {status}")
+
+          root = "triqto-data/step14_equivalence_aware_fresh_holdout_confirmation"
+          pointer = json.loads(get(root + "/current_oracle_free_predictions.json"))
+          if pointer.get("status") != "PREDICTIONS_FROZEN_BEFORE_TRUTH_ACCESS":
+              raise RuntimeError(f"unexpected pointer status: {pointer}")
+          if pointer.get("fresh_holdout_product_id") != EXPECTED_HOLDOUT:
+              raise RuntimeError("holdout identity drift")
+          if bool(pointer.get("sealed_truth_accessed", True)):
+              raise RuntimeError("pointer reports sealed truth access")
+
+          pred_dir = str(pointer["prediction_dir"])
+          prefix = pred_dir.removeprefix("/workspace/").rstrip("/")
+          csv_raw = get(prefix + "/oracle_free_predictions.csv")
+          complete_raw = get(prefix + "/oracle_free_predictions_complete.json")
+          complete = json.loads(complete_raw)
+          if complete.get("status") != "PREDICTIONS_FROZEN_BEFORE_TRUTH_ACCESS":
+              raise RuntimeError("unexpected completion status")
+          for field in ("sealed_truth_accessed", "true_location_accessed", "true_mechanism_accessed"):
+              if bool(complete.get(field, True)):
+                  raise RuntimeError(f"forbidden access flag true: {field}")
+          rows = list(csv.DictReader(io.StringIO(csv_raw.decode("utf-8"))))
+          if len(rows) != 7200 or int(complete.get("prediction_count", -1)) != 7200:
+              raise RuntimeError(f"prediction count mismatch: csv={len(rows)} complete={complete.get('prediction_count')}")
+
+          csv_sha = sha(csv_raw)
+          complete_sha = sha(complete_raw)
+          if csv_sha != pointer["oracle_free_predictions_sha256"]:
+              raise RuntimeError("CSV SHA mismatch")
+          if complete_sha != pointer["oracle_free_predictions_complete_sha256"]:
+              raise RuntimeError("completion SHA mismatch")
+
+          print("=== VERIFIED_PHASE_A_RETRY2 ===")
+          print(json.dumps({
+              "prediction_id": pointer["prediction_id"],
+              "oracle_free_predictions_sha256": csv_sha,
+              "oracle_free_predictions_complete_sha256": complete_sha,
+              "prediction_count": 7200,
+              "sealed_truth_accessed": False,
+              "true_location_accessed": False,
+              "true_mechanism_accessed": False,
+              "retry2_control_run_id": CONTROL_RUN_ID,
+          }, indent=2, sort_keys=True))
+          PY
