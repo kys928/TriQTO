@@ -223,6 +223,35 @@ def quantiles(values: Sequence[float]) -> dict[str, float]:
     }
 
 
+def seed_prediction_distinct_counts(
+    seed_candidate_logits: Sequence[np.ndarray],
+    profiles: np.ndarray,
+    distance: np.ndarray,
+    gate: np.ndarray,
+    mask: np.ndarray,
+    *,
+    tau: float,
+    temperature: float,
+) -> np.ndarray:
+    """Count distinct frozen-seed predictions after the frozen pooling rule."""
+    if not seed_candidate_logits:
+        raise RuntimeError("posthoc seed-disagreement diagnostic has no candidate logits")
+    pooled = [
+        equiv.equivalence_aware_pool_batch(
+            logits,
+            profiles,
+            distance,
+            gate,
+            mask,
+            tau=tau,
+            frame_temperature=temperature,
+        )
+        for logits in seed_candidate_logits
+    ]
+    predictions = np.stack([np.argmax(logits, axis=1) for logits in pooled], axis=1)
+    return np.asarray([len(set(int(v) for v in row.tolist())) for row in predictions], dtype=np.int64)
+
+
 def response_equivalent(candidate_exact: np.ndarray, true_exact: np.ndarray, spec: Mapping[str, Any]) -> bool:
     similarity = ambiguity.axis_similarity(candidate_exact, true_exact)
     local_cfg = {"frame_equivalence": {
@@ -744,8 +773,15 @@ def main() -> None:
     for j, name in enumerate(ladder_names[1:], start=100):
         paired[f"{name}_minus_frozen_oracle_free"] = oracle.bootstrap_delta(y, ladder_logits[name], frozen_logits, families, seed=bs_seed + j)
 
-    seed_predictions = np.stack([np.argmax(v, axis=1) for v in seed_full_logits], axis=1)
-    seed_distinct = np.asarray([len(set(int(v) for v in row.tolist())) for row in seed_predictions], dtype=np.int64)
+    seed_distinct = seed_prediction_distinct_counts(
+        seed_candidate_logits,
+        table["profiles"],
+        table["distance"],
+        table["gate"],
+        table["mask"],
+        tau=tau,
+        temperature=temperature,
+    )
     current_pred = np.argmax(frozen_logits, axis=1)
     oracle_pred = np.argmax(exact_probe_logits, axis=1)
     no_density_pred = np.argmax(no_density_logits, axis=1)

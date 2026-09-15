@@ -45,3 +45,39 @@ def test_reproduction_audit_rejects_shape_drift() -> None:
     replayed = np.zeros((2, 2), dtype=np.float64)
     with pytest.raises(RuntimeError, match="shape drift"):
         residual.audit_frozen_logit_reproduction(frozen, replayed)
+
+
+def test_seed_prediction_distinct_counts_pools_each_frozen_seed() -> None:
+    seed_candidate_logits = [
+        np.asarray([[[2.0, 1.0, 0.0]], [[2.0, 1.0, 0.0]]], dtype=np.float64),
+        np.asarray([[[3.0, 1.0, 0.0]], [[0.0, 3.0, 1.0]]], dtype=np.float64),
+    ]
+    profiles = np.zeros((2, 1, 3), dtype=np.float64)
+    distance = np.zeros((2, 1, 1), dtype=np.float64)
+    gate = np.ones((2, 1, 1), dtype=np.bool_)
+    mask = np.ones((2, 1), dtype=np.bool_)
+
+    counts = residual.seed_prediction_distinct_counts(
+        seed_candidate_logits,
+        profiles,
+        distance,
+        gate,
+        mask,
+        tau=1.0,
+        temperature=1.0,
+    )
+
+    np.testing.assert_array_equal(counts, np.asarray([1, 2], dtype=np.int64))
+
+
+def test_seed_prediction_distinct_counts_rejects_empty_seed_set() -> None:
+    with pytest.raises(RuntimeError, match="no candidate logits"):
+        residual.seed_prediction_distinct_counts(
+            [],
+            np.zeros((1, 1, 3), dtype=np.float64),
+            np.zeros((1, 1, 1), dtype=np.float64),
+            np.ones((1, 1, 1), dtype=np.bool_),
+            np.ones((1, 1), dtype=np.bool_),
+            tau=1.0,
+            temperature=1.0,
+        )
