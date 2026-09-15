@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Patch Phase-A reproduction order and image trigger
+      - name: Patch Phase-A reproduction order
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -36,22 +36,13 @@ jobs:
               raise SystemExit("expected reproduced_full line not found")
           text = text.replace(old_repro, new_repro, 1)
           path.write_text(text, encoding="utf-8")
-          build = Path(".github/workflows/build-runpod-agent.yml")
-          b = build.read_text(encoding="utf-8")
-          needle = "      - \"scripts/v0_2/analyze_step14_candidate_frame_ambiguity.py\"\n"
-          add = needle + "      - \"scripts/v0_2/analyze_step14_fresh_holdout_residual_bottleneck.py\"\n"
-          if "scripts/v0_2/analyze_step14_fresh_holdout_residual_bottleneck.py" not in b:
-              if needle not in b:
-                  raise SystemExit("build workflow insertion anchor not found")
-              b = b.replace(needle, add, 1)
-              build.write_text(b, encoding="utf-8")
           PY
           git diff --check
-          git diff -- scripts/v0_2/analyze_step14_fresh_holdout_residual_bottleneck.py .github/workflows/build-runpod-agent.yml
+          git diff -- scripts/v0_2/analyze_step14_fresh_holdout_residual_bottleneck.py
       - name: Commit fix
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add scripts/v0_2/analyze_step14_fresh_holdout_residual_bottleneck.py .github/workflows/build-runpod-agent.yml
+          git add scripts/v0_2/analyze_step14_fresh_holdout_residual_bottleneck.py
           git commit -m "Fix residual posthoc Phase-A pooling reproduction"
           git push origin main
