@@ -33,8 +33,8 @@ jobs:
           from botocore.config import Config
           from botocore.exceptions import ClientError
 
-          JOB_ID = "step14-fresh-holdout-residual-bottleneck-posthoc-seed-diagnostic-repair-20260915"
-          CONTROL_RUN_ID = "run-1789475029-a2394546"
+          JOB_ID = "step14-fresh-holdout-residual-bottleneck-posthoc-json-safe-v2-20260915"
+          CONTROL_RUN_ID = "run-1789476927-c9767135"
           EXPECTED_CONFIRM_RESULT = "sha256:a01987ee6967f4505e25b3e52acda2b19fdd90964dff9d7cc561da88e32505d4"
           EXPECTED_CONFIRM_COMPLETE = "sha256:5eab7664f394a13d3676e02be8c83d74c33d8b405233676d4a63f654e23f04fc"
           EXPECTED_PRED_COMPLETE = "sha256:e6c39fe4a101687a7a911377624f1c626380778162943da2e5a1ee7514648280"
