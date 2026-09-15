@@ -1,0 +1,67 @@
+name: Fix Step-14 residual posthoc pooling
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/fix-step14-residual-posthoc-pooling-20260915.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch Phase-A reproduction order and image trigger
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("scripts/v0_2/analyze_step14_fresh_holdout_residual_bottleneck.py")
+          text = path.read_text(encoding="utf-8")
+          old_pool = '''        full = equiv.equivalence_aware_pool_batch(
+              candidates, table["profiles"], table["distance"], table["gate"], table["mask"],
+              tau=tau, frame_temperature=temperature,
+          )
+'''
+          if old_pool not in text:
+              raise SystemExit("expected per-seed pooling block not found")
+          text = text.replace(old_pool, "", 1)
+          old_append = '        seed_full_logits.append(full)\n'
+          if old_append not in text:
+              raise SystemExit("expected seed_full_logits append not found")
+          text = text.replace(old_append, "", 1)
+          old_repro = '    reproduced_full = np.mean(np.stack(seed_full_logits), axis=0)\n'
+          new_repro = '''    reproduced_full = equiv.equivalence_aware_pool_batch(
+              candidate_logits, table["profiles"], table["distance"], table["gate"], table["mask"],
+              tau=tau, frame_temperature=temperature,
+          )
+'''
+          if old_repro not in text:
+              raise SystemExit("expected reproduced_full line not found")
+          text = text.replace(old_repro, new_repro, 1)
+          path.write_text(text, encoding="utf-8")
+
+          build = Path(".github/workflows/build-runpod-agent.yml")
+          b = build.read_text(encoding="utf-8")
+          needle = '      - "scripts/v0_2/analyze_step14_candidate_frame_ambiguity.py"\n'
+          add = needle + '      - "scripts/v0_2/analyze_step14_fresh_holdout_residual_bottleneck.py"\n'
+          if 'scripts/v0_2/analyze_step14_fresh_holdout_residual_bottleneck.py' not in b:
+              if needle not in b:
+                  raise SystemExit("build workflow insertion anchor not found")
+              b = b.replace(needle, add, 1)
+              build.write_text(b, encoding="utf-8")
+          PY
+          git diff --check
+          git diff -- scripts/v0_2/analyze_step14_fresh_holdout_residual_bottleneck.py .github/workflows/build-runpod-agent.yml
+      - name: Commit fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/v0_2/analyze_step14_fresh_holdout_residual_bottleneck.py .github/workflows/build-runpod-agent.yml
+          git commit -m "Fix residual posthoc Phase-A pooling reproduction"
+          git push origin main
