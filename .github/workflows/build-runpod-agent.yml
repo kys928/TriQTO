@@ -15,6 +15,7 @@ on:
       - "scripts/v0_2/analyze_step14_oracle_raw_evidence_ceiling.py"
       - "scripts/v0_2/analyze_step14_latent_frame_inference.py"
       - "scripts/v0_2/analyze_step14_candidate_frame_ambiguity.py"
+      - "scripts/v0_2/analyze_step14_fresh_holdout_residual_bottleneck.py"
       - "scripts/v0_2/predict_step14_equivalence_aware_fresh_holdout_blind.py"
       - "scripts/v0_2/score_step14_equivalence_aware_fresh_holdout_confirmatory.py"
       - "scripts/v0_2/score_step14_equivalence_aware_fresh_holdout_confirmatory_cached.py"
