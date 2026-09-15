@@ -22,9 +22,9 @@ jobs:
         env:
           RUNPOD_S3_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
           RUNPOD_S3_SECRET_ACCESS_KEY: ${{ secrets.RUNPOD_S3_SECRET_ACCESS_KEY }}
-          RUNPOD_NETWORK_VOLUME_ID: ${{ secrets.RUNPOD_NETWORK_VOLUME_ID }}
-          RUNPOD_DATACENTER_ID: ${{ secrets.RUNPOD_DATACENTER_ID }}
-          RUNPOD_S3_ENDPOINT: ${{ secrets.RUNPOD_S3_ENDPOINT }}
+          RUNPOD_NETWORK_VOLUME_ID: aaxciry320
+          RUNPOD_DATACENTER_ID: EU-CZ-1
+          RUNPOD_S3_ENDPOINT: https://s3api-eu-cz-1.runpod.io/
         run: |
           set -euo pipefail
           python - <<'PY'
