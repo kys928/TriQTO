@@ -1,0 +1,144 @@
+name: Verify Step-14 Residual Bottleneck Posthoc
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/verify-step14-residual-posthoc-20260915.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --quiet boto3
+      - name: Wait for and verify posthoc result bytes
+        env:
+          RUNPOD_S3_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
+          RUNPOD_S3_SECRET_ACCESS_KEY: ${{ secrets.RUNPOD_S3_SECRET_ACCESS_KEY }}
+          RUNPOD_NETWORK_VOLUME_ID: ${{ secrets.RUNPOD_NETWORK_VOLUME_ID }}
+          RUNPOD_DATACENTER_ID: ${{ secrets.RUNPOD_DATACENTER_ID }}
+          RUNPOD_S3_ENDPOINT: ${{ secrets.RUNPOD_S3_ENDPOINT }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, os, time
+          import boto3
+          from botocore.config import Config
+          from botocore.exceptions import ClientError
+
+          JOB_ID = "step14-fresh-holdout-residual-bottleneck-posthoc-20260915"
+          CONTROL_RUN_ID = "run-1789460212-bfd06e10"
+          EXPECTED_CONFIRM_RESULT = "sha256:a01987ee6967f4505e25b3e52acda2b19fdd90964dff9d7cc561da88e32505d4"
+          EXPECTED_CONFIRM_COMPLETE = "sha256:5eab7664f394a13d3676e02be8c83d74c33d8b405233676d4a63f654e23f04fc"
+          EXPECTED_PRED_COMPLETE = "sha256:e6c39fe4a101687a7a911377624f1c626380778162943da2e5a1ee7514648280"
+          bucket = os.environ["RUNPOD_NETWORK_VOLUME_ID"]
+          s3 = boto3.client(
+              "s3",
+              endpoint_url=os.environ["RUNPOD_S3_ENDPOINT"],
+              region_name=os.environ["RUNPOD_DATACENTER_ID"].lower(),
+              aws_access_key_id=os.environ["RUNPOD_S3_ACCESS_KEY_ID"],
+              aws_secret_access_key=os.environ["RUNPOD_S3_SECRET_ACCESS_KEY"],
+              config=Config(signature_version="s3v4", retries={"max_attempts": 8, "mode": "standard"}),
+          )
+          def get(key):
+              return s3.get_object(Bucket=bucket, Key=key)["Body"].read()
+          def maybe(key):
+              try: return get(key)
+              except ClientError as exc:
+                  if str(exc.response.get("Error", {}).get("Code", "")) in {"NoSuchKey", "404"}: return None
+                  raise
+          def sha(raw): return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+          control_key = f"triqto-control/runs/{JOB_ID}/{CONTROL_RUN_ID}/status.json"
+          log_key = f"triqto-control/runs/{JOB_ID}/{CONTROL_RUN_ID}/worker.log"
+          pointer_key = "triqto-data/step14_fresh_holdout_residual_bottleneck/current_residual_bottleneck_posthoc.json"
+          pointer_raw = None
+          for attempt in range(1, 121):
+              pointer_raw = maybe(pointer_key)
+              status_raw = maybe(control_key)
+              if pointer_raw is not None:
+                  print(f"posthoc pointer found on poll {attempt}", flush=True)
+                  break
+              if status_raw is not None:
+                  status = json.loads(status_raw)
+                  state = str(status.get("state", "")).lower()
+                  print(f"poll {attempt}: worker_state={state}", flush=True)
+                  if state in {"failed", "error", "cancelled", "canceled"}:
+                      log_raw = maybe(log_key)
+                      if log_raw is not None:
+                          print("=== WORKER LOG TAIL ===")
+                          print("\n".join(log_raw.decode(errors="replace").splitlines()[-300:]))
+                      raise RuntimeError(f"posthoc worker failed: {status}")
+              time.sleep(15)
+          else:
+              raise RuntimeError("posthoc result pointer did not appear within verifier window")
+
+          pointer = json.loads(pointer_raw)
+          if pointer.get("status") != "COMPLETE_SPENT_HOLDOUT_POSTHOC_RESIDUAL_BOTTLENECK_DIAGNOSTIC":
+              raise RuntimeError(f"unexpected pointer status: {pointer}")
+          result_dir = str(pointer["diagnostic_dir"])
+          prefix = result_dir.removeprefix("/workspace/").rstrip("/")
+          files = {
+              "diagnostic_result": "diagnostic_result.json",
+              "oracle_ladder": "oracle_ladder.json",
+              "candidate_coverage_ranking": "candidate_coverage_ranking.json",
+              "error_stratification": "error_stratification.json",
+              "diagnostic_complete": "diagnostic_complete.json",
+              "per_example_posthoc": "per_example_posthoc.csv",
+          }
+          raw = {name: get(prefix + "/" + filename) for name, filename in files.items()}
+          complete = json.loads(raw["diagnostic_complete"])
+          expected_hashes = {
+              "diagnostic_result": complete["diagnostic_result_sha256"],
+              "oracle_ladder": complete["oracle_ladder_sha256"],
+              "candidate_coverage_ranking": complete["candidate_coverage_ranking_sha256"],
+              "error_stratification": complete["error_stratification_sha256"],
+              "per_example_posthoc": complete["per_example_posthoc_sha256"],
+              "diagnostic_complete": pointer["diagnostic_complete_sha256"],
+          }
+          actual_hashes = {name: sha(blob) for name, blob in raw.items()}
+          for name, expected in expected_hashes.items():
+              if actual_hashes[name] != expected:
+                  raise RuntimeError(f"{name} SHA mismatch: {actual_hashes[name]} != {expected}")
+
+          result = json.loads(raw["diagnostic_result"])
+          ladder = json.loads(raw["oracle_ladder"])
+          coverage = json.loads(raw["candidate_coverage_ranking"])
+          strata = json.loads(raw["error_stratification"])
+          if result.get("source_confirmatory_result_sha256") != EXPECTED_CONFIRM_RESULT:
+              raise RuntimeError("confirmatory result identity drift")
+          if result.get("source_confirmatory_complete_sha256") != EXPECTED_CONFIRM_COMPLETE:
+              raise RuntimeError("confirmatory completion identity drift")
+          if result.get("source_prediction_complete_sha256") != EXPECTED_PRED_COMPLETE:
+              raise RuntimeError("prediction completion identity drift")
+          status = json.loads(get(control_key))
+          if str(status.get("state", "")).lower() != "completed" or int(status.get("returncode", -1)) != 0:
+              raise RuntimeError(f"worker status not cleanly completed: {status}")
+
+          family = strata.get("circuit_family", {})
+          family_sorted = sorted(
+              ((name, values) for name, values in family.items()),
+              key=lambda item: (float(item[1].get("accuracy", 0.0)), item[0]),
+          )
+          out = {
+              "diagnostic_id": result["diagnostic_id"],
+              "control_run_id": CONTROL_RUN_ID,
+              "verified_sha256": actual_hashes,
+              "frozen_logit_reproduction_max_abs_diff": result["frozen_logit_reproduction_max_abs_diff"],
+              "oracle_ladder": ladder,
+              "candidate_coverage_ranking": coverage,
+              "error_stratification_nonfamily": {k: v for k, v in strata.items() if k != "circuit_family"},
+              "worst_10_families": family_sorted[:10],
+              "best_10_families": family_sorted[-10:],
+              "scientific_boundaries": result["scientific_boundaries"],
+          }
+          print("=== VERIFIED_RESIDUAL_BOTTLENECK_POSTHOC ===")
+          print(json.dumps(out, indent=2, sort_keys=True))
+          PY
