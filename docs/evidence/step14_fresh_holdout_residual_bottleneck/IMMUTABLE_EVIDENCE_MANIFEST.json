@@ -1,0 +1,296 @@
+{
+  "schema": "triqto.v0_2.step14_fresh_holdout_residual_bottleneck_evidence_manifest.v1",
+  "status": "IMMUTABLE_COMPLETED_EVIDENCE",
+  "evidence_class": "SPENT_HOLDOUT_POSTHOC_DESCRIPTIVE_ONLY",
+  "diagnostic_id": "residual_bottleneck_34a03cf229786f3135fc8cf5",
+  "diagnostic_result_schema": "triqto.v0_2.step14_fresh_holdout_residual_bottleneck_result.v2",
+  "diagnostic_result_sha256": "sha256:d541ad90a2e0b77a9b4b5ff5633888d02e999617a67c7721d48c1b8b5c9f9080",
+  "diagnostic_complete_sha256": "sha256:b9517f4c455de5169bf44b5dc3b6c3350061d8fcfc9cf170fe8cba2e017e2dd6",
+  "source_identity": {
+    "training_run_id": "training_18e0b4ed6e685af30b6c4a35",
+    "selection_freeze_sha256": "sha256:af7ffaece77d16134c33b1c898afb7165c7ace5dcfccfea23f713ae242e4ed6f",
+    "final_method_freeze_payload_sha256": "sha256:b63454e2198fd36b6a54055365b20af26d0e3a3fefc5fcf8785e78ff6514489b",
+    "fresh_holdout_product_id": "fresh_holdout_f805dd871059cb342dafbd59",
+    "fresh_holdout_dataset_complete_sha256": "sha256:515cc17016894506e040d79bfef2dd7bf1c605578deccfb4fbef2ba865794675",
+    "oracle_free_prediction_complete_sha256": "sha256:e6c39fe4a101687a7a911377624f1c626380778162943da2e5a1ee7514648280",
+    "confirmatory_result_id": "confirmatory_b031474ed1c7dd18b28b524c",
+    "confirmatory_result_sha256": "sha256:a01987ee6967f4505e25b3e52acda2b19fdd90964dff9d7cc561da88e32505d4",
+    "confirmatory_complete_sha256": "sha256:5eab7664f394a13d3676e02be8c83d74c33d8b405233676d4a63f654e23f04fc",
+    "preserved_confirmatory_verdict": "PARTIAL_EQUIVALENCE_AWARE_ORACLE_FREE_LATENT_FRAME_SIGNAL"
+  },
+  "repository_provenance": {
+    "protocol_config": "configs/v0_2/step14_fresh_holdout_residual_bottleneck_posthoc.json",
+    "worker_image_source_commit": "c8b06ba50ade449b763ebc283e540cad8b8dfbb0",
+    "launch_request_commit": "e7ff0c45796541062f2f55e190e3a9a716b48247",
+    "verifier_binding_commit": "6a937cb494de511b916ea47499092805d25aa8f4",
+    "enriched_verifier_commit": "b1384576e38134311329aca541719fb1eb82d62a",
+    "successful_verifier_workflow_run_id": 34973118014,
+    "enriched_verifier_workflow_run_id": 34974849783
+  },
+  "execution": {
+    "job_id": "step14-fresh-holdout-residual-bottleneck-posthoc-json-safe-v2-rtx5090-20260915",
+    "control_run_id": "run-1789477663-561b015b",
+    "pod_id": "9cn6a98dw4dm7u",
+    "gpu": "NVIDIA GeForce RTX 5090",
+    "gpu_uuid": "GPU-5fafcd63-60be-d12f-f99d-4792e4d78a12",
+    "gpu_memory_mib": 32607,
+    "cost_per_hour_usd": 0.99,
+    "started_at_utc": "2026-09-15T13:12:17.789854+00:00",
+    "completed_at_utc": "2026-09-15T13:21:22.885546+00:00",
+    "returncode": 0
+  },
+  "s3": {
+    "result_prefix": "triqto-data/step14_fresh_holdout_residual_bottleneck/residual_bottleneck_34a03cf229786f3135fc8cf5",
+    "pointer_key": "triqto-data/step14_fresh_holdout_residual_bottleneck/current_residual_bottleneck_posthoc.json",
+    "worker_status_key": "triqto-control/runs/step14-fresh-holdout-residual-bottleneck-posthoc-json-safe-v2-rtx5090-20260915/run-1789477663-561b015b/status.json",
+    "worker_history_key": "triqto-control/history/run-1789477663-561b015b.json"
+  },
+  "verified_artifact_sha256": {
+    "diagnostic_result": "sha256:d541ad90a2e0b77a9b4b5ff5633888d02e999617a67c7721d48c1b8b5c9f9080",
+    "diagnostic_complete": "sha256:b9517f4c455de5169bf44b5dc3b6c3350061d8fcfc9cf170fe8cba2e017e2dd6",
+    "oracle_ladder": "sha256:36708de2e8a94e27dc4a05ebf3ed1d684156a130e0896511af434d26999dc878",
+    "candidate_coverage_ranking": "sha256:7c9fa1821c62a73c6bc4bd2f0eab043247311d2a7417626ea52549d69ae71aca",
+    "error_stratification": "sha256:2fbdc485b95bd780673335c9c449725aa3237e98b7bf1404f087ae676173e261",
+    "per_example_posthoc": "sha256:4f2350a9204aca5539566b65a0c108e4b9934dafbce9e0186de70c4dc66c4804"
+  },
+  "frozen_logit_reproduction_audit": {
+    "absolute_tolerance": 0.0001,
+    "max_abs_diff": 0,
+    "argmax_mismatch_count": 0,
+    "unexplained_argmax_mismatch_count": 0,
+    "frozen_logits_authoritative_for_headline_metrics": true,
+    "replayed_candidate_logits_used_only_for_posthoc_interventions": true
+  },
+  "oracle_ladder": {
+    "frozen_oracle_free_equivalence_aware": {
+      "balanced_accuracy": 0.7475,
+      "mechanism_recall": [
+        0.7595833333333334,
+        0.7166666666666667,
+        0.76625
+      ]
+    },
+    "same_head_true_qubit_restricted": {
+      "balanced_accuracy": 0.7800000000000001,
+      "mechanism_recall": [
+        0.78625,
+        0.7629166666666667,
+        0.7908333333333334
+      ]
+    },
+    "same_head_true_boundary_finite_frame": {
+      "balanced_accuracy": 0.882361111111111,
+      "mechanism_recall": [
+        0.8779166666666667,
+        0.8766666666666667,
+        0.8925
+      ]
+    },
+    "same_head_true_response_equivalence_class": {
+      "balanced_accuracy": 0.8598611111111111,
+      "mechanism_recall": [
+        0.84375,
+        0.8525,
+        0.8833333333333333
+      ]
+    },
+    "fit_only_finite_shot_true_frame_small_probe": {
+      "balanced_accuracy": 0.8877777777777777,
+      "mechanism_recall": [
+        0.8904166666666666,
+        0.88125,
+        0.8916666666666667
+      ]
+    },
+    "fit_only_exact_true_frame_small_probe": {
+      "balanced_accuracy": 0.9084722222222222,
+      "mechanism_recall": [
+        0.9025,
+        0.905,
+        0.9179166666666667
+      ]
+    },
+    "supplemental_same_head_true_boundary_exact_frame": {
+      "balanced_accuracy": 0.7119444444444444,
+      "mechanism_recall": [
+        0.5525,
+        0.94125,
+        0.6420833333333333
+      ]
+    }
+  },
+  "direct_residual_attribution": {
+    "total_frozen_to_exact_probe_ba_gap": 0.16097222222222218,
+    "closure_error": 0,
+    "components": {
+      "candidate_location_absence": {
+        "ba_loss": 0,
+        "percentage_points": 0,
+        "fraction_of_total_gap": 0,
+        "basis": "exact true candidate location coverage equals 1.0"
+      },
+      "frame_posterior_ranking": {
+        "ba_loss": 0.134861111111111,
+        "percentage_points": 13.486111111111098,
+        "fraction_of_total_gap": 0.8377911993097492,
+        "basis": "same frozen head, true finite-shot boundary minus frozen oracle-free"
+      },
+      "downstream_mechanism_head": {
+        "ba_loss": 0.005416666666666625,
+        "percentage_points": 0.5416666666666625,
+        "fraction_of_total_gap": 0.03364969801553038,
+        "basis": "FIT-only finite-shot true-frame small probe minus same frozen head on the true finite-shot boundary"
+      },
+      "finite_shot_observability": {
+        "ba_loss": 0.02069444444444457,
+        "percentage_points": 2.069444444444457,
+        "fraction_of_total_gap": 0.1285591026747204,
+        "basis": "FIT-only exact true-frame small probe minus FIT-only finite-shot true-frame small probe"
+      }
+    }
+  },
+  "paired_family_bootstrap": {
+    "frame_posterior_ranking_total": {
+      "mean_ba_delta": 0.134861111111111,
+      "ci_95": [
+        0.11722222222222234,
+        0.1530555555555556
+      ],
+      "replicates": 1000,
+      "unit_count": 150
+    },
+    "true_qubit_restriction_increment": {
+      "mean_ba_delta": 0.032500000000000084,
+      "ci_95": [
+        0.0245833333333334,
+        0.04028124999999985
+      ],
+      "replicates": 1000,
+      "unit_count": 150
+    },
+    "true_boundary_beyond_true_qubit_increment": {
+      "mean_ba_delta": 0.1023611111111109,
+      "ci_95": [
+        0.08555208333333328,
+        0.11930555555555566
+      ],
+      "replicates": 1000,
+      "unit_count": 150
+    },
+    "finite_shot_observability_increment": {
+      "mean_ba_delta": 0.02069444444444457,
+      "ci_95": [
+        0.014024305555555533,
+        0.027916666666666812
+      ],
+      "replicates": 1000,
+      "unit_count": 150
+    },
+    "downstream_mechanism_head_increment": {
+      "mean_ba_delta": 0.005416666666666625,
+      "ci_95": null,
+      "note": "The frozen diagnostic did not precompute this direct paired interval; retain as a point decomposition and do not interpret it as proof of a zero head limitation."
+    }
+  },
+  "candidate_coverage_and_ranking": {
+    "exact_true_frame_candidate_coverage": 1,
+    "response_equivalent_candidate_coverage": 0.815,
+    "true_qubit_subset_coverage": 1,
+    "exact_true_candidate_rank": {
+      "mean": 5.8429166666666665,
+      "median": 4,
+      "p90": 13,
+      "max": 47
+    },
+    "exact_true_candidate_posterior_mass": {
+      "mean": 0.16571425387725994,
+      "median": 0.06749655394585335,
+      "p90": 0.49500488494397177
+    },
+    "best_equivalent_candidate_rank": {
+      "mean": 4.088786639400136,
+      "median": 2,
+      "p90": 10,
+      "max": 35
+    },
+    "response_equivalence_class_posterior_mass": {
+      "mean": 0.28221571682599156,
+      "median": 0.12701516463246365,
+      "p90": 0.9365118817480189
+    },
+    "normalized_posterior_entropy": {
+      "mean": 0.6343408991569421,
+      "median": 0.6688288841113998,
+      "p90": 0.9830547856204243
+    },
+    "density_correction": {
+      "ba_delta_density_minus_no_density": 0,
+      "examples_prediction_changed": 4,
+      "examples_helped": 2,
+      "examples_hurt": 2
+    }
+  },
+  "salient_strata": {
+    "candidate_posterior_entropy": {
+      "lowest_quartile_accuracy": 0.9122222222222223,
+      "highest_quartile_accuracy": 0.5705555555555556
+    },
+    "finite_shot_snr_proxy": {
+      "lowest_quartile_accuracy": 0.59,
+      "highest_quartile_accuracy": 0.8788888888888889
+    },
+    "seed_disagreement": {
+      "one_distinct_prediction": {
+        "count": 6588,
+        "accuracy": 0.7755009107468124
+      },
+      "two_distinct_predictions": {
+        "count": 598,
+        "accuracy": 0.4498327759197324
+      },
+      "three_distinct_predictions": {
+        "count": 14,
+        "accuracy": 0.2857142857142857
+      }
+    }
+  },
+  "hardware_replay_compatibility": {
+    "accepted": {
+      "gpu": "NVIDIA GeForce RTX 5090",
+      "control_run_id": "run-1789477663-561b015b",
+      "max_abs_diff": 0,
+      "argmax_mismatch_count": 0
+    },
+    "rejected": {
+      "gpu": "NVIDIA GeForce RTX 3090",
+      "control_run_id": "run-1789476927-c9767135",
+      "max_abs_diff": 3.0316769882250867,
+      "argmax_mismatch_count": 16,
+      "unexplained_argmax_mismatch_count": 0,
+      "reason": "absolute replay drift exceeded the unchanged 1e-4 contract; no result artifact was accepted"
+    },
+    "tolerance_relaxed": false
+  },
+  "scientific_boundaries": {
+    "spent_holdout_posthoc_only": true,
+    "confirmatory_verdict_changed": false,
+    "retraining_performed": false,
+    "candidate_network_weights_updated": false,
+    "hyperparameters_reselected": false,
+    "thresholds_changed": false,
+    "simulator_outer_accessed": false,
+    "future_hardware_reserve_accessed": false,
+    "qpu_executed": false,
+    "may_guide_v2_development": true,
+    "may_be_reused_as_new_confirmation": false
+  },
+  "interpretation": {
+    "primary_bottleneck": "frame_posterior_ranking",
+    "candidate_location_coverage_failure": "ruled_out_for_the_exact_true_location_on_this_spent_holdout",
+    "finite_shot_observability_limit": "real_secondary_component",
+    "downstream_mechanism_head_limitation": "small_point_estimate_not_proven_zero",
+    "response_equivalence_caveat": "The strict response-equivalence predicate has 0.815 coverage despite 1.0 exact-location coverage; do not relabel this geometry/equivalence-definition limitation as candidate-generator location absence.",
+    "supplemental_exact_head_caveat": "The frozen finite-shot head scores 0.7119444444444444 on exact-frame features; this distribution-shift intervention is supplemental and is not the head-capacity contrast used in the additive attribution."
+  },
+  "immutability_note": "The RunPod/S3 diagnostic is bound to the frozen source identities and the exact output bytes are pinned by the SHA-256 values above. This repository manifest is a convenience record and may not replace, reinterpret, or promote the spent-holdout posthoc result to confirmatory evidence."
+}
