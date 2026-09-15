@@ -14,6 +14,7 @@ import runpod_control_v2 as control
 
 WORKSPACE = "/workspace/triqto-data/step14_cross_motif_training"
 CONFIG = "configs/v0_2/step14_cross_motif_generalization_training.json"
+RESIDUAL_POSTHOC = "diagnose_equivalence_aware_fresh_holdout_residual"
 ALLOWED_OPERATIONS = {
     "evaluate_pretraining_baseline",
     "train_selection",
@@ -27,6 +28,7 @@ ALLOWED_OPERATIONS = {
     "generate_equivalence_aware_fresh_holdout",
     "predict_equivalence_aware_fresh_holdout",
     "score_equivalence_aware_fresh_holdout",
+    RESIDUAL_POSTHOC,
 }
 POST_SELECTION_OPERATIONS = {
     "evaluate_outer",
@@ -39,17 +41,21 @@ POST_SELECTION_OPERATIONS = {
     "generate_equivalence_aware_fresh_holdout",
     "predict_equivalence_aware_fresh_holdout",
     "score_equivalence_aware_fresh_holdout",
+    RESIDUAL_POSTHOC,
 }
 FINAL_METHOD_FREEZE_OPERATIONS = {
     "generate_equivalence_aware_fresh_holdout",
     "predict_equivalence_aware_fresh_holdout",
     "score_equivalence_aware_fresh_holdout",
+    RESIDUAL_POSTHOC,
 }
 FRESH_HOLDOUT_IDENTITY_OPERATIONS = {
     "predict_equivalence_aware_fresh_holdout",
     "score_equivalence_aware_fresh_holdout",
+    RESIDUAL_POSTHOC,
 }
-PREDICTION_FREEZE_OPERATIONS = {"score_equivalence_aware_fresh_holdout"}
+PREDICTION_FREEZE_OPERATIONS = {"score_equivalence_aware_fresh_holdout", RESIDUAL_POSTHOC}
+CONFIRMATORY_RESULT_OPERATIONS = {RESIDUAL_POSTHOC}
 ALLOWED_REQUEST_KEYS = {
     "id",
     "operation",
@@ -63,6 +69,8 @@ ALLOWED_REQUEST_KEYS = {
     "expected_fresh_holdout_product_id",
     "expected_fresh_holdout_dataset_complete_sha256",
     "expected_oracle_free_prediction_complete_sha256",
+    "expected_confirmatory_result_sha256",
+    "expected_confirmatory_complete_sha256",
 }
 
 
@@ -108,13 +116,21 @@ def load_request(path: Path) -> dict:
             raise ValueError(f"{operation} requires expected_fresh_holdout_product_id")
         _require_sha256(dataset_sha, "expected_fresh_holdout_dataset_complete_sha256")
     elif product_id is not None or dataset_sha is not None:
-        raise ValueError("fresh-holdout product identity is only allowed for fresh-holdout prediction/scoring")
+        raise ValueError("fresh-holdout product identity is only allowed for fresh-holdout prediction/scoring/posthoc")
 
     prediction_sha = value.get("expected_oracle_free_prediction_complete_sha256")
     if operation in PREDICTION_FREEZE_OPERATIONS:
         _require_sha256(prediction_sha, "expected_oracle_free_prediction_complete_sha256")
     elif prediction_sha is not None:
-        raise ValueError("oracle-free prediction completion identity is only allowed for confirmatory scoring")
+        raise ValueError("oracle-free prediction completion identity is only allowed for confirmatory/posthoc operations")
+
+    result_sha = value.get("expected_confirmatory_result_sha256")
+    complete_sha = value.get("expected_confirmatory_complete_sha256")
+    if operation in CONFIRMATORY_RESULT_OPERATIONS:
+        _require_sha256(result_sha, "expected_confirmatory_result_sha256")
+        _require_sha256(complete_sha, "expected_confirmatory_complete_sha256")
+    elif result_sha is not None or complete_sha is not None:
+        raise ValueError("confirmatory result identities are only allowed for spent-holdout posthoc diagnostics")
     return value
 
 
@@ -125,11 +141,7 @@ def main() -> None:
     request = load_request(args.request)
     operation = str(request["operation"])
 
-    allowed = [
-        value.strip()
-        for value in control.required_env("RUNPOD_ALLOWED_GPU_TYPES").split(",")
-        if value.strip()
-    ]
+    allowed = [value.strip() for value in control.required_env("RUNPOD_ALLOWED_GPU_TYPES").split(",") if value.strip()]
     requested = request.get("gpu_type_ids") or allowed
     if not isinstance(requested, list) or not requested:
         raise ValueError("No GPU types requested or allowed")
@@ -151,6 +163,7 @@ def main() -> None:
         "generate_equivalence_aware_fresh_holdout": "step14-equivalence-aware-fresh-holdout",
         "predict_equivalence_aware_fresh_holdout": "step14-equivalence-aware-fresh-holdout-predict",
         "score_equivalence_aware_fresh_holdout": "step14-equivalence-aware-fresh-holdout-confirmatory",
+        RESIDUAL_POSTHOC: "step14-fresh-holdout-residual-bottleneck-posthoc",
     }
     job_id = str(request.get("id") or f"{defaults[operation]}-{int(time.time())}")
     allowed_id_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.")
@@ -175,18 +188,15 @@ def main() -> None:
         task["expected_training_run_id"] = str(request["expected_training_run_id"])
         task["expected_selection_freeze_sha256"] = str(request["expected_selection_freeze_sha256"])
     if operation in FINAL_METHOD_FREEZE_OPERATIONS:
-        task["expected_final_method_freeze_payload_sha256"] = str(
-            request["expected_final_method_freeze_payload_sha256"]
-        )
+        task["expected_final_method_freeze_payload_sha256"] = str(request["expected_final_method_freeze_payload_sha256"])
     if operation in FRESH_HOLDOUT_IDENTITY_OPERATIONS:
         task["expected_fresh_holdout_product_id"] = str(request["expected_fresh_holdout_product_id"])
-        task["expected_fresh_holdout_dataset_complete_sha256"] = str(
-            request["expected_fresh_holdout_dataset_complete_sha256"]
-        )
+        task["expected_fresh_holdout_dataset_complete_sha256"] = str(request["expected_fresh_holdout_dataset_complete_sha256"])
     if operation in PREDICTION_FREEZE_OPERATIONS:
-        task["expected_oracle_free_prediction_complete_sha256"] = str(
-            request["expected_oracle_free_prediction_complete_sha256"]
-        )
+        task["expected_oracle_free_prediction_complete_sha256"] = str(request["expected_oracle_free_prediction_complete_sha256"])
+    if operation in CONFIRMATORY_RESULT_OPERATIONS:
+        task["expected_confirmatory_result_sha256"] = str(request["expected_confirmatory_result_sha256"])
+        task["expected_confirmatory_complete_sha256"] = str(request["expected_confirmatory_complete_sha256"])
 
     control_run_id = f"run-{int(time.time())}-{secrets.token_hex(4)}"
     worker_job = {
@@ -260,6 +270,8 @@ def main() -> None:
             "expected_fresh_holdout_product_id",
             "expected_fresh_holdout_dataset_complete_sha256",
             "expected_oracle_free_prediction_complete_sha256",
+            "expected_confirmatory_result_sha256",
+            "expected_confirmatory_complete_sha256",
         ):
             if key in task:
                 record[key] = task[key]
