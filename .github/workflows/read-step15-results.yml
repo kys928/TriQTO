@@ -56,11 +56,11 @@ jobs:
 
           request_path = Path(sys.argv[1])
           req = json.loads(request_path.read_text(encoding="utf-8"))
-          if set(req) - {"id", "phase"}:
+          if set(req) - {"id", "phase", "status_key", "log_key"}:
               raise SystemExit("unsupported request keys")
           phase = str(req.get("phase", ""))
-          if phase not in {"fit", "audit"}:
-              raise SystemExit("phase must be fit or audit")
+          if phase not in {"fit", "audit", "status"}:
+              raise SystemExit("phase must be fit, audit, or status")
 
           datacenter = os.environ["RUNPOD_DATACENTER_ID"].strip()
           endpoint = os.environ.get("RUNPOD_S3_ENDPOINT", "").strip() or f"https://s3api-{datacenter.lower()}.runpod.io/"
@@ -92,6 +92,24 @@ jobs:
               if not text or ".." in p.parts:
                   raise RuntimeError("unsafe volume path")
               return p.as_posix()
+
+          if phase == "status":
+              status_key = str(req.get("status_key", ""))
+              log_key = str(req.get("log_key", ""))
+              allowed_prefix = "triqto-control/runs/step15-"
+              if not status_key.startswith(allowed_prefix) or not status_key.endswith("/status.json"):
+                  raise SystemExit("unsafe Step-15 status_key")
+              if log_key and (not log_key.startswith(allowed_prefix) or not log_key.endswith(".log")):
+                  raise SystemExit("unsafe Step-15 log_key")
+              status = get_json(status_key)
+              output = {"request_id": req.get("id"), "phase": phase, "status_key": status_key, "status": status}
+              if log_key:
+                  raw_log = get_bytes(log_key)
+                  output["log_key"] = log_key
+                  output["log_size_bytes"] = len(raw_log)
+                  output["log_tail"] = raw_log[-30000:].decode("utf-8", errors="replace")
+              print(json.dumps(output, indent=2, sort_keys=True))
+              raise SystemExit(0)
 
           if phase == "fit":
               pointer_key = "triqto-data/step15_frame_ranking/current_step15_frame_ranker.json"
