@@ -80,7 +80,29 @@ jobs:
               echo "Skipping removed Step-15 request: $request"
               continue
             fi
-            python scripts/runpod_step15_frame_ranking.py --request "$request"
+
+            launched=false
+            for attempt in $(seq 1 20); do
+              set +e
+              output="$(python scripts/runpod_step15_frame_ranking.py --request "$request" 2>&1)"
+              rc=$?
+              set -e
+              printf '%s\n' "$output"
+              if [[ "$rc" -eq 0 ]]; then
+                launched=true
+                break
+              fi
+              if grep -Fq "There are no instances currently available" <<<"$output"; then
+                echo "RunPod capacity unavailable (attempt $attempt/20); retrying in 30 seconds."
+                sleep 30
+                continue
+              fi
+              exit "$rc"
+            done
+            if [[ "$launched" != true ]]; then
+              echo "RunPod capacity remained unavailable after 20 attempts." >&2
+              exit 1
+            fi
           done < /tmp/step15-requests.txt
 
       - name: Start continuous RunPod supervisor
