@@ -1,0 +1,7 @@
+{
+  "id": "step15-fit-f15f3991",
+  "operation": "fit_and_verify",
+  "image_name": "ghcr.io/kys928/triqto-runpod:sha-f15f39913a9427f1949e5c050f74509a97eebc91",
+  "container_disk_gb": 50,
+  "interruptible": false
+}
