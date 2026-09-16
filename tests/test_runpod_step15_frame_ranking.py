@@ -66,7 +66,7 @@ def test_step15_worker_separates_fit_verify_from_spent_holdout_evaluation() -> N
         {"task": {"runner": "step15_frame_ranking", "operation": "fit_and_verify"}}
     )
     fit_joined = " ".join(token for _name, command in fit for token in command)
-    assert "fit_step15_frame_ranker.py" in fit_joined
+    assert "fit_step15_frame_ranker_true_positive.py" in fit_joined
     assert "verify_step15_frame_ranker_freeze.py" in fit_joined
     assert "evaluate_step15_spent_holdout.py" not in fit_joined
 
