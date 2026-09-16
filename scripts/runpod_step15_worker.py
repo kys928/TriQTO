@@ -30,7 +30,7 @@ def build_commands(job: dict) -> list[tuple[str, list[str]]]:
                 "fit",
                 [
                     python,
-                    str(v02 / "fit_step15_frame_ranker.py"),
+                    str(v02 / "fit_step15_frame_ranker_true_positive.py"),
                     "--device",
                     "cuda",
                     "--progress-every",
