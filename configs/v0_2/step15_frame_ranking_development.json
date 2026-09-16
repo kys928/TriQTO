@@ -1,0 +1,103 @@
+{
+  "schema": "triqto.v0_2.step15_frame_ranking_development.v1",
+  "status": "FROZEN_BEFORE_FIT_ONLY_RANKER_DEVELOPMENT",
+  "scientific_question": "Does a narrow ranking-aligned adapter around the frozen Step-14 frame anchor scores recover downstream mechanism balanced accuracy by correcting candidate-frame ranking, without changing candidate generation or the frozen mechanism head?",
+  "source_identity": {
+    "step14_commit_sha": "082692001e52954f00d245b08030cb9af3353d17",
+    "training_run_id": "training_18e0b4ed6e685af30b6c4a35",
+    "selection_freeze_sha256": "sha256:af7ffaece77d16134c33b1c898afb7165c7ace5dcfccfea23f713ae242e4ed6f",
+    "development_product_id": "development_b087edfd6629ac250299391d",
+    "development_dataset_sha256": "sha256:c471919d2c2a8ca2c206228ac59774f5708fc5182c17bbfb48eca6ecf9491280",
+    "step14_method_id": "equiv_fit_4df8aea718950bdc2650a03b",
+    "step14_method_bundle_sha256": "sha256:b074e9278ee9d77465cc88b655ec214c0f477ae8aaa4bb157c3c600fc7d38f0b",
+    "step14_final_method_freeze_payload_sha256": "sha256:b63454e2198fd36b6a54055365b20af26d0e3a3fefc5fcf8785e78ff6514489b",
+    "step14_tau": 0.02,
+    "step14_frame_temperature": 2.0,
+    "candidate_network_seeds": [6201, 6202, 6203],
+    "candidate_network_checkpoint_sha256": {
+      "candidate_network_seed6201.pt": "sha256:861f9cd1d20b2b3d53d5a04d969e06bb0d539e59084bc3e47ff34c9a0ed8d416",
+      "candidate_network_seed6202.pt": "sha256:2469148e71d8fa7b200edac65adc4c0d0c745dd0ab9ffc37cf915216985c56c8",
+      "candidate_network_seed6203.pt": "sha256:4bd586b015b0a9aaa863d856108da2552eee3e62259574e1adb6f60ee1e3c40f"
+    }
+  },
+  "development_boundary": {
+    "allowed_partition": "fit",
+    "fit_true_location_may_be_used_only_to_construct_ranking_labels": true,
+    "exact_response_geometry_may_be_used_only_to_construct_fit_positive_sets": true,
+    "true_location_forbidden_from_inference_features": true,
+    "exact_response_geometry_forbidden_from_inference_features": true,
+    "selection_partition_accessed": false,
+    "spent_fresh_holdout_accessed": false,
+    "simulator_outer_accessed": false,
+    "future_hardware_reserve_accessed": false,
+    "qpu_executed": false
+  },
+  "frozen_components": {
+    "candidate_generation": "exactly frozen Step-14 plausible_candidates",
+    "finite_shot_candidate_calibration": "exactly frozen Step-14 finite_shot_candidate_jacobians",
+    "candidate_mechanism_network": "exactly frozen Step-14 three-way candidate network checkpoints; not retrained by Step-15",
+    "equivalence_kernel": "exactly frozen Step-14 finite-frame pair geometry and tau",
+    "mechanism_smoothing": "exactly frozen Step-14 equivalence-smoothed mechanism logits",
+    "classification_objective": "retained in the frozen Step-14 mechanism head; Step-15 adds ranking supervision rather than replacing it"
+  },
+  "fit_positive_definition": {
+    "mechanism_preserving": true,
+    "minimum_same_axis_abs_cosine": 0.98,
+    "minimum_identity_assignment_margin": 0.02,
+    "geometry_source": "FIT-only exact candidate/true-frame Born-response Jacobians used as labels only"
+  },
+  "adapter": {
+    "form": "frozen_step14_anchor_logit + standardized_linear_correction",
+    "inference_inputs": [
+      "frozen density-corrected Step-14 anchor logit",
+      "finite-shot frame evidence and kernel density",
+      "three finite-shot mechanism profile log-likelihoods and derived summaries",
+      "frozen 24-dimensional finite-shot canonical candidate feature",
+      "candidate qubit fraction and boundary fraction"
+    ],
+    "query_center_features": true,
+    "intercept": false,
+    "listwise_loss": "negative log posterior mass assigned to the FIT response-equivalent positive set",
+    "pairwise_loss": "softplus margin against frozen-baseline top-scoring non-equivalent hard negatives",
+    "hard_negative_selection": "fixed from frozen Step-14 baseline anchor score before adapter training"
+  },
+  "fit_only_family_cross_validation": {
+    "fold_count": 3,
+    "fold_rule": "first eight bytes of SHA256(family_id) interpreted as unsigned integer mod 3",
+    "learning_rate": 0.01,
+    "epochs": 18,
+    "batch_size": 512,
+    "pairwise_margin": 0.25,
+    "seed": 15201,
+    "pairwise_weight_grid": [0.25, 0.75],
+    "weight_decay_grid": [0.0001, 0.001],
+    "hard_negative_count_grid": [2, 4],
+    "selection_order": [
+      "higher cross-fitted top1 response-equivalent candidate accuracy",
+      "higher cross-fitted MRR",
+      "lower cross-fitted set NLL",
+      "lower cross-fitted set Brier",
+      "lower cross-fitted top-candidate ECE",
+      "smaller pairwise weight",
+      "smaller hard-negative count",
+      "smaller weight decay"
+    ]
+  },
+  "final_fit": {
+    "fit_on_all_600_fit_families_after_hyperparameter_selection": true,
+    "seed": 15202,
+    "freeze_adapter_json": true,
+    "freeze_development_result_json": true,
+    "write_sha256_complete_manifest": true
+  },
+  "zero_adapter_regression": {
+    "required": true,
+    "contract": "zero correction must call and exactly recover the frozen Step-14 equivalence_aware_pool_one implementation"
+  },
+  "step7_gate": {
+    "spent_holdout_is_audit_only": true,
+    "spent_holdout_may_not_select_hyperparameters": true,
+    "spent_holdout_evaluation_requires_adapter_and_result_hash_verification_first": true,
+    "spent_holdout_evaluation_is_not_reconfirmation": true
+  }
+}
