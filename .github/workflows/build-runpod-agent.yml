@@ -9,6 +9,8 @@ on:
       - "docker/phase15_6/**"
       - "scripts/runpod_worker.py"
       - "scripts/runpod_step14_training_worker.py"
+      - "scripts/runpod_step15_worker.py"
+      - "scripts/runpod_step15_frame_ranking.py"
       - "scripts/run_phase15_6_campaign.py"
       - "scripts/v0_2/evaluate_step14_pretraining_baseline.py"
       - "scripts/v0_2/run_step14_cross_motif_training.py"
@@ -21,6 +23,10 @@ on:
       - "scripts/v0_2/score_step14_equivalence_aware_fresh_holdout_confirmatory_cached.py"
       - "scripts/v0_2/step14_equivalence_aware_common.py"
       - "scripts/v0_2/run_step14_oracle_raw_evidence_ceiling.py"
+      - "scripts/v0_2/evaluate_step15_spent_holdout.py"
+      - "scripts/v0_2/fit_step15_frame_ranker.py"
+      - "scripts/v0_2/step15_frame_ranker_common.py"
+      - "scripts/v0_2/verify_step15_frame_ranker_freeze.py"
       - "src/**"
       - "configs/**"
       - "requirements*.txt"
@@ -53,7 +59,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Frozen Step-14 analyzers and the blind Phase-A/Phase-B confirmatory path are baked into this image.
+      # Step-14 analyzers and the Step-15 FIT-only ranker/audit path are baked into this image.
       - name: Build and push RunPod worker image
         uses: docker/build-push-action@v6
         with:
@@ -63,5 +69,6 @@ jobs:
           tags: |
             ghcr.io/kys928/triqto-runpod:latest
             ghcr.io/kys928/triqto-runpod:${{ github.sha }}
+            ghcr.io/kys928/triqto-runpod:sha-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
