@@ -18,7 +18,7 @@ import time
 
 import runpod_control_v2 as control
 
-ALLOWED_OPERATIONS = {"fit_and_verify", "evaluate_spent_holdout"}
+ALLOWED_OPERATIONS = {"fit_and_verify", "evaluate_spent_holdout", "diagnose_step14_replay"}
 ALLOWED_REQUEST_KEYS = {
     "id",
     "operation",
