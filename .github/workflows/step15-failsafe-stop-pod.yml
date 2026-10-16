@@ -1,0 +1,66 @@
+name: TriQTO Step-15 Failsafe Stop One Pod
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "runpod/step15-stop/*.json"
+
+permissions:
+  contents: read
+
+jobs:
+  stop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Verify identity and stop only designated Step-15 audit pod
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os, re, subprocess
+          from pathlib import Path
+          from urllib.request import Request, urlopen
+          from urllib.error import HTTPError
+
+          changed=subprocess.check_output(["git","diff","--name-only","HEAD^","HEAD","--","runpod/step15-stop/*.json"],text=True).splitlines()
+          if len(changed)!=1 or not re.fullmatch(r"runpod/step15-stop/[A-Za-z0-9._-]+[.]json",changed[0]):
+              raise RuntimeError("Require exactly one named Step-15 stop request")
+          req=json.loads(Path(changed[0]).read_text())
+          if set(req)!={"id","pod_id","expected_name","expected_image"}:
+              raise RuntimeError("Invalid stop request shape")
+          pod_id=req["pod_id"]
+          if not re.fullmatch(r"[a-z0-9]{10,24}",pod_id):
+              raise RuntimeError("Invalid pod id")
+          if not req["expected_name"].startswith("triqto-step15-audit-literal-positive-"):
+              raise RuntimeError("Invalid expected pod name")
+          if not re.fullmatch(r"ghcr[.]io/kys928/triqto-runpod:sha-[0-9a-f]{40}",req["expected_image"]):
+              raise RuntimeError("Invalid expected pinned image")
+          url="https://rest.runpod.io/v1/pods/"+pod_id
+          headers={
+              "Authorization":"Bearer "+os.environ["RUNPOD_API_KEY"],
+              "Accept":"application/json",
+              "User-Agent":"TriQTO-Step15-FailsafeStop/1",
+          }
+          try:
+              with urlopen(Request(url,headers=headers,method="GET"),timeout=45) as response:
+                  pod=json.loads(response.read().decode("utf-8"))
+          except HTTPError as e:
+              if e.code==404:
+                  print(json.dumps({"pod_id":pod_id,"status":"ALREADY_ABSENT_NO_ACTION"}),flush=True)
+                  raise SystemExit(0)
+              raise
+          expected={"id":pod_id,"name":req["expected_name"],"imageName":req["expected_image"]}
+          actual={k:pod.get(k) for k in expected}
+          if actual!=expected:
+              raise RuntimeError("Refusing to stop unexpected pod identity: "+json.dumps(actual))
+          with urlopen(Request(url,headers=headers,method="DELETE"),timeout=45) as response:
+              response.read()
+          print(json.dumps({"pod_id":pod_id,"status":"FAILSAFE_STOP_REQUEST_ACCEPTED","expected_identity_verified":True,"request_id":req["id"]}),flush=True)
+          PY
