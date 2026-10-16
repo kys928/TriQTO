@@ -1,0 +1,7 @@
+{
+  "id": "step15-phasea-replay-diagnostic-ee1283-r1",
+  "operation": "diagnose_step14_replay",
+  "image_name": "ghcr.io/kys928/triqto-runpod:sha-ee1283dce8b5a32b9e629aa8f3c6c279174ee3f7",
+  "container_disk_gb": 50,
+  "interruptible": false
+}
