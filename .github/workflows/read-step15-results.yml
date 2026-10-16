@@ -59,8 +59,8 @@ jobs:
           if set(req) - {"id", "phase", "status_key", "log_key"}:
               raise SystemExit("unsupported request keys")
           phase = str(req.get("phase", ""))
-          if phase not in {"fit", "audit", "status"}:
-              raise SystemExit("phase must be fit, audit, or status")
+          if phase not in {"fit", "audit", "status", "diagnostic"}:
+              raise SystemExit("phase must be fit, audit, diagnostic, or status")
 
           datacenter = os.environ["RUNPOD_DATACENTER_ID"].strip()
           endpoint = os.environ.get("RUNPOD_S3_ENDPOINT", "").strip() or f"https://s3api-{datacenter.lower()}.runpod.io/"
@@ -120,6 +120,16 @@ jobs:
                   "fit_development_result.json": str(pointer["fit_development_result_sha256"]),
                   "adapter_freeze.json": str(pointer["adapter_freeze_sha256"]),
                   "step15_complete.json": str(pointer["step15_complete_sha256"]),
+              }
+          elif phase == "diagnostic":
+              pointer_key = "triqto-data/step15_replay_diagnostics/current_step15_replay_diagnostic.json"
+              pointer = get_json(pointer_key)
+              base = volume_key(str(pointer["diagnostic_dir"]))
+              if not base.startswith("triqto-data/step15_replay_diagnostics/replay_"):
+                  raise RuntimeError("unexpected diagnostic path")
+              checks = {
+                  "diagnostic_result.json": str(pointer["result_sha256"]),
+                  "diagnostic_complete.json": str(pointer["complete_sha256"]),
               }
           else:
               pointer_key = "triqto-data/step15_spent_holdout_audit/current_step15_spent_holdout_audit.json"
