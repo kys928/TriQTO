@@ -1,0 +1,6 @@
+{
+  "id": "failsafe-stop-step15-a1d734a4-restart-loop",
+  "pod_id": "kvsyi3s5fup4k9",
+  "expected_name": "triqto-step15-audit-literal-positive-a1d734a4-r1",
+  "expected_image": "ghcr.io/kys928/triqto-runpod:sha-a1d734a48b06d079cb5f1d995a8447d8e804a640"
+}
