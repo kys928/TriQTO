@@ -1,0 +1,7 @@
+{
+  "id": "archive-step15-failsafe-stopped-20261016",
+  "job_id": "step15-audit-literal-positive-a1d734a4-r1",
+  "control_run_id": "run-1792164737-b6701eab",
+  "pod_id": "kvsyi3s5fup4k9",
+  "image_name": "ghcr.io/kys928/triqto-runpod:sha-a1d734a48b06d079cb5f1d995a8447d8e804a640"
+}
