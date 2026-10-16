@@ -1,0 +1,92 @@
+name: TriQTO Phase-A 5090 vs 4090 Calibration Hash Comparison
+on:
+  push:
+    branches: [main]
+    paths: ["runpod/phasea-calibration-compare/*.json"]
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RUNPOD_S3_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
+      RUNPOD_S3_SECRET_ACCESS_KEY: ${{ secrets.RUNPOD_S3_SECRET_ACCESS_KEY }}
+      RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
+      RUNPOD_DATACENTER_ID: ${{ vars.RUNPOD_DATACENTER_ID }}
+      RUNPOD_S3_ENDPOINT: ${{ vars.RUNPOD_S3_ENDPOINT }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --quiet boto3
+      - name: Compare only frozen diagnostic output hashes and metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,os,subprocess
+          from pathlib import Path
+          import boto3
+          from botocore.config import Config
+          items=subprocess.check_output(["git","diff","--name-only","HEAD^","HEAD","--","runpod/phasea-calibration-compare/*.json"],text=True).splitlines()
+          if len(items)!=1:raise RuntimeError("exactly one request required")
+          req=json.loads(Path(items[0]).read_text())
+          if set(req)!={"id","expected_5090_dir","expected_4090_run_id"}:raise RuntimeError("unexpected request fields")
+          s3=boto3.client("s3",endpoint_url=os.environ["RUNPOD_S3_ENDPOINT"],region_name=os.environ["RUNPOD_DATACENTER_ID"].lower(),aws_access_key_id=os.environ["RUNPOD_S3_ACCESS_KEY_ID"],aws_secret_access_key=os.environ["RUNPOD_S3_SECRET_ACCESS_KEY"],config=Config(signature_version="s3v4"))
+          b=os.environ["RUNPOD_NETWORK_VOLUME_ID"]
+          def get(key):return s3.get_object(Bucket=b,Key=key)["Body"].read()
+          def sha(raw):return "sha256:"+hashlib.sha256(raw).hexdigest()
+          root="triqto-data/step15_replay_diagnostics/"
+          pointer=json.loads(get(root+"current_step15_replay_diagnostic.json"))
+          dir4090=pointer["diagnostic_dir"]
+          dir5090=req["expected_5090_dir"]
+          if not dir5090.startswith("/workspace/"+root+"replay_") or not dir4090.startswith("/workspace/"+root+"replay_"):raise RuntimeError("unexpected output dir")
+          if dir5090==dir4090:raise RuntimeError("4090 and 5090 output same directory")
+          def load(directory):
+              prefix=directory.removeprefix("/workspace/").rstrip("/")
+              dat=get(prefix+"/diagnostic_result.json")
+              completion=get(prefix+"/diagnostic_complete.json")
+              c=json.loads(completion)
+              if sha(dat)!=c["result_sha256"]:raise RuntimeError("diagnostic result mismatch")
+              return json.loads(dat), {"result_sha256":sha(dat),"completion_sha256":sha(completion)}
+          a,hash5090=load(dir5090)
+          z,hash4090=load(dir4090)
+          if hash4090["result_sha256"]!=pointer["result_sha256"]:raise RuntimeError("4090 current pointer hash changed")
+          if "RTX 5090" not in a["execution_environment"]["gpu_name"] or "RTX 4090" not in z["execution_environment"]["gpu_name"]:raise RuntimeError("wrong GPU identity")
+          for val in (a,z):
+              if val["scientific_boundary"]["sealed_truth_accessed"] or val["scientific_boundary"]["step15_adapter_modified"]:raise RuntimeError("scientific boundary violated")
+          if a["positions"]!=z["positions"]:raise RuntimeError("different diagnostic sample cohort")
+          roots_a=a["sampled_calibration_provenance"]["per_root"]
+          roots_z=z["sampled_calibration_provenance"]["per_root"]
+          if set(roots_a)!=set(roots_z):raise RuntimeError("mismatched root cohort")
+          fields=["probabilities","sample_counts","sampled_statistics","sampling_seed"]
+          aggregate={key:{"match_count":0,"mismatch_count":0,"mismatch_roots":[]} for key in fields+["finite_shot_jacobians"]}
+          per_root={}
+          for rid in sorted(roots_a):
+              x,y=roots_a[rid],roots_z[rid]
+              same={}
+              for key in fields:
+                  flag=x["sample_hashes"][key]==y["sample_hashes"][key]
+                  same[key]=flag
+                  k=aggregate[key]
+                  k["match_count" if flag else "mismatch_count"]+=1
+                  if not flag:k["mismatch_roots"].append(rid)
+              flag=x["finite_shot_jacobians"]==y["finite_shot_jacobians"]
+              same["finite_shot_jacobians"]=flag
+              k=aggregate["finite_shot_jacobians"]
+              k["match_count" if flag else "mismatch_count"]+=1
+              if not flag:k["mismatch_roots"].append(rid)
+              per_root[rid]=same
+          def condensed(record):
+              c=record["replay_comparisons"]["phasea"]
+              return {k:c[k]["pooled_vs_frozen"] for k in ("cpu","cuda")}
+          print(json.dumps({"status":"COMPARISON_READ_ONLY_HASH_VERIFIED","request_id":req["id"],
+             "5090":{"provenance":a["execution_environment"],"metrics":condensed(a),"hash":hash5090},
+             "4090":{"provenance":z["execution_environment"],"metrics":condensed(z),"hash":hash4090},
+             "root_count":len(roots_a),"hash_field_comparison":aggregate,
+             "per_root":per_root,"scientific_note":"Historic Phase-A probability matrices were not preserved; these are cross-run replay comparisons, not direct historic-to-replay matrix comparisons."},sort_keys=True,indent=2))
+          PY
