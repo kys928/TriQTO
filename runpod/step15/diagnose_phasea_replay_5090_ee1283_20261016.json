@@ -1,0 +1,10 @@
+{
+  "id": "step15-phasea-replay-diagnostic-5090-ee1283-r1",
+  "operation": "diagnose_step14_replay",
+  "gpu_type_ids": [
+    "NVIDIA GeForce RTX 5090"
+  ],
+  "image_name": "ghcr.io/kys928/triqto-runpod:sha-ee1283dce8b5a32b9e629aa8f3c6c279174ee3f7",
+  "container_disk_gb": 50,
+  "interruptible": false
+}
