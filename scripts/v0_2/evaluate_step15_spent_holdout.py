@@ -26,6 +26,7 @@ import benchmark_step6_cheap_baselines as baseline
 import score_step14_equivalence_aware_fresh_holdout_confirmatory as confirm_scorer
 import step14_equivalence_aware_common as equiv
 import step15_frame_ranker_common as ranker
+import run_step14_oracle_raw_evidence_ceiling as oracle_compat
 
 ROOT = Path(__file__).resolve().parents[2]
 STEP15_CONFIG = ROOT / "configs/v0_2/step15_frame_ranking_development.json"
@@ -165,6 +166,9 @@ def metric(y: np.ndarray, logits: np.ndarray) -> dict[str, Any]:
 
 
 def main() -> None:
+    # Mirror the frozen Step-14 blind predictor and posthoc replay setup.
+    # This is a pre-existing implementation support bound, not a new audit tolerance.
+    oracle_compat.apply_frozen_support_bound()
     args = parse_args()
     cfg = read_json(STEP15_CONFIG)
     posthoc_cfg = read_json(STEP14_POSTHOC_CONFIG)
