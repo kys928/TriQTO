@@ -78,3 +78,42 @@ def test_runpod_s3_missing_status_is_normal_pending_state() -> None:
 
     assert supervisor.is_pending_status_error(missing)
     assert not supervisor.is_pending_status_error(unrelated)
+
+
+def test_reconciler_archives_only_double_confirmed_stale_runpod_404(monkeypatch: pytest.MonkeyPatch) -> None:
+    reconciler = importlib.import_module("runpod_reconcile_hardened")
+    archived = []
+    queried = []
+    record = {
+        "job_id": "step15-audit-diagnostic",
+        "control_run_id": "run-200-abc",
+        "pod_id": "missing-pod",
+        "launched_at": "2026-01-01T00:00:00+00:00",
+    }
+    monkeypatch.setattr(reconciler.control, "list_active_records", lambda: [("active",record)])
+    monkeypatch.setattr(reconciler, "read_status", lambda _: {"state":"running"})
+    def missing_pod(pod_id):
+        queried.append(pod_id)
+        return "NOT_FOUND"
+    monkeypatch.setattr(reconciler, "pod_desired_status", missing_pod)
+    monkeypatch.setattr(reconciler.control, "archive_and_remove", lambda key, rec, status: archived.append(status))
+    monkeypatch.setattr(reconciler.control, "delete_pod", lambda *a, **kw: (_ for _ in ()).throw(AssertionError("must not delete")))
+    reconciler.reconcile_detached()
+    assert len(queried) == 2
+    assert len(archived) == 1
+    assert archived[0]["state"] == "pod_not_found_double_confirmed"
+
+
+def test_reconciler_does_not_archive_recent_or_unconfirmed_404(monkeypatch: pytest.MonkeyPatch) -> None:
+    reconciler = importlib.import_module("runpod_reconcile_hardened")
+    record = {
+        "job_id": "step15-audit-diagnostic",
+        "control_run_id": "run-201-abc",
+        "pod_id": "maybe-pod",
+        "launched_at": "2999-01-01T00:00:00+00:00",
+    }
+    monkeypatch.setattr(reconciler.control, "list_active_records", lambda: [("active",record)])
+    monkeypatch.setattr(reconciler, "read_status", lambda _: None)
+    monkeypatch.setattr(reconciler, "pod_desired_status", lambda _: "NOT_FOUND")
+    monkeypatch.setattr(reconciler.control, "archive_and_remove", lambda *_: (_ for _ in ()).throw(AssertionError("premature archive")))
+    reconciler.reconcile_detached()
