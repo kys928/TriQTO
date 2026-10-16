@@ -1,0 +1,10 @@
+{
+  "id": "step15-phasea-calibration-4090-20261016-r1",
+  "operation": "diagnose_step14_replay",
+  "gpu_type_ids": [
+    "NVIDIA GeForce RTX 4090"
+  ],
+  "image_name": "ghcr.io/kys928/triqto-runpod:sha-0911e8291819d469438b1ca6402b548fc03c672c",
+  "container_disk_gb": 50,
+  "interruptible": false
+}
