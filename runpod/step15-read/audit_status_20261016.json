@@ -1,6 +1,6 @@
 {
-  "id": "step15-audit-b462f694-20261016-status",
+  "id": "step15-audit-b462f694-20261016-eval-error",
   "phase": "status",
   "status_key": "triqto-control/runs/step15-audit-b462f694-20261016/run-1792158465-c7c5b5fa/status.json",
-  "log_key": "triqto-control/runs/step15-audit-b462f694-20261016/run-1792158465-c7c5b5fa/step15_01_pre_evaluation_verify.log"
+  "log_key": "triqto-control/runs/step15-audit-b462f694-20261016/run-1792158465-c7c5b5fa/step15_02_spent_holdout_evaluation.log"
 }
