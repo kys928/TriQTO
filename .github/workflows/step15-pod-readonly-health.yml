@@ -1,0 +1,67 @@
+name: TriQTO Step-15 Read-Only Pod Health
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "runpod/step15-pod-read/*.json"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Inspect only named RunPod pod
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os, re, subprocess
+          from pathlib import Path
+          from urllib.request import Request, urlopen
+          changed=subprocess.check_output(
+            ["git","diff","--name-only","HEAD^","HEAD","--","runpod/step15-pod-read/*.json"],
+            text=True
+          ).splitlines()
+          if not changed: raise RuntimeError("No pod read-only request")
+          for path in changed:
+              if not re.fullmatch(r"runpod/step15-pod-read/[A-Za-z0-9._-]+[.]json",path):
+                  raise RuntimeError("Unsupported request path")
+              request=json.loads(Path(path).read_text())
+              if set(request)!={"id","pod_id"}:
+                  raise RuntimeError("Unexpected request keys")
+              pod_id=request["pod_id"]
+              if not re.fullmatch("[a-z0-9]{10,24}", pod_id):
+                  raise RuntimeError("Unexpected pod ID")
+              req=Request(
+                  f"https://rest.runpod.io/v1/pods/{pod_id}",
+                  headers={
+                      "Authorization": "Bearer "+os.environ["RUNPOD_API_KEY"],
+                      "Accept":"application/json",
+                      "User-Agent":"TriQTO-Step15-ReadOnlyHealth/1",
+                  },
+                  method="GET",
+              )
+              with urlopen(req,timeout=45) as response:
+                  data=json.loads(response.read().decode("utf-8"))
+              runtime=data.get("runtime") or {}
+              print(json.dumps({
+                  "request_id":request["id"],
+                  "pod_id":data.get("id"),
+                  "desiredStatus":data.get("desiredStatus"),
+                  "lastStatusChange":data.get("lastStatusChange"),
+                  "uptimeSeconds":runtime.get("uptimeInSeconds"),
+                  "runtime_present":bool(runtime),
+                  "runtime_status":runtime.get("status"),
+                  "machine_present":bool(data.get("machine")),
+                  "read_only":True,
+              },sort_keys=True),flush=True)
+          PY
