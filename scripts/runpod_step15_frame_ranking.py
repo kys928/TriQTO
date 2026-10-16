@@ -23,6 +23,7 @@ ALLOWED_REQUEST_KEYS = {
     "id",
     "operation",
     "image_name",
+    "expected_image_digest",
     "gpu_type_ids",
     "container_disk_gb",
     "interruptible",
@@ -43,6 +44,12 @@ def load_request(path: Path) -> dict:
     image_name = str(value.get("image_name", ""))
     if not IMMUTABLE_IMAGE.fullmatch(image_name):
         raise ValueError("image_name must be ghcr.io/kys928/triqto-runpod:sha-<40 lowercase hex>")
+    if "expected_image_digest" in value:
+        digest = str(value["expected_image_digest"])
+        if not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
+            raise ValueError("expected_image_digest must be sha256:<64 lowercase hex>")
+        if operation != "diagnose_step14_replay":
+            raise ValueError("expected_image_digest is scoped to replay diagnostic only")
     return value
 
 
@@ -86,7 +93,11 @@ def main() -> None:
         },
         "gpu": {"type_ids": requested, "count": 1},
         "lifecycle": {"mode": "detached"},
-        "provenance": {"image_name": str(request["image_name"])},
+        "provenance": {
+            "image_name": str(request["image_name"]),
+            "image_digest_from_published_build": str(request.get("expected_image_digest") or ""),
+            "image_digest_runtime_attested": False,
+        },
         "_control_run_id": control_run_id,
     }
     encoded = base64.b64encode(
@@ -108,7 +119,12 @@ def main() -> None:
         "dockerEntrypoint": ["/bin/bash", "-lc"],
         "dockerStartCmd": ["cd /opt/TriQTO && python scripts/runpod_step15_worker.py"],
         "ports": [],
-        "env": {"TRIQTO_JOB_B64": encoded, "PYTHONUNBUFFERED": "1"},
+        "env": {
+            "TRIQTO_JOB_B64": encoded,
+            "PYTHONUNBUFFERED": "1",
+            "TRIQTO_EXPECTED_IMAGE_TAG": str(request["image_name"]),
+            "TRIQTO_EXPECTED_IMAGE_DIGEST": str(request.get("expected_image_digest") or ""),
+        },
         "interruptible": bool(request.get("interruptible", False)),
         "imageName": str(request["image_name"]),
     }
