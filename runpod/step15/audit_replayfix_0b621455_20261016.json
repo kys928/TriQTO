@@ -1,0 +1,7 @@
+{
+  "id": "step15-audit-replayfix-0b621455-r1",
+  "operation": "evaluate_spent_holdout",
+  "image_name": "ghcr.io/kys928/triqto-runpod:sha-0b621455858a5c07ac70b17547278effac88e998",
+  "container_disk_gb": 50,
+  "interruptible": false
+}
