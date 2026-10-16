@@ -88,6 +88,7 @@ def test_reconciler_archives_only_double_confirmed_stale_runpod_404(monkeypatch:
         "job_id": "step15-audit-diagnostic",
         "control_run_id": "run-200-abc",
         "pod_id": "missing-pod",
+        "status_key": "triqto-control/runs/test/status.json",
         "launched_at": "2026-01-01T00:00:00+00:00",
     }
     monkeypatch.setattr(reconciler.control, "list_active_records", lambda: [("active",record)])
@@ -110,6 +111,7 @@ def test_reconciler_does_not_archive_recent_or_unconfirmed_404(monkeypatch: pyte
         "job_id": "step15-audit-diagnostic",
         "control_run_id": "run-201-abc",
         "pod_id": "maybe-pod",
+        "status_key": "triqto-control/runs/test2/status.json",
         "launched_at": "2999-01-01T00:00:00+00:00",
     }
     monkeypatch.setattr(reconciler.control, "list_active_records", lambda: [("active",record)])
