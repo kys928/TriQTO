@@ -63,5 +63,11 @@ jobs:
                   "runtime_status":runtime.get("status"),
                   "machine_present":bool(data.get("machine")),
                   "read_only":True,
+                  "response_keys":sorted(data.keys()),
+                  "pod_status":data.get("status"),
+                  "status_reason":data.get("statusReason"),
+                  "machine_id":data.get("machineId"),
+                  "gpu_count":data.get("gpuCount"),
+                  "image_name":data.get("imageName"),
               },sort_keys=True),flush=True)
           PY
