@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
+import contextlib
 import json
 import os
 import platform
@@ -118,6 +120,157 @@ def posthoc_x_only_subset(product, pred_rows, latent_cfg):
             "distance":blind.pad_pair_float(distances,count),
             "gate":blind.pad_pair_bool(gates,count)}
 
+
+class CalibrationTrace:
+    """Observe the *unmodified* Step-14 simulator calls.
+
+    The original empirical_stats and finite_shot_candidate_jacobians functions
+    run as before. A separately seeded multinomial replay checks the fingerprint
+    instrumentation has no side effects on the sampled evidence.
+    """
+
+    def __init__(self):
+        self.path = None
+        self.active_root = None
+        self.hashes = None
+        self.count = 0
+        self.per_path = {}
+        self._empirical = latent.BASE.empirical_stats
+        self._finite = latent.finite_shot_candidate_jacobians
+
+    def empirical(self, probabilities, shots, eig, pairs, seed):
+        original = self._empirical(probabilities, shots, eig, pairs, seed)
+        counts = np.random.default_rng(seed).multinomial(int(shots), probabilities)
+        independently_replayed = latent.BASE.stats_from_distribution(
+            counts.astype(np.float64) / float(shots), eig, pairs
+        )
+        if not all(np.array_equal(np.asarray(a), np.asarray(b))
+                   for a,b in zip(original, independently_replayed)):
+            raise RuntimeError("Calibration instrumentation changed sampled evidence")
+        if self.active_root is None:
+            raise RuntimeError("Sampled calibration outside tracked candidate Jacobian")
+        arr = np.asarray(probabilities, dtype=np.float64)
+        sam = np.asarray(counts, dtype=np.int64)
+        sampled = np.concatenate([
+            np.asarray(original[0],dtype=np.float64).ravel(),
+            np.asarray(original[1],dtype=np.float64).ravel(),
+            np.asarray([original[2]],dtype=np.float64)
+        ])
+        meta = json.dumps({"seed":int(seed),"shots":int(shots),
+                           "probability_shape":list(arr.shape)},
+                          sort_keys=True,separators=(",",":")).encode()
+        for label,value in (
+            ("probabilities",arr.tobytes()),
+            ("sample_counts",sam.tobytes()),
+            ("sampled_statistics",sampled.tobytes()),
+            ("sampling_seed",meta),
+        ):
+            self.hashes[label].update(len(value).to_bytes(8,"little"))
+            self.hashes[label].update(value)
+        self.count += 1
+        return original
+
+    def finite(self, clean, pairs, candidates, root_index, cfg):
+        root=int(root_index)
+        if self.active_root is not None:
+            raise RuntimeError("nested calibration sampling")
+        if str(root) in self.per_path[self.path]:
+            raise RuntimeError("same root calibrated twice within one extraction")
+        self.active_root=root
+        self.count=0
+        self.hashes={x:hashlib.sha256() for x in
+                     ("probabilities","sample_counts","sampled_statistics","sampling_seed")}
+        try:
+            jacs=self._finite(clean,pairs,candidates,root_index,cfg)
+            if not jacs:
+                raise RuntimeError("no finite-shot calibration Jacobians")
+            self.per_path[self.path][str(root)]={
+                "candidate_count":len(candidates),
+                "sample_call_count":self.count,
+                "finite_shot_jacobians":digest_array(np.stack(jacs)),
+                "sample_hashes":{k:"sha256:"+v.hexdigest()
+                                 for k,v in sorted(self.hashes.items())},
+                "calibration_seed_base":int(cfg["hardware_facing_frame_calibration"]["calibration_seed"]),
+                "calibration_shots_per_basis_per_sign":int(
+                    cfg["hardware_facing_frame_calibration"]["shots_per_basis_per_sign"]),
+            }
+            return jacs
+        finally:
+            self.active_root=None
+            self.hashes=None
+
+    def install(self):
+        latent.BASE.empirical_stats=self.empirical
+        latent.finite_shot_candidate_jacobians=self.finite
+
+    def uninstall(self):
+        latent.BASE.empirical_stats=self._empirical
+        latent.finite_shot_candidate_jacobians=self._finite
+
+    def select_path(self, name):
+        if name in self.per_path:
+            raise RuntimeError("trace path already collected")
+        self.path=name
+        self.per_path[name]={}
+
+    def summarize(self):
+        paths=self.per_path
+        a=paths["phasea"]
+        b=paths["posthoc"]
+        if set(a)!=set(b):
+            raise RuntimeError("calibrated root set mismatch across extraction paths")
+        matched={r:(a[r]==b[r]) for r in sorted(a)}
+        if not all(matched.values()):
+            raise RuntimeError("Calibration trace mismatch across Phase-A/posthoc paths")
+        return {
+            "schema":"triqto.v0_2.finite_shot_calibration_trace.v2",
+            "trace_has_no_scientific_feature_change":True,
+            "per_root_sampled_count_and_probability_hash_equal_across_paths":True,
+            "traced_root_count":len(a),
+            "per_root":a,
+            "total_sample_calls":sum(rec["sample_call_count"] for rec in a.values()),
+        }
+
+
+def host_runtime_snapshot():
+    cpu_model="unavailable"
+    cpu_features_digest=None
+    try:
+        info=Path("/proc/cpuinfo").read_text()
+        for line in info.splitlines():
+            if line.startswith("model name"):
+                cpu_model=line.partition(":")[2].strip()
+                break
+        cpu_features_digest="sha256:"+hashlib.sha256(info.encode()).hexdigest()
+    except OSError:
+        pass
+    np_runtime=io.StringIO()
+    with contextlib.redirect_stdout(np_runtime):
+        np.show_runtime()
+    return {
+        "cpu_model":cpu_model,
+        "cpu_architecture":platform.machine(),
+        "cpu_count":os.cpu_count(),
+        "cpuinfo_snapshot_sha256":cpu_features_digest,
+        "platform":platform.platform(),
+        "python":sys.version,
+        "numpy":np.__version__,
+        "numpy_show_runtime":np_runtime.getvalue(),
+        "torch":torch.__version__,
+        "torch_cuda_version":torch.version.cuda,
+        "qiskit":__import__("qiskit").__version__,
+        "qiskit_aer":__import__("qiskit_aer").__version__,
+        "gpu_name":torch.cuda.get_device_name(0),
+        "gpu_capability":list(torch.cuda.get_device_capability(0)),
+        "cuda_device_count":torch.cuda.device_count(),
+        "torch_matmul_tf32":torch.backends.cuda.matmul.allow_tf32,
+        "torch_cudnn_tf32":torch.backends.cudnn.allow_tf32,
+        "torch_deterministic_algorithms":torch.are_deterministic_algorithms_enabled(),
+        "declared_image_digest_from_build":os.getenv("TRIQTO_EXPECTED_IMAGE_DIGEST",""),
+        "declared_image_tag":os.getenv("TRIQTO_EXPECTED_IMAGE_TAG",""),
+        "image_digest_runtime_attested":False,
+    }
+
 def write_json(path, payload):
     temp=path.with_name("."+path.name+".tmp-"+uuid.uuid4().hex)
     with temp.open("w",encoding="utf-8") as f:
@@ -170,10 +323,22 @@ def main():
         if str(row["example_id"]) not in blind_rows:
             raise RuntimeError("Phase-A example not present in blind manifest")
     latent_cfg=latent.load_frozen_config()
-    phasea=blind.extract_blind_table(
-        product,[blind_rows[str(r["example_id"])] for r in selected],safe_roots,
-        latent_cfg,0)
-    posthoc=posthoc_x_only_subset(product,selected,latent_cfg)
+    trace=CalibrationTrace()
+    trace.install()
+    try:
+        trace.select_path("phasea")
+        phasea=blind.extract_blind_table(
+            product,[blind_rows[str(r["example_id"])] for r in selected],safe_roots,
+            latent_cfg,0)
+        trace.select_path("posthoc")
+        posthoc=posthoc_x_only_subset(product,selected,latent_cfg)
+    finally:
+        trace.uninstall()
+    calibration=trace.summarize()
+    print(json.dumps({"calibration_trace_roots":calibration["traced_root_count"],
+      "calibration_sample_calls":calibration["total_sample_calls"],
+      "calibration_path_parity":calibration["per_root_sampled_count_and_probability_hash_equal_across_paths"]}),
+      flush=True)
     if phasea["example_id"]!=[str(r["example_id"]) for r in selected]:
         raise RuntimeError("Phase-A row order drift")
     if any(int(row["candidate_count"])!=int(sum(phasea["mask"][i])) for i,row in enumerate(selected)):
@@ -251,7 +416,7 @@ def main():
             "posthoc_cuda_logits":[float(v) for v in outputs["posthoc"]["cuda"]["pooled"][i]],
         })
     result={
-      "schema":"triqto.v0_2.step14_frozen_phasea_cpu_cuda_replay_diagnostic.v1",
+      "schema":"triqto.v0_2.step14_frozen_phasea_cpu_cuda_replay_diagnostic.v2",
       "status":"COMPLETE_READ_ONLY_REPLAY_DIAGNOSTIC_NO_HOLDOUT_RESCORING",
       "fixed_positions":list(KNOWN_DISAGREEMENTS),
       "positions":positions,"example_count":len(positions),
@@ -276,11 +441,13 @@ def main():
         "checkpoint_provenance":checkpoints,
       },
       "stage_array_parity":stages,"replay_comparisons":comparisons,
+      "sampled_calibration_provenance":calibration,
+      "execution_environment":host_runtime_snapshot(),
       "example_diagnostics":per_example,
     }
     identity=hashlib.sha256((str(result["provenance"]["phasea_prediction_csv_sha256"])
                               +json.dumps(positions)+str(result["provenance"]["method_bundle_sha256"])
-                              +str(result["provenance"]["gpu"])).encode()).hexdigest()[:20]
+                              +str(result["provenance"]["gpu"])+"CALIBRATION_V2").encode()).hexdigest()[:20]
     parent=args.output_parent.resolve()
     parent.mkdir(parents=True,exist_ok=True)
     out=parent/("replay_"+identity)
@@ -288,7 +455,7 @@ def main():
     out.mkdir(parents=True,exist_ok=False)
     result_path=out/"diagnostic_result.json"
     write_json(result_path,result)
-    complete_doc={"schema":"triqto.v0_2.step14_cpu_cuda_replay_diagnostic_complete.v1",
+    complete_doc={"schema":"triqto.v0_2.step14_cpu_cuda_replay_diagnostic_complete.v2",
                   "diagnostic_dir":str(out),"status":result["status"],
                   "result_sha256":digest_file(result_path),"example_count":len(positions)}
     write_json(out/"diagnostic_complete.json",complete_doc)
@@ -300,6 +467,10 @@ def main():
     print(json.dumps({"status":result["status"],"diagnostic_dir":str(out),
            "result_sha256":complete_doc["result_sha256"],
            "stage_array_parity":{k:v.get("exact_equal") for k,v in stages.items()},
+           "sampled_calibration_trace":{
+               "traced_root_count":calibration["traced_root_count"],
+               "sample_call_count":calibration["total_sample_calls"],
+               "cross_path_exact_parity":calibration["per_root_sampled_count_and_probability_hash_equal_across_paths"]},
            "replay_comparisons":comparisons,
            "scientific_boundary":result["scientific_boundary"]},sort_keys=True),flush=True)
 
