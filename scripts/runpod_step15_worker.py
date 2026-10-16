@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import json
+import os
+import time
 from pathlib import Path
 import traceback
 
 import runpod_worker as common
 
-ALLOWED_OPERATIONS = {"fit_and_verify", "evaluate_spent_holdout"}
+ALLOWED_OPERATIONS = {"fit_and_verify", "evaluate_spent_holdout", "diagnose_step14_replay"}
 
 
 def build_commands(job: dict) -> list[tuple[str, list[str]]]:
@@ -39,6 +41,14 @@ def build_commands(job: dict) -> list[tuple[str, list[str]]]:
             ),
             ("verify", verifier),
         ]
+    if operation == "diagnose_step14_replay":
+        return [
+            ("pre_diagnostic_verify", verifier),
+            ("step14_replay_diagnostic", [
+                python, str(v02 / "diagnose_step14_phasea_replay.py"),
+                "--device", "cuda", "--max-controls", "20",
+            ]),
+        ]
     return [
         ("pre_evaluation_verify", verifier),
         (
@@ -66,6 +76,53 @@ def run() -> int:
     run_dir = common.CONTROL_ROOT / job_id / control_run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     status_path = run_dir / "status.json"
+    # Network volume survives container restarts. An exclusive sentinel ensures a
+    # failed/restarted scientific subprocess is never silently rerun under the
+    # same control-run ID, which previously overwrote a terminal failure status.
+    start_guard = run_dir / "step15_start_guard.json"
+    guard = {
+        "job_id": job_id,
+        "control_run_id": control_run_id,
+        "operation": operation,
+        "image_name": str((job.get("provenance") or {}).get("image_name")),
+        "first_started_at": common.utc_now(),
+    }
+    try:
+        fd = os.open(str(start_guard), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        if not start_guard.is_file():
+            raise
+        prior_guard = json.loads(start_guard.read_text(encoding="utf-8"))
+        for key in ("job_id", "control_run_id", "operation", "image_name"):
+            if prior_guard.get(key) != guard[key]:
+                raise RuntimeError("Step-15 restart guard identity drift: " + key)
+        prior_status = (
+            json.loads(status_path.read_text(encoding="utf-8"))
+            if status_path.is_file() else None
+        )
+        if not prior_status or prior_status.get("state") not in {"completed", "failed"}:
+            common.atomic_json(status_path, {
+                "schema_version": 2, "job_id": job_id,
+                "control_run_id": control_run_id, "runner": "step15_frame_ranking",
+                "scientific_operation": operation, "state": "failed",
+                "reason": "restarted_before_terminal_scientific_status",
+                "prior_status": prior_status,
+                "failed_at": common.utc_now(),
+            })
+        print(json.dumps({
+            "state": "RESTART_GUARD_BLOCKED", "job_id": job_id,
+            "control_run_id": control_run_id,
+            "prior_terminal_preserved": bool(prior_status and prior_status.get("state") in {"completed", "failed"}),
+        }), flush=True)
+        # The supervisor must observe the terminal status and delete this pod.
+        # Do not re-execute scientific code, and do not overwrite the original log.
+        while True:
+            time.sleep(60)
+    else:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            json.dump(guard, handle, sort_keys=True)
+            handle.flush()
+            os.fsync(handle.fileno())
     common.atomic_json(run_dir / "job.json", job)
 
     started = {
@@ -109,7 +166,11 @@ def run() -> int:
         result_pointer = (
             Path("/workspace/triqto-data/step15_frame_ranking/current_step15_frame_ranker.json")
             if operation == "fit_and_verify"
-            else Path("/workspace/triqto-data/step15_spent_holdout_audit/current_step15_spent_holdout_audit.json")
+            else (
+                Path("/workspace/triqto-data/step15_spent_holdout_audit/current_step15_spent_holdout_audit.json")
+                if operation == "evaluate_spent_holdout"
+                else Path("/workspace/triqto-data/step15_replay_diagnostics/current_step15_replay_diagnostic.json")
+            )
         )
         completed = {
             **started,
