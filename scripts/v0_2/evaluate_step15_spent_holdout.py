@@ -26,6 +26,7 @@ import benchmark_step6_cheap_baselines as baseline
 import score_step14_equivalence_aware_fresh_holdout_confirmatory as confirm_scorer
 import step14_equivalence_aware_common as equiv
 import step15_frame_ranker_common as ranker
+import fit_step15_frame_ranker_true_positive as fit_positive_contract
 import run_step14_oracle_raw_evidence_ceiling as oracle_compat
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -169,6 +170,9 @@ def main() -> None:
     # Mirror the frozen Step-14 blind predictor and posthoc replay setup.
     # This is a pre-existing implementation support bound, not a new audit tolerance.
     oracle_compat.apply_frozen_support_bound()
+    # Frozen FIT and spent-holdout scoring use the same literal-identity label rule.
+    # The true frame is used for metric labels only, never as an inference feature.
+    residual.response_equivalent = fit_positive_contract.response_equivalent_with_literal_identity
     args = parse_args()
     cfg = read_json(STEP15_CONFIG)
     posthoc_cfg = read_json(STEP14_POSTHOC_CONFIG)
