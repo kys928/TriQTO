@@ -50,7 +50,7 @@ def test_step15_launcher_requires_immutable_sha_image(tmp_path: Path) -> None:
 def test_step15_launcher_only_allows_two_scientific_operations(tmp_path: Path) -> None:
     launcher = load_module("runpod_step15_launcher_ops", LAUNCHER)
     image = "ghcr.io/kys928/triqto-runpod:sha-" + "b" * 40
-    for operation in ("fit_and_verify", "evaluate_spent_holdout"):
+    for operation in ("fit_and_verify", "evaluate_spent_holdout", "diagnose_step14_replay"):
         path = tmp_path / f"{operation}.json"
         path.write_text(json.dumps({"operation": operation, "image_name": image}), encoding="utf-8")
         assert launcher.load_request(path)["operation"] == operation
@@ -79,6 +79,11 @@ def test_step15_worker_separates_fit_verify_from_spent_holdout_evaluation() -> N
     assert "verify_step15_frame_ranker_freeze.py" in audit_joined
     assert "evaluate_step15_spent_holdout.py" in audit_joined
     assert audit_joined.index("verify_step15_frame_ranker_freeze.py") < audit_joined.index("evaluate_step15_spent_holdout.py")
+    diagnose = worker.build_commands(
+        {"task": {"runner": "step15_frame_ranking", "operation": "diagnose_step14_replay"}}
+    )
+    assert [name for name, _cmd in diagnose] == ["pre_diagnostic_verify", "step14_replay_diagnostic"]
+    assert "diagnose_step14_phasea_replay.py" in " ".join(diagnose[1][1])
 
 
 def test_step15_runpod_surface_is_typed_and_compiles() -> None:
@@ -92,3 +97,74 @@ def test_step15_runpod_surface_is_typed_and_compiles() -> None:
     assert "sha-[0-9a-f]{40}" in launch_source
     assert "runpod_step15_frame_ranking.py" in workflow
     assert "runpod/step15/*.json" in workflow
+
+
+def test_step15_fail_closed_restart_guard_preserves_original_failure(monkeypatch, tmp_path: Path) -> None:
+    worker = load_module("runpod_step15_worker_restart_contract", WORKER)
+    job = {
+        "id": "step15-restart-unit",
+        "_control_run_id": "run-100-deadbeef",
+        "task": {"runner": "step15_frame_ranking", "operation": "diagnose_step14_replay"},
+        "provenance": {"image_name": "ghcr.io/kys928/triqto-runpod:sha-" + "f" * 40},
+    }
+    monkeypatch.setattr(worker.common, "load_job", lambda: job)
+    monkeypatch.setattr(worker.common, "CONTROL_ROOT", tmp_path)
+    monkeypatch.setattr(worker.common, "gpu_snapshot", lambda: {"output": "fake CPU/CUDA"})
+    calls = []
+    def failed_subprocess(command, log_path):
+        calls.append(list(command))
+        log_path.write_text("scientific failure", encoding="utf-8")
+        return 9
+    monkeypatch.setattr(worker.common, "run_subprocess", failed_subprocess)
+    assert worker.run() == 9
+    run_dir = tmp_path / job["id"] / job["_control_run_id"]
+    status = (run_dir / "status.json").read_bytes()
+    assert json.loads(status)["state"] == "failed"
+    assert len(calls) == 1
+    def interrupt_sleep(_delay):
+        raise RuntimeError("restart guard entered sleep")
+    monkeypatch.setattr(worker.time, "sleep", interrupt_sleep)
+    with pytest.raises(RuntimeError, match="restart guard entered sleep"):
+        worker.run()
+    assert (run_dir / "status.json").read_bytes() == status
+    assert len(calls) == 1
+
+
+def test_step15_fail_closed_restart_guard_marks_unfinished_worker_failed(monkeypatch, tmp_path: Path) -> None:
+    worker = load_module("runpod_step15_worker_crash_contract", WORKER)
+    job = {
+        "id": "step15-crash-unit",
+        "_control_run_id": "run-101-deadbeef",
+        "task": {"runner": "step15_frame_ranking", "operation": "diagnose_step14_replay"},
+        "provenance": {"image_name": "ghcr.io/kys928/triqto-runpod:sha-" + "d" * 40},
+    }
+    monkeypatch.setattr(worker.common, "load_job", lambda: job)
+    monkeypatch.setattr(worker.common, "CONTROL_ROOT", tmp_path)
+    monkeypatch.setattr(worker.common, "gpu_snapshot", lambda: {"output": "fake"})
+    def abrupt_crash(_command, _log_path):
+        raise KeyboardInterrupt("simulated abrupt failure")
+    monkeypatch.setattr(worker.common, "run_subprocess", abrupt_crash)
+    with pytest.raises(KeyboardInterrupt):
+        worker.run()
+    run_dir = tmp_path / job["id"] / job["_control_run_id"]
+    status_path = run_dir / "status.json"
+    # Simulate the host stopping after startup but before terminal status.
+    json_status = json.loads(status_path.read_text())
+    json_status["state"] = "running"
+    status_path.write_text(json.dumps(json_status), encoding="utf-8")
+    monkeypatch.setattr(worker.time, "sleep", lambda _delay: (_ for _ in ()).throw(RuntimeError("guarded")))
+    with pytest.raises(RuntimeError, match="guarded"):
+        worker.run()
+    final = json.loads(status_path.read_text())
+    assert final["state"] == "failed"
+    assert final["reason"] == "restarted_before_terminal_scientific_status"
+
+
+def test_replay_diagnostic_source_compiles_and_has_no_truth_dependency() -> None:
+    path = ROOT / "scripts" / "v0_2" / "diagnose_step14_phasea_replay.py"
+    content = path.read_text(encoding="utf-8")
+    compile(content, str(path), "exec")
+    assert "KNOWN_DISAGREEMENTS" in content
+    assert '"sealed_truth_accessed":False' in content
+    assert '("cpu","cuda")' in content
+    assert "diagnostic_result.json" in content
