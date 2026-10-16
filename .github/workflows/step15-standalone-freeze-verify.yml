@@ -1,0 +1,144 @@
+name: TriQTO Step-15 Standalone Freeze Verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "runpod/step15-verify/*.json"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RUNPOD_S3_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
+      RUNPOD_S3_SECRET_ACCESS_KEY: ${{ secrets.RUNPOD_S3_SECRET_ACCESS_KEY }}
+      RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
+      RUNPOD_DATACENTER_ID: ${{ vars.RUNPOD_DATACENTER_ID }}
+      RUNPOD_S3_ENDPOINT: ${{ vars.RUNPOD_S3_ENDPOINT }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install verifier dependencies
+        run: python -m pip install --disable-pip-version-check boto3 numpy
+
+      - name: Run exact standalone freeze verifier on read-only S3 materialization
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          import re
+          import subprocess
+          import sys
+          import tempfile
+          from pathlib import Path
+          import boto3
+          from botocore.config import Config
+
+          changed = subprocess.check_output(
+              ["git", "diff", "--name-only", "HEAD^", "HEAD", "--", "runpod/step15-verify/*.json"],
+              text=True,
+          ).splitlines()
+          if not changed:
+              raise RuntimeError("No standalone verification request changed")
+
+          endpoint = os.environ["RUNPOD_S3_ENDPOINT"].strip()
+          region = os.environ["RUNPOD_DATACENTER_ID"].strip().lower()
+          bucket = os.environ["RUNPOD_NETWORK_VOLUME_ID"].strip()
+          client = boto3.client(
+              "s3",
+              endpoint_url=endpoint,
+              region_name=region,
+              aws_access_key_id=os.environ["RUNPOD_S3_ACCESS_KEY_ID"],
+              aws_secret_access_key=os.environ["RUNPOD_S3_SECRET_ACCESS_KEY"],
+              config=Config(signature_version="s3v4", retries={"max_attempts": 10, "mode": "standard"}),
+          )
+          def s3_get(key):
+              return client.get_object(Bucket=bucket, Key=key)["Body"].read()
+
+          pointer_key = "triqto-data/step15_frame_ranking/current_step15_frame_ranker.json"
+          original_pointer_bytes = s3_get(pointer_key)
+          pointer = json.loads(original_pointer_bytes)
+          names = {
+              "frame_rank_adapter.json": "adapter_sha256",
+              "fit_development_result.json": "fit_development_result_sha256",
+              "adapter_freeze.json": "adapter_freeze_sha256",
+              "step15_complete.json": "step15_complete_sha256",
+          }
+          for request_name in changed:
+              if not re.fullmatch(r"runpod/step15-verify/[A-Za-z0-9._-]+[.]json", request_name):
+                  raise RuntimeError("Unexpected request path")
+              req = json.loads(Path(request_name).read_text(encoding="utf-8"))
+              if set(req) != {"id", "expected_method_id", "expected_sha256"}:
+                  raise RuntimeError("Unexpected standalone verification request shape")
+              method_id = req["expected_method_id"]
+              if method_id != "step15_rank_462fb0f8b4531b25f9a29345":
+                  raise RuntimeError("Method not the authorized frozen method")
+              if pointer["method_id"] != method_id:
+                  raise RuntimeError("Frozen method pointer drift")
+              expected = req["expected_sha256"]
+              if set(expected) != set(names):
+                  raise RuntimeError("Expected SHA256 file set incomplete")
+              volume_prefix = "/workspace/triqto-data/step15_frame_ranking/"
+              source_dir = pointer["method_dir"]
+              if source_dir != volume_prefix + method_id:
+                  raise RuntimeError("Unexpected on-volume method path")
+              print(json.dumps({"status": "STANDALONE_VERIFY_STARTED", "method_id": method_id, "request_id": req["id"]}), flush=True)
+              with tempfile.TemporaryDirectory(prefix="triqto-step15-frozen-verify-") as scratch:
+                  root = Path(scratch)
+                  local_dir = root / method_id
+                  local_dir.mkdir()
+                  local_pointer = dict(pointer)
+                  local_pointer["method_dir"] = str(local_dir)
+                  (root / "current_step15_frame_ranker.json").write_text(
+                      json.dumps(local_pointer, sort_keys=True), encoding="utf-8"
+                  )
+                  raw_files = {}
+                  for filename, pointer_field in names.items():
+                      raw = s3_get("triqto-data/step15_frame_ranking/" + method_id + "/" + filename)
+                      actual = "sha256:" + hashlib.sha256(raw).hexdigest()
+                      if actual != pointer[pointer_field] or actual != expected[filename]:
+                          raise RuntimeError("Immutable content hash failed: " + filename)
+                      raw_files[filename] = raw
+                      (local_dir / filename).write_bytes(raw)
+                  # Executes the repository's unmodified, exact Step-15 Python verifier.
+                  result = subprocess.run(
+                      [
+                          sys.executable, "scripts/v0_2/verify_step15_frame_ranker_freeze.py",
+                          "--output-parent", str(root),
+                      ],
+                      text=True, capture_output=True,
+                  )
+                  print(result.stdout, flush=True)
+                  if result.stderr:
+                      print(result.stderr, file=sys.stderr, flush=True)
+                  if result.returncode:
+                      raise RuntimeError(f"Standalone semantic verifier failed with rc={result.returncode}")
+                  for filename, raw in raw_files.items():
+                      if (local_dir / filename).read_bytes() != raw:
+                          raise RuntimeError("Standalone verifier altered frozen local materialization")
+                  print(json.dumps({
+                      "status": "STANDALONE_STEP15_FREEZE_VERIFIED_NON_DESTRUCTIVE",
+                      "method_id": method_id,
+                      "verified_sha256": expected,
+                      "source": "S3 GET only",
+                      "source_pointer_sha256": "sha256:" + hashlib.sha256(original_pointer_bytes).hexdigest(),
+                      "original_volume_modified": False,
+                      "spent_holdout_accessed": False,
+                  }, sort_keys=True), flush=True)
+          PY
