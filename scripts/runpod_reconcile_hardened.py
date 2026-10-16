@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from datetime import datetime, timezone
 from typing import Any
 
 import runpod_control_v2 as control
@@ -68,8 +69,8 @@ def pod_desired_status(pod_id: str) -> str | None:
     except Exception as exc:
         text = str(exc).lower()
         if "http 404" in text or "not found" in text:
-            print(json.dumps({"pod_id": pod_id, "pod_lifecycle": "not-visible", "action": "keep-active"}))
-            return None
+            print(json.dumps({"pod_id": pod_id, "pod_lifecycle": "not-visible", "action": "verify-before-archive"}))
+            return "NOT_FOUND"
         raise
     if not isinstance(pod, dict):
         raise RuntimeError(f"RunPod GET /pods/{pod_id} returned non-object payload")
@@ -109,6 +110,36 @@ def reconcile_detached() -> None:
             continue
 
         desired = pod_desired_status(pod_id)
+        if desired == "NOT_FOUND":
+            # The provider may briefly return 404 during new-pod propagation.
+            # Archive only after the launch is older than five minutes and
+            # a second independent GET confirms the same 404. Never delete a
+            # RUNNING pod based on missing worker output.
+            launch_text = str(record.get("launched_at", ""))
+            try:
+                launched = datetime.fromisoformat(launch_text.replace("Z", "+00:00"))
+                age_seconds = (datetime.now(timezone.utc) - launched).total_seconds()
+            except ValueError:
+                age_seconds = -1
+            if age_seconds >= 300 and pod_desired_status(pod_id) == "NOT_FOUND":
+                terminal = {
+                    "state": "pod_not_found_double_confirmed",
+                    "observed_at": control.utc_now(),
+                    "worker_status": status,
+                    "worker_state": worker_state,
+                    "pod_id": pod_id,
+                }
+                control.archive_and_remove(key, record, terminal)  # type: ignore[attr-defined]
+                print(json.dumps({"pod_id": pod_id, "cleanup": "not-found-double-confirmed"}))
+                continue
+            print(json.dumps({
+                "job_id": job_id, "control_run_id": control_run_id,
+                "pod_desired_status": "NOT_FOUND",
+                "action": "await-age-and-second-confirmation",
+                "age_seconds": age_seconds,
+            }))
+            continue
+
         if desired not in TERMINAL_POD_STATES:
             print(json.dumps({
                 "job_id": job_id,
