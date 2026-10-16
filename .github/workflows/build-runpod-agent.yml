@@ -24,6 +24,7 @@ on:
       - "scripts/v0_2/step14_equivalence_aware_common.py"
       - "scripts/v0_2/run_step14_oracle_raw_evidence_ceiling.py"
       - "scripts/v0_2/evaluate_step15_spent_holdout.py"
+      - "scripts/v0_2/diagnose_step14_phasea_replay.py"
       - "scripts/v0_2/fit_step15_frame_ranker.py"
       - "scripts/v0_2/step15_frame_ranker_common.py"
       - "scripts/v0_2/verify_step15_frame_ranker_freeze.py"
