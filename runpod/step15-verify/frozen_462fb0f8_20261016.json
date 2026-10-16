@@ -1,0 +1,10 @@
+{
+  "id": "step15-standalone-freeze-verify-20261016",
+  "expected_method_id": "step15_rank_462fb0f8b4531b25f9a29345",
+  "expected_sha256": {
+    "frame_rank_adapter.json": "sha256:4e98bac63955b7709008a0fe9d83a70c7134c429d05e1f364ac7edcdf71f41aa",
+    "fit_development_result.json": "sha256:df2b0ca73c09f90cc6f5c63d571358e4acdbf64f3f2c099ec730a094f30197ab",
+    "adapter_freeze.json": "sha256:90f31809d7585c2ae4a2138e32e7ea1e866990432f9fccdc03edeee617438026",
+    "step15_complete.json": "sha256:1e56ec3a73de96a867755dc4627ef0eb1d2df0288936b075a5f428a711290333"
+  }
+}
