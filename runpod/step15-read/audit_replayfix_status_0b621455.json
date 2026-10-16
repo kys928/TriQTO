@@ -1,6 +1,6 @@
 {
-  "id": "step15-audit-replayfix-0b621455-r1-status",
+  "id": "step15-audit-replayfix-0b621455-eval-progress",
   "phase": "status",
   "status_key": "triqto-control/runs/step15-audit-replayfix-0b621455-r1/run-1792160182-1b9fab4f/status.json",
-  "log_key": "triqto-control/runs/step15-audit-replayfix-0b621455-r1/run-1792160182-1b9fab4f/step15_01_pre_evaluation_verify.log"
+  "log_key": "triqto-control/runs/step15-audit-replayfix-0b621455-r1/run-1792160182-1b9fab4f/step15_02_spent_holdout_evaluation.log"
 }
