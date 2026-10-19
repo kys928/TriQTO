@@ -20,6 +20,8 @@ from pathlib import Path
 import sys
 import uuid
 
+from portable_calibration import CalibrationBundle, circuit_identity, array_identity
+
 import numpy as np
 import torch
 
@@ -129,7 +131,8 @@ class CalibrationTrace:
     instrumentation has no side effects on the sampled evidence.
     """
 
-    def __init__(self):
+    def __init__(self, bundle=None):
+        self.bundle = bundle
         self.path = None
         self.active_root = None
         self.hashes = None
@@ -139,14 +142,21 @@ class CalibrationTrace:
         self._finite = latent.finite_shot_candidate_jacobians
 
     def empirical(self, probabilities, shots, eig, pairs, seed):
-        original = self._empirical(probabilities, shots, eig, pairs, seed)
-        counts = np.random.default_rng(seed).multinomial(int(shots), probabilities)
-        independently_replayed = latent.BASE.stats_from_distribution(
-            counts.astype(np.float64) / float(shots), eig, pairs
-        )
-        if not all(np.array_equal(np.asarray(a), np.asarray(b))
-                   for a,b in zip(original, independently_replayed)):
-            raise RuntimeError("Calibration instrumentation changed sampled evidence")
+        if self.bundle is not None and self.bundle.source:
+            # Substitute integer evidence, never regenerate the donor's draws.
+            counts = self.bundle.sample(probabilities, shots, eig, pairs, seed, None)
+            original = latent.BASE.stats_from_distribution(
+                counts.astype(np.float64) / float(shots), eig, pairs)
+        else:
+            original = self._empirical(probabilities, shots, eig, pairs, seed)
+            counts = np.random.default_rng(seed).multinomial(int(shots), probabilities)
+            independently_replayed = latent.BASE.stats_from_distribution(
+                counts.astype(np.float64) / float(shots), eig, pairs)
+            if not all(np.array_equal(np.asarray(a), np.asarray(b))
+                       for a,b in zip(original, independently_replayed)):
+                raise RuntimeError("Calibration instrumentation changed sampled evidence")
+            if self.bundle is not None:
+                self.bundle.sample(probabilities, shots, eig, pairs, seed, counts)
         if self.active_root is None:
             raise RuntimeError("Sampled calibration outside tracked candidate Jacobian")
         arr = np.asarray(probabilities, dtype=np.float64)
@@ -176,6 +186,16 @@ class CalibrationTrace:
             raise RuntimeError("nested calibration sampling")
         if str(root) in self.per_path[self.path]:
             raise RuntimeError("same root calibrated twice within one extraction")
+        if self.bundle is not None:
+            self.bundle.begin(root, {
+                "circuit": circuit_identity(clean),
+                "ordered_candidates": [list(c) for c in candidates],
+                "ordered_pairs": array_identity(pairs),
+                "calibration_configuration": dict(cfg["hardware_facing_frame_calibration"]),
+                "mechanism_order": list(frame.MECHANISMS),
+                "basis_order": list(frame.AXES),
+                "loop_order": ["candidate", "mechanism", "sign", "basis"],
+            }, self.path)
         self.active_root=root
         self.count=0
         self.hashes={x:hashlib.sha256() for x in
@@ -194,6 +214,8 @@ class CalibrationTrace:
                 "calibration_shots_per_basis_per_sign":int(
                     cfg["hardware_facing_frame_calibration"]["shots_per_basis_per_sign"]),
             }
+            if self.bundle is not None:
+                self.bundle.end()
             return jacs
         finally:
             self.active_root=None
@@ -224,7 +246,7 @@ class CalibrationTrace:
             raise RuntimeError("Calibration trace mismatch across Phase-A/posthoc paths")
         return {
             "schema":"triqto.v0_2.finite_shot_calibration_trace.v2",
-            "trace_has_no_scientific_feature_change":True,
+            "trace_has_no_scientific_feature_change":not bool(self.bundle and self.bundle.source),
             "per_root_sampled_count_and_probability_hash_equal_across_paths":True,
             "traced_root_count":len(a),
             "per_root":a,
@@ -283,7 +305,14 @@ def main():
     parser.add_argument("--device",choices=("cuda",),default="cuda")
     parser.add_argument("--max-controls",type=int,default=20)
     parser.add_argument("--output-parent",type=Path,default=OUTPUT_PARENT)
+    parser.add_argument("--capture-calibration", type=Path)
+    parser.add_argument("--substitute-calibration", type=Path)
+    parser.add_argument("--calibration-manifest-sha256")
     args=parser.parse_args()
+    if args.capture_calibration and args.substitute_calibration:
+        parser.error("capture and substitution are mutually exclusive")
+    if bool(args.substitute_calibration) != bool(args.calibration_manifest_sha256):
+        parser.error("substitution requires an explicit donor manifest hash")
     if not torch.cuda.is_available():
         raise RuntimeError("CPU/CUDA comparison requires an available GPU")
     if not (1<=args.max_controls<=40):
@@ -323,7 +352,10 @@ def main():
         if str(row["example_id"]) not in blind_rows:
             raise RuntimeError("Phase-A example not present in blind manifest")
     latent_cfg=latent.load_frozen_config()
-    trace=CalibrationTrace()
+    bundle = (CalibrationBundle(args.substitute_calibration, args.calibration_manifest_sha256)
+              if args.substitute_calibration else
+              CalibrationBundle() if args.capture_calibration else None)
+    trace=CalibrationTrace(bundle)
     trace.install()
     try:
         trace.select_path("phasea")
@@ -417,7 +449,9 @@ def main():
         })
     result={
       "schema":"triqto.v0_2.step14_frozen_phasea_cpu_cuda_replay_diagnostic.v2",
-      "status":"COMPLETE_READ_ONLY_REPLAY_DIAGNOSTIC_NO_HOLDOUT_RESCORING",
+      "status":("COMPLETE_COUNT_SUBSTITUTION_DIAGNOSTIC_NO_HOLDOUT_RESCORING"
+                if args.substitute_calibration else
+                "COMPLETE_READ_ONLY_REPLAY_DIAGNOSTIC_NO_HOLDOUT_RESCORING"),
       "fixed_positions":list(KNOWN_DISAGREEMENTS),
       "positions":positions,"example_count":len(positions),
       "scientific_boundary":{"sealed_truth_accessed":False,
@@ -445,9 +479,15 @@ def main():
       "execution_environment":host_runtime_snapshot(),
       "example_diagnostics":per_example,
     }
+    if bundle is not None:
+        result["portable_calibration"] = bundle.save(args.capture_calibration, {k: v for k, v in result["provenance"].items()
+            if k.endswith("sha256") or k == "checkpoint_provenance"})
+    result["diagnostic_code_sha256"] = digest_file(Path(__file__))
     identity=hashlib.sha256((str(result["provenance"]["phasea_prediction_csv_sha256"])
                               +json.dumps(positions)+str(result["provenance"]["method_bundle_sha256"])
-                              +str(result["provenance"]["gpu"])+"CALIBRATION_V2").encode()).hexdigest()[:20]
+                              +str(result["provenance"]["gpu"])+"CALIBRATION_V3"
+                              +json.dumps(result.get("portable_calibration"), sort_keys=True)
+                              +str(args.output_parent)).encode()).hexdigest()[:20]
     parent=args.output_parent.resolve()
     parent.mkdir(parents=True,exist_ok=True)
     out=parent/("replay_"+identity)

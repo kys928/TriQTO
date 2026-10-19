@@ -1,0 +1,5 @@
+# Preserve the previously tested numerical environment. Only audit code changes.
+FROM ghcr.io/kys928/triqto-runpod@sha256:5fa24fff53342967a59b837405c9ebadc51ceeb5d5581a88e8cbc2c721d01425
+COPY scripts/v0_2/portable_calibration.py scripts/v0_2/diagnose_step14_phasea_replay.py /opt/TriQTO/scripts/v0_2/
+COPY scripts/runpod_calibration_substitution.py /opt/TriQTO/scripts/
+COPY tests/test_portable_calibration.py tests/test_step14_phasea_calibration_trace.py /opt/TriQTO/tests/

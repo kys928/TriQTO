@@ -22,6 +22,7 @@ SPEC.loader.exec_module(diag)
 
 def test_calibration_trace_preserves_sequential_sampling_and_jacobians():
     audit = diag.CalibrationTrace()
+    original_finite = audit._finite
     probabilities = np.asarray([0.3, 0.7], dtype=np.float64)
     eig = np.asarray([[1.], [-1.]], dtype=np.float64)
     pairs = np.empty((0, 2), dtype=np.int64)
@@ -49,6 +50,7 @@ def test_calibration_trace_preserves_sequential_sampling_and_jacobians():
             assert len(result) == 1
     finally:
         audit.uninstall()
+        diag.latent.finite_shot_candidate_jacobians = original_finite
 
     outcome = audit.summarize()
     assert outcome["traced_root_count"] == 1
@@ -70,3 +72,43 @@ def test_calibration_trace_rejects_divergent_sampled_count(monkeypatch):
         ("probabilities","sample_counts","sampled_statistics","sampling_seed")}
     with pytest.raises(RuntimeError,match="instrumentation changed sampled evidence"):
         audit.empirical(probabilities,4096,eig,pairs,123)
+
+
+def test_portable_count_intervention_bypasses_sampler_and_preserves_jacobians(tmp_path, monkeypatch):
+    from qiskit import QuantumCircuit
+    from portable_calibration import CalibrationBundle
+    clean = QuantumCircuit(1)
+    clean.h(0)
+    clean.ry(0.4, 0)
+    pairs = np.empty((0, 2), dtype=np.int16)
+    cfg = {'hardware_facing_frame_calibration': {
+        'calibration_seed': 17, 'shots_per_basis_per_sign': 32,
+        'probe_strength_radians': 0.01}}
+    capture = CalibrationBundle()
+    audit = diag.CalibrationTrace(capture)
+    audit.install()
+    try:
+        for path in ('phasea', 'posthoc'):
+            audit.select_path(path)
+            expected = diag.latent.finite_shot_candidate_jacobians(clean, pairs, [(0, 1)], 7, cfg)
+    finally:
+        audit.uninstall()
+    record = capture.save(tmp_path, {'frozen': 'scientific-source'})
+    replay = CalibrationBundle(record['directory'], record['manifest_sha256'])
+    audit = diag.CalibrationTrace(replay)
+    # Force a different simulated probability vector. The integer donor evidence
+    # must still produce the captured Jacobians without ever calling a sampler.
+    monkeypatch.setattr(diag.latent.BASE, 'basis_probabilities',
+                        lambda *a, **k: np.array([0.9, 0.1]))
+    def forbidden_sampler(*a, **k):
+        raise AssertionError('count substitution must not sample')
+    monkeypatch.setattr(diag.np.random, 'default_rng', forbidden_sampler)
+    audit.install()
+    try:
+        for path in ('phasea', 'posthoc'):
+            audit.select_path(path)
+            actual = diag.latent.finite_shot_candidate_jacobians(clean, pairs, [(0, 1)], 7, cfg)
+            np.testing.assert_array_equal(actual, expected)
+    finally:
+        audit.uninstall()
+    replay.save(None, {'frozen': 'scientific-source'})
