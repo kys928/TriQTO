@@ -84,9 +84,22 @@ def logits_compare(reference, replay):
             "argmax_mismatch_positions":[int(x) for x in disagreements.tolist()],
             "argmax_mismatch_count":int(len(disagreements))}
 
-def posthoc_x_only_subset(product, pred_rows, latent_cfg):
-    """Mirror only the deployable x-only portion of the posthoc extractor."""
-    manifest={str(r["example_id"]):r for r in baseline.read_csv(product/"manifests"/"example_manifest.csv")}
+def posthoc_x_only_subset(product, pred_rows, latent_cfg, *, manifest_rows=None):
+    """Mirror the x-only extractor; portable callers supply verified blind rows.
+
+    The default path retains the original on-volume manifest behavior. Explicit
+    rows must be the complete selected cohort, authenticated by the caller's
+    archive manifest, and every payload is still hash-checked by load_x_only.
+    """
+    if manifest_rows is None:
+        manifest_rows = baseline.read_csv(product/"manifests"/"example_manifest.csv")
+    else:
+        manifest_rows = list(manifest_rows)
+        ids = [str(r["example_id"]) for r in manifest_rows]
+        expected_ids = [str(r["example_id"]) for r in pred_rows]
+        if len(set(ids)) != len(ids) or set(ids) != set(expected_ids):
+            raise RuntimeError("portable blind manifest cohort mismatch")
+    manifest={str(r["example_id"]):r for r in manifest_rows}
     cached={}
     features=[]
     profiles=[]

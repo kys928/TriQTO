@@ -205,7 +205,9 @@ class PortableReplay:
         original = latent.finite_shot_candidate_jacobians
         latent.finite_shot_candidate_jacobians = lambda c, p, ca, r, cfg: cal[str(r)][0]
         try:
-            other = diag.posthoc_x_only_subset(self.directory / 'product', self.document['selected_rows'], self.cfg)
+            other = diag.posthoc_x_only_subset(
+                self.directory / 'product', self.document['selected_rows'], self.cfg,
+                manifest_rows=self.document['selected_rows'])
         finally:
             latent.finite_shot_candidate_jacobians = original
         if any(not np.array_equal(table[k], other[k]) for k in ('x', 'mask', 'profiles', 'distance', 'gate')):

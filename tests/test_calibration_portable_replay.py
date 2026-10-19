@@ -111,3 +111,40 @@ def test_sampler_reproducer_identifies_half_boundary_with_equal_rng_prefix(tmp_p
     assert result['both_conditional_binomial_loops_exact']
     controls = result['half_boundary_binary_controls']
     assert controls[1]['counts'] != controls[2]['counts']
+
+
+def test_posthoc_portable_extraction_uses_verified_rows_without_product_manifest(tmp_path, monkeypatch):
+    """Exercise the missing-manifest boundary with a minimal portable product."""
+    product = tmp_path / 'product'
+    product.mkdir()
+    rows = [{'example_id': 'selected', 'evaluation_role': 'target', 'root_index': '7',
+             'artifact_path': 'blind_artifacts/selected.npz', 'artifact_sha256': 'sha256:pinned'}]
+    def forbidden_manifest(*args, **kwargs):
+        raise AssertionError('portable extraction must not read a product manifest')
+    monkeypatch.setattr(diag.baseline, 'read_csv', forbidden_manifest)
+    loads = []
+    def load_payload(path, expected_hash, example_id):
+        loads.append((path, expected_hash, example_id))
+        return {'x__only': np.zeros(1)}
+    monkeypatch.setattr(diag.confirm, 'load_x_only', load_payload)
+    monkeypatch.setattr(diag.frame, 'measured_delta_and_weights',
+        lambda data: (np.ones(1), np.ones(1), np.empty((0, 2), dtype=np.int16)))
+    monkeypatch.setattr(diag.frame, 'circuit_from_serialized', lambda data: object())
+    monkeypatch.setattr(diag.latent, 'plausible_candidates', lambda clean: [(0, 1)])
+    monkeypatch.setattr(diag.latent, 'finite_shot_candidate_jacobians', lambda *args: [np.ones((1, 3))])
+    monkeypatch.setattr(diag.equiv, 'finite_frame_pair_geometry',
+        lambda j: (np.zeros((1, 1)), np.ones((1, 1), dtype=bool)))
+    monkeypatch.setattr(diag.frame, 'canonicalize_evidence', lambda *args: (np.zeros(24), None, None))
+    monkeypatch.setattr(diag.latent, 'profile_log_likelihoods', lambda *args: np.zeros((1, 3)))
+    result = diag.posthoc_x_only_subset(product, rows, {}, manifest_rows=rows)
+    assert result['x'].shape == (1, 1, 24)
+    assert loads == [(product / 'blind_artifacts/selected.npz', 'sha256:pinned', 'selected')]
+    assert not (product / 'manifests').exists()
+
+
+@pytest.mark.parametrize('provided', [[], ['selected', 'selected'], ['unselected']])
+def test_posthoc_portable_manifest_rejects_missing_duplicate_or_extra_rows(tmp_path, provided):
+    rows = [{'example_id': 'selected'}]
+    with pytest.raises(RuntimeError, match='cohort mismatch'):
+        diag.posthoc_x_only_subset(tmp_path, rows, {},
+            manifest_rows=[{'example_id': example_id} for example_id in provided])
