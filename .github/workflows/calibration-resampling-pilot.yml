@@ -1,0 +1,112 @@
+name: Frozen Calibration Resampling Pilot
+on:
+  push:
+    branches: [main]
+    paths: ['runpod/calibration-pilot/*.json']
+permissions:
+  contents: write
+concurrency:
+  group: triqto-calibration-pilot
+  cancel-in-progress: false
+jobs:
+  pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      NUMEXPR_NUM_THREADS: '1'
+      PYTHONPATH: src:scripts/v0_2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install frozen CPU dependencies
+        run: |
+          python -m pip install --quiet -r requirements.txt -c constraints/cpu.txt
+          python -m pip install --quiet -e .
+          python -m pip check
+      - name: Test portable replay and intervention boundaries
+        run: python -m pytest tests/test_calibration_portable_replay.py tests/test_portable_calibration.py tests/test_step14_phasea_calibration_trace.py -q
+      - name: Download independent evidence archive and verify all files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir evidence-download
+          for attempt in $(seq 1 60); do
+            if gh release download calibration-evidence-20261019 --dir evidence-download --clobber; then break; fi
+            if [ "$attempt" = 60 ]; then exit 1; fi
+            sleep 15
+          done
+          python - <<'PY'
+          import hashlib, json, tarfile
+          from pathlib import Path
+          record=json.loads(Path('evidence-download/calibration-evidence.tar.sha256.json').read_text())
+          archive=Path('evidence-download/calibration-evidence.tar.gz')
+          assert 'sha256:'+hashlib.sha256(archive.read_bytes()).hexdigest()==record['archive_sha256']
+          with tarfile.open(archive) as data:
+              data.extractall('evidence', filter='data')
+          from calibration_replay import checked_archive
+          checked_archive(Path('evidence'), record['manifest_sha256'])
+          Path('evidence-manifest-sha256.txt').write_text(record['manifest_sha256'])
+          PY
+      - name: Reproduce historical sampler divergence in one CPU process
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from portable_calibration import CalibrationBundle
+          from reproduce_calibration_sampler import reproduce
+          doc=json.loads(Path('evidence/archive_manifest.json').read_text())
+          def bundle(name):
+              rec=doc['bundles'][name]
+              return CalibrationBundle(Path('evidence')/rec['directory'], rec['manifest_sha256'])
+          reproduce(bundle('capture_native'), bundle('probe_native'), Path('sampler-reproducer'))
+          PY
+      - name: Replay recorded counts without sampling
+        run: python scripts/v0_2/calibration_replay.py --mode replay --evidence evidence --archive-manifest-sha256 "$(cat evidence-manifest-sha256.txt)" --output portable-replay.json
+      - name: Execute 32 fixed-seed draws at N, 2N, and 4N
+        run: python scripts/v0_2/run_calibration_resampling_pilot.py --evidence evidence --archive-manifest-sha256 "$(cat evidence-manifest-sha256.txt)" --output calibration-pilot
+      - name: Publish verified pilot evidence independently of workflow expiry
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import hashlib, json, tarfile
+          from pathlib import Path
+          with tarfile.open('calibration-pilot-results.tar.gz','w:gz') as archive:
+              for path in [Path('calibration-pilot'),Path('sampler-reproducer'),Path('portable-replay.json')]:
+                  archive.add(path,arcname=str(path))
+          record={'archive_sha256':'sha256:'+hashlib.sha256(Path('calibration-pilot-results.tar.gz').read_bytes()).hexdigest(),
+                  'result_sha256':'sha256:'+hashlib.sha256(Path('calibration-pilot/result.json').read_bytes()).hexdigest()}
+          Path('calibration-pilot-results.sha256.json').write_text(json.dumps(record,sort_keys=True)+'\n')
+          print(record)
+          PY
+          tag=calibration-pilot-20261019
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo 'Refusing to overwrite an existing pilot evidence release'
+            exit 1
+          fi
+          gh release create "$tag" calibration-pilot-results.tar.gz calibration-pilot-results.sha256.json --target "$GITHUB_SHA" --title 'Frozen calibration resampling pilot, 2026-10-19' --notes 'Preregistered 32 draws at N/2N/4N, frozen models and observed evidence, selected diagnostic cohort only. Stability metrics; no accuracy or generalization claim.'
+          mkdir release-verification
+          gh release download "$tag" --dir release-verification
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          rec=json.loads(Path('release-verification/calibration-pilot-results.sha256.json').read_text())
+          assert 'sha256:'+hashlib.sha256(Path('release-verification/calibration-pilot-results.tar.gz').read_bytes()).hexdigest()==rec['archive_sha256']
+          print('Independent pilot release download verified')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: calibration-resampling-pilot
+          path: |
+            sampler-reproducer
+            portable-replay.json
+            calibration-pilot
+            calibration-pilot-results.sha256.json
+          if-no-files-found: ignore

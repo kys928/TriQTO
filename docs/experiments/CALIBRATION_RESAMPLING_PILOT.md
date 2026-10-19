@@ -66,3 +66,23 @@ changes materially affect decisions, propose remedies for separate development
 data and an untouched locked evaluation. If changes are small, still require an
 untouched evaluation before generalization claims. Baselines must share observed
 evidence and total shot budgets. No Step-15 retraining is authorized by this pilot.
+
+## Portable execution
+
+The independent GitHub release `calibration-evidence-20261019` contains the five
+original bundles plus the selected x-only dependency closure. Verify the release
+archive SHA256, extract with safe tar filtering, and supply its manifest SHA256
+explicitly. CPU entry points (with `PYTHONPATH=src:scripts/v0_2`):
+
+```
+python scripts/v0_2/calibration_replay.py --mode replay --evidence EVIDENCE --archive-manifest-sha256 HASH --output replay.json
+python scripts/v0_2/run_calibration_resampling_pilot.py --evidence EVIDENCE --archive-manifest-sha256 HASH --output NEW_DIRECTORY
+```
+
+The first command reconstructs recorded evidence without sampling or simulation.
+The second command is an explicitly fresh diagnostic acquisition intervention.
+It writes every draw's counts, Jacobians, features, candidate logits, and pooled
+outputs. Neither command changes frozen predictions or checkpoints. The replay
+gate checks both independent extraction paths. Runtime and source protocol hashes
+are recorded. No GPU, Runpod API credentials, or remote data access is needed once
+the archive is downloaded.
