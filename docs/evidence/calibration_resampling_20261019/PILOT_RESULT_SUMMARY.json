@@ -1,0 +1,313 @@
+{
+  "archive_sha256": "sha256:8d8d9f2e8d62ab1a263ca62d9b8a5dc2201da880ff1bf6b67bf519e7fc23ff5a",
+  "arms": {
+    "1": {
+      "candidate_proxy_change_vs_recorded": {
+        "draw_mean_range": [
+          0.6111111111111112,
+          0.8888888888888888
+        ],
+        "interpretation": "descriptive uncertainty on selected roots; no population or accuracy claim",
+        "mean": 0.7491319444444444,
+        "root_cluster_percentile_95_interval": [
+          0.6723208252895754,
+          0.8182604685277383
+        ]
+      },
+      "draw_count": 32,
+      "flip_count_vs_recorded": 429,
+      "flip_vs_noiseless_finite_difference": {
+        "draw_mean_range": [
+          0.4166666666666667,
+          0.6666666666666666
+        ],
+        "interpretation": "descriptive uncertainty on selected roots; no population or accuracy claim",
+        "mean": 0.5086805555555556,
+        "root_cluster_percentile_95_interval": [
+          0.3794445903361344,
+          0.6354307432432431
+        ]
+      },
+      "flip_vs_recorded": {
+        "draw_mean_range": [
+          0.25,
+          0.4722222222222222
+        ],
+        "interpretation": "descriptive uncertainty on selected roots; no population or accuracy claim",
+        "mean": 0.3723958333333333,
+        "root_cluster_percentile_95_interval": [
+          0.23839285714285716,
+          0.4931472641206675
+        ]
+      },
+      "flips_per_draw": [
+        15,
+        13,
+        11,
+        12,
+        15,
+        14,
+        14,
+        15,
+        12,
+        13,
+        14,
+        14,
+        13,
+        15,
+        14,
+        14,
+        13,
+        17,
+        12,
+        12,
+        10,
+        14,
+        11,
+        14,
+        15,
+        13,
+        9,
+        12,
+        14,
+        14,
+        15,
+        16
+      ],
+      "margin_change_vs_recorded_mean": 0.5801319853635405,
+      "median_over_draws": {
+        "feature_change_rms": 1.7142887711524963,
+        "normalized_frame_change_median": 1.2102615717109408,
+        "regularized_system_condition_max": 325.2030980147066,
+        "standardized_feature_change_rms": 0.8018661439418793
+      },
+      "pairwise_disagreement_mean": 0.26002464157706096,
+      "prediction_instances": 1152,
+      "shot_multiplier": 1,
+      "softmax_score_std_mean": 0.11588590784162166
+    },
+    "2": {
+      "candidate_proxy_change_vs_recorded": {
+        "draw_mean_range": [
+          0.6111111111111112,
+          0.8055555555555556
+        ],
+        "interpretation": "descriptive uncertainty on selected roots; no population or accuracy claim",
+        "mean": 0.7118055555555556,
+        "root_cluster_percentile_95_interval": [
+          0.6231919642857143,
+          0.7913921734234234
+        ]
+      },
+      "draw_count": 32,
+      "flip_count_vs_recorded": 430,
+      "flip_vs_noiseless_finite_difference": {
+        "draw_mean_range": [
+          0.3888888888888889,
+          0.6111111111111112
+        ],
+        "interpretation": "descriptive uncertainty on selected roots; no population or accuracy claim",
+        "mean": 0.5026041666666666,
+        "root_cluster_percentile_95_interval": [
+          0.37151988636363636,
+          0.6324063166785205
+        ]
+      },
+      "flip_vs_recorded": {
+        "draw_mean_range": [
+          0.2777777777777778,
+          0.5
+        ],
+        "interpretation": "descriptive uncertainty on selected roots; no population or accuracy claim",
+        "mean": 0.3732638888888889,
+        "root_cluster_percentile_95_interval": [
+          0.23433159722222222,
+          0.4967516447368419
+        ]
+      },
+      "flips_per_draw": [
+        12,
+        18,
+        14,
+        11,
+        14,
+        15,
+        12,
+        14,
+        14,
+        13,
+        13,
+        15,
+        14,
+        13,
+        13,
+        14,
+        13,
+        17,
+        12,
+        11,
+        13,
+        13,
+        14,
+        10,
+        17,
+        11,
+        11,
+        11,
+        11,
+        17,
+        17,
+        13
+      ],
+      "margin_change_vs_recorded_mean": 0.5811935815314384,
+      "median_over_draws": {
+        "feature_change_rms": 1.900189220905304,
+        "normalized_frame_change_median": 1.1075089142701207,
+        "regularized_system_condition_max": 583.4847961374693,
+        "standardized_feature_change_rms": 0.8360554575920105
+      },
+      "pairwise_disagreement_mean": 0.23482302867383512,
+      "prediction_instances": 1152,
+      "shot_multiplier": 2,
+      "softmax_score_std_mean": 0.08816546715554852
+    },
+    "4": {
+      "candidate_proxy_change_vs_recorded": {
+        "draw_mean_range": [
+          0.6388888888888888,
+          0.8055555555555556
+        ],
+        "interpretation": "descriptive uncertainty on selected roots; no population or accuracy claim",
+        "mean": 0.7256944444444444,
+        "root_cluster_percentile_95_interval": [
+          0.6327907986111111,
+          0.8093897804054053
+        ]
+      },
+      "draw_count": 32,
+      "flip_count_vs_recorded": 393,
+      "flip_vs_noiseless_finite_difference": {
+        "draw_mean_range": [
+          0.3611111111111111,
+          0.6111111111111112
+        ],
+        "interpretation": "descriptive uncertainty on selected roots; no population or accuracy claim",
+        "mean": 0.4756944444444444,
+        "root_cluster_percentile_95_interval": [
+          0.34099264705882354,
+          0.6102514022435898
+        ]
+      },
+      "flip_vs_recorded": {
+        "draw_mean_range": [
+          0.19444444444444445,
+          0.4444444444444444
+        ],
+        "interpretation": "descriptive uncertainty on selected roots; no population or accuracy claim",
+        "mean": 0.3411458333333333,
+        "root_cluster_percentile_95_interval": [
+          0.19910105519480517,
+          0.46876953124999987
+        ]
+      },
+      "flips_per_draw": [
+        11,
+        16,
+        11,
+        11,
+        13,
+        11,
+        13,
+        11,
+        12,
+        13,
+        13,
+        13,
+        15,
+        11,
+        11,
+        13,
+        13,
+        13,
+        12,
+        13,
+        13,
+        13,
+        12,
+        12,
+        16,
+        10,
+        11,
+        9,
+        7,
+        14,
+        14,
+        13
+      ],
+      "margin_change_vs_recorded_mean": 0.5198107109234181,
+      "median_over_draws": {
+        "feature_change_rms": 2.1746031045913696,
+        "normalized_frame_change_median": 1.036518003253994,
+        "regularized_system_condition_max": 859.7554060437567,
+        "standardized_feature_change_rms": 0.9258072674274445
+      },
+      "pairwise_disagreement_mean": 0.20463709677419356,
+      "prediction_instances": 1152,
+      "shot_multiplier": 4,
+      "softmax_score_std_mean": 0.07552322462882549
+    }
+  },
+  "ci_tests_passed": 704,
+  "cohort_examples": 36,
+  "cohort_roots": 33,
+  "draws_per_shot_budget": 32,
+  "environment": {
+    "device": "cpu",
+    "numpy": "2.3.2",
+    "numpy_runtime": "[{'numpy_version': '2.3.2',\n  'python': '3.11.17 (main, Oct  1 2026, 14:32:31) [GCC 13.3.0]',\n  'uname': uname_result(system='Linux', node='runnervm8k3b6', release='6.17.0-1022-azure', version='#22-Ubuntu SMP Mon Jul 27 17:24:03 UTC 2026', machine='x86_64')},\n {'simd_extensions': {'baseline': ['SSE', 'SSE2', 'SSE3'],\n                      'found': ['SSSE3',\n                                'SSE41',\n                                'POPCNT',\n                                'SSE42',\n                                'AVX',\n                                'F16C',\n                                'FMA3',\n                                'AVX2'],\n                      'not_found': ['AVX512F',\n                                    'AVX512CD',\n                                    'AVX512_KNL',\n                                    'AVX512_KNM',\n                                    'AVX512_SKX',\n                                    'AVX512_CLX',\n                                    'AVX512_CNL',\n                                    'AVX512_ICL',\n                                    'AVX512_SPR']}},\n {'architecture': 'Haswell',\n  'filepath': '/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/numpy.libs/libscipy_openblas64_-8fb3d286.so',\n  'internal_api': 'openblas',\n  'num_threads': 1,\n  'prefix': 'libscipy_openblas',\n  'threading_layer': 'pthreads',\n  'user_api': 'blas',\n  'version': '0.3.30'},\n {'filepath': '/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/torch/lib/libgomp.so.1',\n  'internal_api': 'openmp',\n  'num_threads': 1,\n  'prefix': 'libgomp',\n  'user_api': 'openmp',\n  'version': None}]\n",
+    "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+    "python": "3.11.17 (main, Oct  1 2026, 14:32:31) [GCC 13.3.0]",
+    "torch": "2.8.0+cpu"
+  },
+  "evidence_archive_manifest_sha256": "sha256:38a399a16ff67f880dc59d5f495457312c49c944eba16165e1f1548f3bd5f1f3",
+  "exact_donor_jacobian_roots": 33,
+  "focused_tests_passed": 27,
+  "independent_counts_and_label_metric_verification": true,
+  "noiseless_reference_label_changes_vs_recorded": 16,
+  "posthoc_amplification_diagnostic": {
+    "median_weighted_sample_norm_on_numerically_null_reference_columns": {
+      "1": 11.233157028082967,
+      "2": 7.959134149705148,
+      "4": 5.631186987011074
+    },
+    "raw_expected_candidate_axis_columns": 2265,
+    "raw_expected_columns_at_or_below_1e_minus_12": 273,
+    "status": "descriptive posthoc mechanism candidate; not selective causal identification or a tuned estimator",
+    "weighted_expected_columns_at_or_below_1e_minus_12": 295,
+    "weighted_expected_example_axis_columns": 2454
+  },
+  "protocol_sha256": "sha256:7628d11c36bafd65712c937637daea178d119bc35068e776b8b68fb518d9b366",
+  "release": "https://github.com/kys928/TriQTO/releases/tag/calibration-pilot-20261019",
+  "replay_gate": {
+    "argmax_mismatch_count": 0,
+    "argmax_mismatch_positions": [],
+    "max_abs_diff": 2.3182305177726903e-06,
+    "mean_abs_diff": 1.1764510361947418e-07,
+    "rows_above_1e_minus_4": 0
+  },
+  "result_sha256": "sha256:d3315e6439950b47f182e5a13fb0707c964c1f0848504e00680eafa4266d16db",
+  "schema": "triqto.calibration_resampling_verified_summary.v1",
+  "scientific_boundary": {
+    "abstention_supported": false,
+    "accuracy_measured": false,
+    "full_holdout_rescored": false,
+    "hyperparameters_selected": false,
+    "noiseless_reference": "analysis-only expected finite-difference statistics at fixed epsilon; not exact derivative",
+    "sealed_truth_accessed": false,
+    "weights_changed": false
+  },
+  "source_commit": "d43063b4da37a0180f0d7a40dd4cb8b8e2b32374",
+  "total_draws": 96,
+  "verified_dependency_hashes": 101,
+  "workflow": "https://github.com/kys928/TriQTO/actions/runs/39287947712"
+}

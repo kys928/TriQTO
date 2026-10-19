@@ -1,0 +1,124 @@
+{
+  "bit_generator": "PCG64",
+  "both_conditional_binomial_loops_exact": true,
+  "both_historical_draws_reproduced_in_one_process": true,
+  "call": {
+    "basis": "Z",
+    "candidate_index": 0,
+    "measurement_eigenvalues": {
+      "dtype": "float64",
+      "sha256": "sha256:40faf99f41aaf10f2e0c4eb67f87e956190b16f78eadc7a945f9ff6e2c765a6a",
+      "shape": [
+        4,
+        2
+      ]
+    },
+    "mechanism_index": 0,
+    "ordered_pairs": {
+      "dtype": "int64",
+      "sha256": "sha256:9d34149fbd1fe777eb238799054c8cbfbce372255f219f8740838def9bfd02db",
+      "shape": [
+        1,
+        2
+      ]
+    },
+    "ordinal": 0,
+    "probability_shape": [
+      4
+    ],
+    "seed": 8782512697427405742,
+    "shots": 4096,
+    "sign": "plus"
+  },
+  "counts_left": [
+    1398,
+    1384,
+    631,
+    683
+  ],
+  "counts_right": [
+    1398,
+    1384,
+    683,
+    631
+  ],
+  "first_difference_left": {
+    "category": 2,
+    "conditional_probability": 0.5,
+    "conditional_probability_hex": "0x1.0000000000000p-1",
+    "count": 631,
+    "direct_branch_p_le_half": true,
+    "remaining_mass_hex": "0x1.45b257b1dd7ecp-2",
+    "remaining_shots": 1314,
+    "rng_state": {
+      "bit_generator": "PCG64",
+      "has_uint32": 0,
+      "state": {
+        "inc": 234204047691275616125029527750443011327,
+        "state": 275497657721730149569342192196207302114
+      },
+      "uinteger": 0
+    },
+    "rng_state_sha256": "sha256:ea6fe23d723b604bed9b274581474607aa9a342e4acbf80c1fc03c1c3956fcd5"
+  },
+  "first_difference_right": {
+    "category": 2,
+    "conditional_probability": 0.5000000000000002,
+    "conditional_probability_hex": "0x1.0000000000002p-1",
+    "count": 683,
+    "direct_branch_p_le_half": false,
+    "remaining_mass_hex": "0x1.45b257b1dd7ebp-2",
+    "remaining_shots": 1314,
+    "rng_state": {
+      "bit_generator": "PCG64",
+      "has_uint32": 0,
+      "state": {
+        "inc": 234204047691275616125029527750443011327,
+        "state": 275497657721730149569342192196207302114
+      },
+      "uinteger": 0
+    },
+    "rng_state_sha256": "sha256:ea6fe23d723b604bed9b274581474607aa9a342e4acbf80c1fc03c1c3956fcd5"
+  },
+  "first_different_category": 2,
+  "fixture_sha256": "sha256:987cebbc0d57c2e4c9ccab5e63b0b351a94a68829969d9415caac02a22832748",
+  "half_boundary_binary_controls": [
+    {
+      "conditional_probability_hex": "0x1.fffffffffffffp-2",
+      "counts": [
+        631,
+        683
+      ]
+    },
+    {
+      "conditional_probability_hex": "0x1.0000000000000p-1",
+      "counts": [
+        631,
+        683
+      ]
+    },
+    {
+      "conditional_probability_hex": "0x1.0000000000001p-1",
+      "counts": [
+        683,
+        631
+      ]
+    }
+  ],
+  "half_probability_branch_crossed": true,
+  "numeric_comparison": {
+    "different_elements": 3,
+    "elements": 4,
+    "l1": 1.3877787807814457e-16,
+    "mass_error_a": 0.0,
+    "mass_error_b": 0.0,
+    "max_abs": 5.551115123125783e-17,
+    "total_variation": 6.938893903907228e-17
+  },
+  "numpy": "2.3.2",
+  "numpy_source": "https://github.com/numpy/numpy/blob/v2.3.2/numpy/random/src/distributions/distributions.c",
+  "root": "40025",
+  "same_rng_state_before_first_difference": true,
+  "schema": "triqto.multinomial_discontinuity_reproducer.v1",
+  "source_interpretation": "random_multinomial uses conditional random_binomial; random_binomial selects direct/complement at p <= 0.5. No modified sampler used in pilot."
+}

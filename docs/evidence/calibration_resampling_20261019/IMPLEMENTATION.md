@@ -31,18 +31,22 @@ The 54 warnings are from existing tensor/noise-model/multiprocessing tests.
 A synthetic binary sampler test verifies the boundary probe; it does not establish
 that this mechanism explains the captured historical case.
 
-At the last execution check on 2026-10-19, GitHub had not assigned runners to the
-archival or pilot jobs. The raw probability arrays are held behind the existing
-Actions/S3 control plane and are unavailable locally until export succeeds.
-Therefore no historical sampler-boundary conclusion or fresh-calibration stability
-result has been established by this new work. The preceding count-substitution
-experiment remains the latest completed empirical evidence.
+The initial queue-only status has been superseded by completed workflows. The
+primary archive request succeeded and its durable release has been downloaded
+and independently verified. The alternate archive request refused to overwrite
+that existing release. The initial pilot stopped at the omitted product-manifest
+CSV dependency; commit d43063b4da37a0180f0d7a40dd4cb8b8e2b32374 repairs that
+portable API boundary using the authenticated selected rows.
 
-- [Primary archive request](https://github.com/kys928/TriQTO/actions/runs/39280314165)
-- [Alternate archival runner request](https://github.com/kys928/TriQTO/actions/runs/39281742338)
-- [Corrected pilot request](https://github.com/kys928/TriQTO/actions/runs/39281334105)
+The corrected workflow completed all 96 draws, verified durable publication,
+and passed all 704 repository CI tests. Actual archived evidence passes the
+replay gate (33 exact Jacobians, zero frozen-label disagreements). See
+`REPLAY_REPAIR.md`, `ANALYSIS.md`, `PILOT_RESULT_SUMMARY.json`, and
+`SAMPLER_REPRODUCER.json` for verified results and interpretation limits.
 
-The earlier queued pilot request predates the frozen 17-operation compatibility
-bound fix; its outcome must not be used as the pilot result. The corrected request
-above includes that fix. No GPU pod was launched for this work, no weights or
-frozen predictions were changed, and no full holdout was rescored.
+- [Successful primary archive](https://github.com/kys928/TriQTO/actions/runs/39280314165)
+- [Successful corrected pilot](https://github.com/kys928/TriQTO/actions/runs/39287947712)
+- [Durable pilot evidence](https://github.com/kys928/TriQTO/releases/tag/calibration-pilot-20261019)
+
+No GPU pod was launched for this work, no weights or frozen predictions were
+changed, and no full holdout was rescored.
