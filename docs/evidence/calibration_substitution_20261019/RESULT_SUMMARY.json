@@ -1,0 +1,314 @@
+{
+  "base_image": "ghcr.io/kys928/triqto-runpod@sha256:5fa24fff53342967a59b837405c9ebadc51ceeb5d5581a88e8cbc2c721d01425",
+  "calibration_calls_per_extraction_path": 13590,
+  "cleanup": {
+    "both_pods_absent_by_read_only_api_check": true,
+    "capture_pod_id": "eo3hpfwpc83v0v",
+    "probe_pod_id": "jag6ae1em3p3b6",
+    "verification_workflow_url": "https://github.com/kys928/TriQTO/actions/runs/39269809592"
+  },
+  "code_commit": "2484857866b92ad56a7e5e307e77b905f0a9e2c7",
+  "date": "2026-10-19",
+  "donor": {
+    "complete_sha256": "sha256:61dbc6c50b939582cf83feff50635da567195bf55ea8b0a6fe8ffe2dee6396e2",
+    "diagnostic_dir": "/workspace/triqto-data/calibration_substitution/counts-substitution-20261016-r1/capture/native/replay_597c245eb8b9df13e458",
+    "directory": "/workspace/triqto-data/calibration_substitution/counts-substitution-20261016-r1/capture/bundles/native/ffe32c005039e79ef9a45383c5fc4608cdcde50014ecf297cb257d065e5f655f",
+    "manifest_sha256": "sha256:ffe32c005039e79ef9a45383c5fc4608cdcde50014ecf297cb257d065e5f655f",
+    "mode": "capture",
+    "result_sha256": "sha256:fa2e33a746149a311c8e4963ef21f51a60d5bb5452937b30c1f89760344c13c1",
+    "schema": "triqto.finite_shot_counts.v1",
+    "status": "COMPLETE_READ_ONLY_REPLAY_DIAGNOSTIC_NO_HOLDOUT_RESCORING"
+  },
+  "exact_donor_count_parity": true,
+  "example_count": 36,
+  "experiment": "counts-substitution-20261016-r1",
+  "github_results_artifact": {
+    "id": 12193859731,
+    "sha256": "sha256:68bc29f19deea04b5b5d81797a67aa18759c325c8af0821230adaeeec5b93315"
+  },
+  "haswell_5090_vs_native_4090_all_root_trace_records_exact": true,
+  "image": "ghcr.io/kys928/triqto-runpod@sha256:ae6d8e2ce8a2afcd8b0bcb1a3ea71642b97c66fc209525f4696c7a04704811e5",
+  "jacobian_different_roots_after_substitution": [],
+  "numeric_comparisons": {
+    "capture": {
+      "haswell_single_thread": {
+        "count_different_roots": 16,
+        "max_probability_abs": 4.440892098500626e-16,
+        "max_probability_tv": 4.440892098500626e-16,
+        "root_count": 33,
+        "schema": "triqto.calibration_numeric_comparison.v1"
+      },
+      "numpy_no_avx512_single_thread": {
+        "count_different_roots": 0,
+        "max_probability_abs": 0.0,
+        "max_probability_tv": 0.0,
+        "root_count": 33,
+        "schema": "triqto.calibration_numeric_comparison.v1"
+      },
+      "single_thread": {
+        "count_different_roots": 0,
+        "max_probability_abs": 0.0,
+        "max_probability_tv": 0.0,
+        "root_count": 33,
+        "schema": "triqto.calibration_numeric_comparison.v1"
+      }
+    },
+    "probe": {
+      "native": {
+        "count_different_roots": 16,
+        "max_probability_abs": 4.440892098500626e-16,
+        "max_probability_tv": 4.440892098500626e-16,
+        "root_count": 33,
+        "schema": "triqto.calibration_numeric_comparison.v1"
+      }
+    }
+  },
+  "profiles": [
+    {
+      "cpu_model": "AMD EPYC 9554 64-Core Processor",
+      "cpu_vs_frozen": {
+        "argmax_mismatch_count": 16,
+        "argmax_mismatch_positions": [
+          1,
+          2,
+          3,
+          5,
+          6,
+          11,
+          12,
+          13,
+          14,
+          18,
+          19,
+          20,
+          21,
+          23,
+          24,
+          27
+        ],
+        "max_abs_diff": 2.469491711742051,
+        "mean_abs_diff": 0.20552573421968276,
+        "rows_above_1e_minus_4": 19
+      },
+      "cuda_vs_frozen": {
+        "argmax_mismatch_count": 16,
+        "argmax_mismatch_positions": [
+          1,
+          2,
+          3,
+          5,
+          6,
+          11,
+          12,
+          13,
+          14,
+          18,
+          19,
+          20,
+          21,
+          23,
+          24,
+          27
+        ],
+        "max_abs_diff": 2.4694918081976374,
+        "mean_abs_diff": 0.20552571549077983,
+        "rows_above_1e_minus_4": 19
+      },
+      "diagnostic_result_sha256": "sha256:66ba9e85142b50beb09f089db27a022a59ad47f482ab7a0143889fadceedab65",
+      "environment_overrides": {
+        "MKL_NUM_THREADS": "1",
+        "NUMEXPR_NUM_THREADS": "1",
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_CORETYPE": "Haswell",
+        "OPENBLAS_NUM_THREADS": "1"
+      },
+      "gpu": "NVIDIA GeForce RTX 5090",
+      "openblas_dispatch": "Haswell",
+      "openblas_threads": 1,
+      "profile": "haswell_single_thread",
+      "role": "capture"
+    },
+    {
+      "cpu_model": "AMD EPYC 9554 64-Core Processor",
+      "cpu_vs_frozen": {
+        "argmax_mismatch_count": 0,
+        "argmax_mismatch_positions": [],
+        "max_abs_diff": 2.3182305177726903e-06,
+        "mean_abs_diff": 1.1764510357578486e-07,
+        "rows_above_1e_minus_4": 0
+      },
+      "cuda_vs_frozen": {
+        "argmax_mismatch_count": 0,
+        "argmax_mismatch_positions": [],
+        "max_abs_diff": 6.357828770120477e-07,
+        "mean_abs_diff": 8.816658877271254e-08,
+        "rows_above_1e_minus_4": 0
+      },
+      "diagnostic_result_sha256": "sha256:fa2e33a746149a311c8e4963ef21f51a60d5bb5452937b30c1f89760344c13c1",
+      "environment_overrides": {},
+      "gpu": "NVIDIA GeForce RTX 5090",
+      "openblas_dispatch": "SkylakeX",
+      "openblas_threads": 64,
+      "profile": "native",
+      "role": "capture"
+    },
+    {
+      "cpu_model": "AMD EPYC 9554 64-Core Processor",
+      "cpu_vs_frozen": {
+        "argmax_mismatch_count": 0,
+        "argmax_mismatch_positions": [],
+        "max_abs_diff": 2.3182305177726903e-06,
+        "mean_abs_diff": 1.1764510356756097e-07,
+        "rows_above_1e_minus_4": 0
+      },
+      "cuda_vs_frozen": {
+        "argmax_mismatch_count": 0,
+        "argmax_mismatch_positions": [],
+        "max_abs_diff": 6.357828770120477e-07,
+        "mean_abs_diff": 8.816658876448867e-08,
+        "rows_above_1e_minus_4": 0
+      },
+      "diagnostic_result_sha256": "sha256:75cfab625a7646afd5cb4863747730374b8b73b14962f9ebedf59ef1567b5709",
+      "environment_overrides": {
+        "MKL_NUM_THREADS": "1",
+        "NPY_DISABLE_CPU_FEATURES": "AVX512F,AVX512CD,AVX512_SKX,AVX512_CLX,AVX512_CNL,AVX512_ICL",
+        "NUMEXPR_NUM_THREADS": "1",
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1"
+      },
+      "gpu": "NVIDIA GeForce RTX 5090",
+      "openblas_dispatch": "SkylakeX",
+      "openblas_threads": 1,
+      "profile": "numpy_no_avx512_single_thread",
+      "role": "capture"
+    },
+    {
+      "cpu_model": "AMD EPYC 9554 64-Core Processor",
+      "cpu_vs_frozen": {
+        "argmax_mismatch_count": 0,
+        "argmax_mismatch_positions": [],
+        "max_abs_diff": 2.3182305177726903e-06,
+        "mean_abs_diff": 1.1764510357578486e-07,
+        "rows_above_1e_minus_4": 0
+      },
+      "cuda_vs_frozen": {
+        "argmax_mismatch_count": 0,
+        "argmax_mismatch_positions": [],
+        "max_abs_diff": 6.357828770120477e-07,
+        "mean_abs_diff": 8.816658877271254e-08,
+        "rows_above_1e_minus_4": 0
+      },
+      "diagnostic_result_sha256": "sha256:9e3fa5dbaee9c0b6bec8dce90ba5a83a29ce48ef1a117b2383ab88b48eaacb7f",
+      "environment_overrides": {
+        "MKL_NUM_THREADS": "1",
+        "NUMEXPR_NUM_THREADS": "1",
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1"
+      },
+      "gpu": "NVIDIA GeForce RTX 5090",
+      "openblas_dispatch": "SkylakeX",
+      "openblas_threads": 1,
+      "profile": "single_thread",
+      "role": "capture"
+    },
+    {
+      "cpu_model": "AMD EPYC 7763 64-Core Processor",
+      "cpu_vs_frozen": {
+        "argmax_mismatch_count": 16,
+        "argmax_mismatch_positions": [
+          1,
+          2,
+          3,
+          5,
+          6,
+          11,
+          12,
+          13,
+          14,
+          18,
+          19,
+          20,
+          21,
+          23,
+          24,
+          27
+        ],
+        "max_abs_diff": 2.469491711742051,
+        "mean_abs_diff": 0.20552573421968276,
+        "rows_above_1e_minus_4": 19
+      },
+      "cuda_vs_frozen": {
+        "argmax_mismatch_count": 16,
+        "argmax_mismatch_positions": [
+          1,
+          2,
+          3,
+          5,
+          6,
+          11,
+          12,
+          13,
+          14,
+          18,
+          19,
+          20,
+          21,
+          23,
+          24,
+          27
+        ],
+        "max_abs_diff": 2.4694917436416315,
+        "mean_abs_diff": 0.20552574049533281,
+        "rows_above_1e_minus_4": 19
+      },
+      "diagnostic_result_sha256": "sha256:95d96ae87aebd6ccaf3201fe5e0a51031741acd6a9b0d1f49c6b0717c0757d1e",
+      "environment_overrides": {},
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "openblas_dispatch": "Haswell",
+      "openblas_threads": 64,
+      "profile": "native",
+      "role": "probe"
+    },
+    {
+      "cpu_model": "AMD EPYC 7763 64-Core Processor",
+      "cpu_vs_frozen": {
+        "argmax_mismatch_count": 0,
+        "argmax_mismatch_positions": [],
+        "max_abs_diff": 2.3182305177726903e-06,
+        "mean_abs_diff": 1.1764510361947418e-07,
+        "rows_above_1e_minus_4": 0
+      },
+      "cuda_vs_frozen": {
+        "argmax_mismatch_count": 0,
+        "argmax_mismatch_positions": [],
+        "max_abs_diff": 2.953984239439933e-06,
+        "mean_abs_diff": 1.319968671839833e-07,
+        "rows_above_1e_minus_4": 0
+      },
+      "diagnostic_result_sha256": "sha256:5a62e1f6740775688fc4285c4c6130d3b467027468d91c8d4645301bf911a1c8",
+      "environment_overrides": {},
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "openblas_dispatch": "Haswell",
+      "openblas_threads": 64,
+      "profile": "substituted",
+      "role": "probe"
+    }
+  ],
+  "root_count": 33,
+  "schema": "triqto.calibration_substitution_evidence.v1",
+  "scientific_boundary": {
+    "frozen_predictions_modified": false,
+    "holdout_rescored": false,
+    "sealed_truth_accessed": false,
+    "weights_modified": false
+  },
+  "validation": {
+    "full_repository_ci_passed": 691,
+    "local_focused_tests_passed": 32
+  },
+  "worker_result_sha256": {
+    "capture": "sha256:f57461e7dba7201664f290440fff37726bcc97a2ad7cb9a3334576c229e609b5",
+    "probe": "sha256:420b48cd97953af76c552892ed4fa22ffe608d8367292a6aa1c6a9636b776650"
+  },
+  "workflow_url": "https://github.com/kys928/TriQTO/actions/runs/39267478899"
+}
