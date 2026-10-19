@@ -98,6 +98,7 @@ class PortableReplay:
     def __init__(self, directory, expected):
         self.directory = Path(directory)
         self.archive_hash = expected
+        diag.oracle_compat.apply_frozen_support_bound()
         self.document = checked_archive(self.directory, expected)
         rec = self.document['bundles']['capture_native']
         self.bundle = CalibrationBundle(self.directory / rec['directory'], rec['manifest_sha256'])

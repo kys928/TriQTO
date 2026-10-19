@@ -86,3 +86,28 @@ def test_pairwise_disagreement_excludes_self_pairs_and_cluster_unit_is_root():
     result = root_cluster_interval(values, [7, 7, 8])
     assert result['mean'] == 1 / 3
     assert result['root_cluster_percentile_95_interval'] == [0., 1.]
+
+
+def test_sampler_reproducer_identifies_half_boundary_with_equal_rng_prefix(tmp_path):
+    from reproduce_calibration_sampler import reproduce
+    from portable_calibration import array_identity
+    # A minimal binary case exercises the same direct/complement boundary.
+    bundles = []
+    for i, q in enumerate([0.5, np.nextafter(0.5, 1.0)]):
+        p = np.array([q, 1.0 - q])
+        counts = np.random.Generator(np.random.PCG64(17)).multinomial(4096, p)
+        bundle = CalibrationBundle()
+        context = {'circuit': 'binary', 'basis_order': ['Z', 'X', 'Y']}
+        eig, pairs = np.array([[1.], [-1.]]), np.empty((0, 2), dtype=np.int16)
+        for path in ('phasea', 'posthoc'):
+            bundle.begin(7, context, path)
+            bundle.sample(p, 4096, eig, pairs, 17, counts)
+            bundle.end()
+        rec = bundle.save(tmp_path / str(i), {'frozen': 'test'})
+        bundles.append(CalibrationBundle(rec['directory'], rec['manifest_sha256']))
+    result = reproduce(*bundles, tmp_path / 'reproducer')
+    assert result['half_probability_branch_crossed']
+    assert result['same_rng_state_before_first_difference']
+    assert result['both_conditional_binomial_loops_exact']
+    controls = result['half_boundary_binary_controls']
+    assert controls[1]['counts'] != controls[2]['counts']
