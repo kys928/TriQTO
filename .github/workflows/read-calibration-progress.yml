@@ -27,7 +27,9 @@ jobs:
       - name: Read only scoped experiment progress, logs, and pod status
         run: |
           python - <<'PY'
-          import json, subprocess, sys
+          import json, subprocess, sys, os, time, socket
+          from urllib.request import Request, urlopen
+          from urllib.error import HTTPError
           from pathlib import Path
           sys.path.insert(0, 'scripts')
           import runpod_control_v2 as control
@@ -60,4 +62,16 @@ jobs:
                   except RuntimeError as exc:
                       if 'HTTP 404' not in str(exc): raise
                       print(json.dumps({'role':role,'pod_absent':True}),flush=True)
+                  try:
+                      request=Request('https://api.runpod.io/v2/pods/'+record['pod_id']+'/logs?tail=40',headers={'Authorization':'Bearer '+os.environ['RUNPOD_API_KEY'],'Accept':'text/event-stream'})
+                      with urlopen(request,timeout=8) as response:
+                          deadline=time.monotonic()+5
+                          while time.monotonic()<deadline:
+                              line=response.readline()
+                              if not line: break
+                              if line.startswith(b'data:'):
+                                  print(json.dumps({'role':role,'pod_log':line[5:].decode('utf-8',errors='replace').strip()}),flush=True)
+                  except (TimeoutError,socket.timeout): pass
+                  except HTTPError as exc:
+                      print(json.dumps({'role':role,'pod_log_http_status':exc.code}),flush=True)
           PY
