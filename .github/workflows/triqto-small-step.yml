@@ -1,0 +1,57 @@
+name: TriQTO Frozen Small-Step Probes
+on:
+  push:
+    branches: [research/triqto-s3-recovery-20261023]
+    paths: ['.github/workflows/triqto-small-step.yml']
+permissions:
+  contents: read
+jobs:
+  probes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      PYTHONPATH: src:scripts/v0_2
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: |
+          python -m pip install --quiet -r requirements.txt -c constraints/cpu.txt
+          python -m pip install --quiet -e .
+      - name: Verify independent evidence archives
+        run: |
+          mkdir -p evidence-download pilot-download evidence
+          gh release download calibration-evidence-20261019 --dir evidence-download
+          gh release download calibration-pilot-20261019 --dir pilot-download
+          python - <<'PY'
+          import json,hashlib,tarfile
+          from pathlib import Path
+          for archive,receipt,dest in [
+            ('evidence-download/calibration-evidence.tar.gz','evidence-download/calibration-evidence.tar.sha256.json','evidence'),
+            ('pilot-download/calibration-pilot-results.tar.gz','pilot-download/calibration-pilot-results.sha256.json','.')]:
+              doc=json.loads(Path(receipt).read_text())
+              assert 'sha256:'+hashlib.sha256(Path(archive).read_bytes()).hexdigest()==doc['archive_sha256']
+              with tarfile.open(archive) as f: f.extractall(dest,filter='data')
+          from calibration_replay import checked_archive
+          meta=json.loads(Path('evidence-download/calibration-evidence.tar.sha256.json').read_text())
+          checked_archive(Path('evidence'),meta['manifest_sha256'])
+          Path('manifest-hash.txt').write_text(meta['manifest_sha256'])
+          PY
+      - name: Artificial small-step frozen-network sensitivity probes
+        run: |
+          python scripts/v0_2/feature_block_small_step_probes.py \
+            --evidence evidence --manifest "$(cat manifest-hash.txt)" \
+            --pilot calibration-pilot --output small-step-results.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: synthetic-small-step-aggregates
+          path: small-step-results.json
+          if-no-files-found: ignore
+          retention-days: 7
