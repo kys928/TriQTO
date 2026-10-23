@@ -47,7 +47,7 @@ jobs:
           families=list(csv.DictReader(io.StringIO(raw['family_manifest.csv'].decode())))
           roots=list(csv.DictReader(io.StringIO(raw['root_manifest.csv'].decode())))
           subprocess.run(['gh','release','download','calibration-evidence-20261019',
-                          '-p','calibration-evidence.tar.gz','-D','.'],check=True,capture_output=True)
+                          '-p','calibration-evidence.tar.gz','-D','.','--repo','kys928/TriQTO'],check=True,capture_output=True)
           with tarfile.open('calibration-evidence.tar.gz') as a:
               member=next((m for m in a.getmembers()
                            if m.name.rstrip('/').endswith('archive_manifest.json')),None)
