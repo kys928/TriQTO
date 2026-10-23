@@ -1,0 +1,27 @@
+name: TriQTO Finite-Shot Uncertainty Unit Tests
+on:
+  push:
+    branches: [research/triqto-s3-recovery-20261023]
+    paths: ['.github/workflows/triqto-uncertainty-tests.yml']
+permissions:
+  contents: read
+jobs:
+  uncertainty:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      PYTHONPATH: src:scripts/v0_2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: |
+          python -m pip install --quiet -r requirements.txt -c constraints/cpu.txt
+          python -m pip install --quiet -e .
+      - name: Validate observed-count-only uncertainty calculations
+        run: python -m pytest -q tests/test_finite_shot_uncertainty.py
