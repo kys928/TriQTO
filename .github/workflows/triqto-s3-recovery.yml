@@ -1,0 +1,71 @@
+name: TriQTO Read-Only S3 Research Recovery
+on:
+  push:
+    branches: [research/triqto-s3-recovery-20261023]
+    paths: ['.github/workflows/triqto-s3-recovery.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RUNPOD_S3_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
+      RUNPOD_S3_SECRET_ACCESS_KEY: ${{ secrets.RUNPOD_S3_SECRET_ACCESS_KEY }}
+      RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
+      RUNPOD_DATACENTER_ID: ${{ vars.RUNPOD_DATACENTER_ID }}
+      RUNPOD_S3_ENDPOINT: ${{ vars.RUNPOD_S3_ENDPOINT }}
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --quiet boto3
+      - name: Read-only S3 inventory (no pod, no downloads)
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os, json, re
+          from pathlib import Path
+          import boto3
+          from botocore.config import Config
+          fields = ('RUNPOD_S3_ACCESS_KEY_ID','RUNPOD_S3_SECRET_ACCESS_KEY','RUNPOD_NETWORK_VOLUME_ID','RUNPOD_DATACENTER_ID','RUNPOD_S3_ENDPOINT')
+          if any(not os.environ.get(k) for k in fields):
+              raise RuntimeError('RunPod S3 repository secrets/variables are not all configured')
+          s3 = boto3.client('s3', endpoint_url=os.environ['RUNPOD_S3_ENDPOINT'],
+                           region_name=os.environ['RUNPOD_DATACENTER_ID'].lower(),
+                           aws_access_key_id=os.environ['RUNPOD_S3_ACCESS_KEY_ID'],
+                           aws_secret_access_key=os.environ['RUNPOD_S3_SECRET_ACCESS_KEY'],
+                           config=Config(signature_version='s3v4',retries={'max_attempts':5,'mode':'standard'},
+                                         connect_timeout=15,read_timeout=30))
+          bucket = os.environ['RUNPOD_NETWORK_VOLUME_ID']
+          top = s3.list_objects_v2(Bucket=bucket, Delimiter='/', MaxKeys=1000)
+          root = s3.list_objects_v2(Bucket=bucket, Prefix='triqto-data/', Delimiter='/', MaxKeys=1000)
+          top_prefixes = [x['Prefix'] for x in top.get('CommonPrefixes',[])]
+          children = [x['Prefix'] for x in root.get('CommonPrefixes',[])]
+          hit = re.compile(r'crossed|cross[_-]?replay|matched[_-]?response|feature[_-]?block|block[_-]?swap|coord|null[_-]?column|calibration|resampl|stability|step15|finite[_-]?shot',re.I)
+          blocked = re.compile(r'(sealed|ground[_-]?truth|true[_-]?location|hidden[_-]?label|holdout.*(truth|labels))',re.I)
+          matches=[]; scanned=0; pages=0
+          paginator = s3.get_paginator('list_objects_v2')
+          for page in paginator.paginate(Bucket=bucket,Prefix='triqto-data/',PaginationConfig={'PageSize':1000,'MaxItems':30000}):
+              pages += 1
+              for o in page.get('Contents',[]):
+                  scanned += 1
+                  k = o['Key']
+                  if hit.search(k) and not blocked.search(k):
+                      matches.append({'key': k, 'size': o['Size'], 'modified':o['LastModified'].isoformat()})
+          matches.sort(key=lambda x:(not bool(re.search(r'crossed|matched[_-]?response|feature[_-]?block|block[_-]?swap|null[_-]?column',x['key'],re.I)),-int(x['size'])))
+          report={'volume_access':'s3_list_only','top_level_prefixes':top_prefixes,
+                  'triqto_data_children':children,'objects_scanned':scanned,
+                  'pages_scanned':pages,'match_count':len(matches),
+                  'matches':matches[:150], 'results_truncated':len(matches)>150}
+          Path('s3-recovery-inventory.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps({'objects_scanned':scanned,'matches_found':len(matches),
+                            'triqto_data_children':children,
+                            'high_priority':matches[:25]},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: s3-recovery-inventory
+          path: s3-recovery-inventory.json
+          retention-days: 7

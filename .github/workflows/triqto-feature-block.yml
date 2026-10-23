@@ -1,0 +1,72 @@
+name: TriQTO Exploratory Frozen Feature Block Replay
+on:
+  push:
+    branches: [research/triqto-s3-recovery-20261023]
+    paths:
+      - '.github/workflows/triqto-feature-block.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  feature-block:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      NUMEXPR_NUM_THREADS: '1'
+      PYTHONPATH: src:scripts/v0_2
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install frozen CPU dependencies
+        run: |
+          python -m pip install --quiet -r requirements.txt -c constraints/cpu.txt
+          python -m pip install --quiet -e .
+          python -m pip check
+      - name: Verify releases and extract to local runner only
+        run: |
+          mkdir -p evidence-download pilot-download evidence calibration-pilot
+          gh release download calibration-evidence-20261019 --dir evidence-download
+          gh release download calibration-pilot-20261019 --dir pilot-download
+          python - <<'PY'
+          import json,hashlib,tarfile
+          from pathlib import Path
+          pairs=[
+            ('evidence-download/calibration-evidence.tar.gz',
+             'evidence-download/calibration-evidence.tar.sha256.json',
+             'evidence'),
+            ('pilot-download/calibration-pilot-results.tar.gz',
+             'pilot-download/calibration-pilot-results.sha256.json',
+             '.')]
+          for archive,receipt,dest in pairs:
+              doc=json.loads(Path(receipt).read_text())
+              h='sha256:'+hashlib.sha256(Path(archive).read_bytes()).hexdigest()
+              assert h==doc['archive_sha256'],(archive,'sha256 mismatch')
+              with tarfile.open(archive) as t:
+                  t.extractall(dest,filter='data')
+          from calibration_replay import checked_archive
+          doc=json.loads(Path('evidence-download/calibration-evidence.tar.sha256.json').read_text())
+          checked_archive(Path('evidence'),doc['manifest_sha256'])
+          Path('evidence-manifest-sha256.txt').write_text(doc['manifest_sha256'])
+          print('Both releases hash verified, portable archive verified')
+          PY
+      - name: Run exploratory crossed feature blocks (all references, N 2N 4N)
+        run: |
+          python scripts/v0_2/feature_block_exploratory_replay.py \
+            --evidence evidence \
+            --manifest "$(cat evidence-manifest-sha256.txt)" \
+            --pilot calibration-pilot \
+            --output feature-block-results.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: feature-block-aggregate-results
+          path: feature-block-results.json
+          if-no-files-found: ignore
+          retention-days: 7

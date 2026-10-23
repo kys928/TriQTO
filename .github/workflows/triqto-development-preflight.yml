@@ -1,0 +1,90 @@
+name: TriQTO Development Data Read-Only Preflight
+on:
+  push:
+    branches: [research/triqto-s3-recovery-20261023]
+    paths: ['.github/workflows/triqto-development-preflight.yml']
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RUNPOD_S3_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
+      RUNPOD_S3_SECRET_ACCESS_KEY: ${{ secrets.RUNPOD_S3_SECRET_ACCESS_KEY }}
+      RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
+      RUNPOD_DATACENTER_ID: ${{ vars.RUNPOD_DATACENTER_ID }}
+      RUNPOD_S3_ENDPOINT: ${{ vars.RUNPOD_S3_ENDPOINT }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --quiet boto3
+      - name: Verify allowed development manifests and disjointness metadata
+        run: |
+          python - <<'PY'
+          import boto3, os, csv, io, json, hashlib, subprocess, tarfile
+          from pathlib import Path
+          from botocore.config import Config
+          c=boto3.client('s3',endpoint_url=os.environ['RUNPOD_S3_ENDPOINT'],
+                        region_name=os.environ['RUNPOD_DATACENTER_ID'].lower(),
+                        aws_access_key_id=os.environ['RUNPOD_S3_ACCESS_KEY_ID'],
+                        aws_secret_access_key=os.environ['RUNPOD_S3_SECRET_ACCESS_KEY'],
+                        config=Config(signature_version='s3v4'))
+          bucket=os.environ['RUNPOD_NETWORK_VOLUME_ID']
+          base='triqto-data/step14_cross_motif_dataset/development_b087edfd6629ac250299391d/'
+          def get(name):
+              return c.get_object(Bucket=bucket,Key=base+name)['Body'].read()
+          completion=json.loads(get('dataset_complete.json'))
+          raw={}
+          for name in ['family_manifest.csv','root_manifest.csv']:
+              raw[name]=get('manifests/'+name)
+              expected=completion['manifest_hashes'][name]
+              actual='sha256:'+hashlib.sha256(raw[name]).hexdigest()
+              if expected!=actual:
+                  raise RuntimeError('development manifest hash mismatch: '+name)
+          families=list(csv.DictReader(io.StringIO(raw['family_manifest.csv'].decode())))
+          roots=list(csv.DictReader(io.StringIO(raw['root_manifest.csv'].decode())))
+          subprocess.run(['gh','release','download','calibration-evidence-20261019',
+                          '-p','calibration-evidence.tar.gz','-D','.','--repo','kys928/TriQTO'],check=True,capture_output=True)
+          with tarfile.open('calibration-evidence.tar.gz') as a:
+              member=next((m for m in a.getmembers()
+                           if m.name.rstrip('/').endswith('archive_manifest.json')),None)
+              if member is None: raise RuntimeError('Missing pilot archive manifest')
+              diagnostic=json.load(a.extractfile(member))
+          rows=diagnostic['selected_rows']
+          diag_families={str(r['family_id']) for r in rows if r.get('family_id')}
+          historical_families={r['family_id'] for r in families}
+          diag_signatures={str(r['family_signature_sha256']) for r in rows if r.get('family_signature_sha256')}
+          old_signatures={r['family_signature_sha256'] for r in families}
+          partitions={}
+          for f in families:
+              part=f['step14_partition']
+              partitions[part]=partitions.get(part,0)+1
+          result={
+            'schema':'triqto.development_data_readonly_preflight.v1',
+            's3_reads_only':['dataset_complete.json','manifests/family_manifest.csv','manifests/root_manifest.csv'],
+            'sealed_truth_accessed':False,'root_examples_accessed':False,
+            'source':'historical Step14 development product, not independent of frozen-model development',
+            'family_count':len(families),'root_count':len(roots),
+            'family_partitions':partitions,
+            'metadata_verified':True,
+            'diagnostic_examples':len(rows),
+            'diagnostic_family_ids_available':bool(diag_families),
+            'overlapping_family_ids':len(diag_families & historical_families) if diag_families else None,
+            'diagnostic_family_signatures_available':bool(diag_signatures),
+            'overlapping_family_signatures':len(diag_signatures & old_signatures) if diag_signatures else None,
+            'eligible_for_independent_method_selection':False,
+            'note':'Only metadata audit; historical model-development data cannot be called new independent families.'
+          }
+          Path('development-preflight.json').write_text(json.dumps(result,indent=2)+'\n')
+          print(json.dumps(result,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: development-manifest-preflight
+          path: development-preflight.json
+          if-no-files-found: ignore
+          retention-days: 7
