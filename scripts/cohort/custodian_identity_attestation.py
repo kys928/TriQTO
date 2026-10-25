@@ -113,7 +113,8 @@ def attest(candidate_path,inventory_path,source_dir,secret_key_path=None):
              "missing_coverage":missing_coverage,
              "source_coverage_complete":all_covered,
              "no_overlap":zero,
-             "provisional_coverage_and_disjointness":bool(all_covered and zero),\n             "passed":False,
+             "provisional_coverage_and_disjointness":bool(all_covered and zero),
+             "passed":False,
              "model_evaluation":False,"labels_read":False,
              "scope":"exact available identity signatures, not arbitrary unitary equivalence"}
     if secret_key_path:
@@ -122,7 +123,9 @@ def attest(candidate_path,inventory_path,source_dir,secret_key_path=None):
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
         if not isinstance(key,Ed25519PrivateKey):
             raise ValueError("Only externally provided Ed25519 key allowed")
-        # Signature covers the exact unsigned aggregate payload; never the private key.\n        payload["signature_ed25519_hex"]=key.sign(canonical(payload)).hex()\n        payload["passed"]=bool(all_covered and zero)
+        # Signature covers the exact unsigned aggregate payload; never the private key.
+        payload["signature_ed25519_hex"]=key.sign(canonical(payload)).hex()
+        payload["passed"]=bool(all_covered and zero)
     return payload
 
 def main():
