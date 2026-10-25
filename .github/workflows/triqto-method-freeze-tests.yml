@@ -1,0 +1,17 @@
+name: TriQTO final method-freeze fail-closed synthetic checks
+on:
+  push:
+    branches: [research/remedy-fit-selection-freeze-20261025]
+    paths: ['.github/workflows/triqto-method-freeze-tests.yml']
+permissions:
+  contents: read
+jobs:
+  synthetic-freeze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install --quiet "numpy==2.3.2" "pytest==8.4.2"
+      - run: python -m pytest -q tests/test_select_stabilization_remedy.py tests/test_freeze_method_after_selection.py
