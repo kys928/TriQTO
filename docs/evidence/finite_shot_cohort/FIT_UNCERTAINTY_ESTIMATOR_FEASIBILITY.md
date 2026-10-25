@@ -23,7 +23,7 @@ A ratio `empirical repeated-acquisition covariance trace / estimated covariance 
 
 The median per-family **absolute log calibration error** for coordinates declined with M1: 0.665→0.510 (N), 0.776→0.752 (2N), 0.840→0.693 (4N). For matched responses it was 0.328→0.317 (N), **worsened** 0.334→0.381 (2N) and 0.299→0.480 (4N). Thus M1 improves some coordinate trace calibration but does not solve coordinate underdispersion, and its matched-response covariance becomes increasingly overdispersed with larger shot budgets.
 
-**Research verdict:** `EXPLORATORY_FIT_ONLY_NO_ESTIMATOR_VALIDATED`. Do not choose a calibrated R2 feature reliability weight from these results. No Step-15 inference, R0/R1/R2 comparison or test-blindness verdict was made by this run. The earlier [true-centered control](../evidence/finite_shot_cohort/ADVERSARIAL_POST_RELEASE_FINDINGS.md) remains descriptive mechanism evidence only.
+**Research verdict:** `EXPLORATORY_FIT_ONLY_NO_ESTIMATOR_VALIDATED`. Do not choose a calibrated R2 feature reliability weight from these results. No Step-15 inference, R0/R1/R2 comparison or test-blindness verdict was made by this run. The earlier [true-centered control](ADVERSARIAL_POST_RELEASE_FINDINGS.md) remains descriptive mechanism evidence only.
 
 ## Scientific limitations / next validation
 
