@@ -1,0 +1,53 @@
+name: TriQTO read-only historical identity namespace preflight
+on:
+  push:
+    branches: [research/read-only-identity-inventory-20261025]
+    paths: ['.github/workflows/triqto-readonly-identity-preflight.yml']
+permissions:
+  contents: read
+jobs:
+  source-identity-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RUNPOD_S3_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
+      RUNPOD_S3_SECRET_ACCESS_KEY: ${{ secrets.RUNPOD_S3_SECRET_ACCESS_KEY }}
+      RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
+      RUNPOD_DATACENTER_ID: ${{ vars.RUNPOD_DATACENTER_ID }}
+      RUNPOD_S3_ENDPOINT: ${{ vars.RUNPOD_S3_ENDPOINT }}
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install read-only inventory dependencies
+        run: python -m pip install --quiet "pytest==8.4.2" "boto3==1.40.36"
+      - name: Regression tests — protected paths / label headers refused
+        run: python -m pytest -q tests/test_s3_identity_namespace_audit.py
+      - name: Download published ID-only candidate archives
+        run: |
+          mkdir -p original-identities prospective-identities
+          gh run download 40207050186 --repo kys928/TriQTO \
+            --name stabilization-fit-feasibility-and-blind-candidate-identities \
+            --dir original-identities
+          gh run download 40213970222 --repo kys928/TriQTO \
+            --name prospective-test-structural-identities \
+            --dir prospective-identities
+          test -s original-identities/blind-candidate-identities.json
+          test -s prospective-identities/prospective-test-structural-identities.json
+      - name: Read-only S3 LIST of training namespaces and approved identity manifests ONLY
+        run: |
+          python scripts/cohort/readonly_s3_identity_namespace_audit.py \
+            --candidate original-identities/blind-candidate-identities.json \
+            --candidate prospective-identities/prospective-test-structural-identities.json \
+            --output audit-report.json
+      - name: Preserve counts and bounded source coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: read-only-s3-identity-preflight
+          path: audit-report.json
+          if-no-files-found: warn
+          retention-days: 30
