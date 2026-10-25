@@ -1,0 +1,43 @@
+name: TriQTO FIT remedy-input validation and coefficient freeze
+on:
+  push:
+    branches: [research/lineage-remedy-blindtest-20261025]
+    paths: ['.github/workflows/triqto-fit-remedy-validation.yml']
+permissions:
+  contents: read
+jobs:
+  fit-remedy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      GH_TOKEN: ${{ github.token }}
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install --quiet "numpy==2.3.2" "pytest==8.4.2"
+      - name: Mechanistic R0/R1/R2 feature consistency
+        run: python -m pytest -q tests/test_remedy_feature_transforms.py
+      - name: Verify immutable corpus and FIT-only extract
+        run: |
+          gh release download finite-shot-cohort-20261025-1448ca1ebbdf --repo kys928/TriQTO -D . \
+            -p 'TriQTO_Finite_Shot_Cohort_20261025.tar.gz' -p 'SHA256SUMS'
+          sha256sum -c SHA256SUMS
+          tar -xzf TriQTO_Finite_Shot_Cohort_20261025.tar.gz --wildcards \
+            'corpus/roots.json' 'corpus/blind/FIT/*.npz' 'corpus/derived/FIT/*.npz'
+          test ! -e corpus/blind/TEST
+          test ! -e corpus/blind/SELECTION
+          test ! -e corpus/sealed
+      - name: Fit-only global uncertainty coefficients and R1/R2 feature pilot
+        run: |
+          python scripts/cohort/fit_remedy_coefficients_and_geometry.py \
+            --corpus corpus --output fit-remedy-coefficients-and-geometry.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fit-remedy-coefficients-and-geometry
+          path: fit-remedy-coefficients-and-geometry.json
+          if-no-files-found: warn
+          retention-days: 30
