@@ -1,0 +1,49 @@
+name: TriQTO create fail-closed R0 winner freeze from immutable selection artifact
+on:
+  push:
+    branches: [research/remedy-fit-selection-freeze-20261025]
+    paths: ['.github/workflows/triqto-freeze-r0-after-selection.yml']
+permissions:
+  contents: read
+jobs:
+  freeze-after-completed-selection:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install --quiet numpy==2.3.2
+      - name: Download completed SELECTION aggregate only; never source raw predictions
+        run: |
+          mkdir -p selection-aggregate-only
+          gh run download 40222647546 --repo kys928/TriQTO \
+            --name one-time-selection-aggregate-verdict --dir selection-aggregate-only
+          test -s selection-aggregate-only/one-time-selection-verdict.json
+      - name: Verify complete family result and make irreversible pre-TEST method freeze
+        run: |
+          python scripts/cohort/freeze_method_after_selection.py \
+            --selection-verdict selection-aggregate-only/one-time-selection-verdict.json \
+            --preselection-lock docs/evidence/finite_shot_cohort/STABILIZATION_PRE_SELECTION_LOCK_20261025.json \
+            --repo . --output frozen-selected-method.json
+          python - <<'PY'
+          import json,base64,pathlib
+          for name,path in [
+            ('SELECTION_AGGREGATE_B64',pathlib.Path('selection-aggregate-only/one-time-selection-verdict.json')),
+            ('FROZEN_METHOD_B64',pathlib.Path('frozen-selected-method.json'))
+          ]:
+              raw=path.read_bytes()
+              print(name+'='+base64.b64encode(raw).decode('ascii'))
+          freeze=json.loads(pathlib.Path('frozen-selected-method.json').read_text())
+          assert freeze['selected_remedy']=='R0'
+          assert freeze['test_data_acquired'] is False
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prospective-frozen-r0-after-selection
+          path: |
+            frozen-selected-method.json
+            selection-aggregate-only/one-time-selection-verdict.json
+          retention-days: 90
