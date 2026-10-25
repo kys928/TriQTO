@@ -65,7 +65,8 @@ def apply(feature,cov,remedy,*,alpha=None):
     if remedy=="R1":
         m=x[9:12]
         v=np.maximum(np.diag(c)[3:],0.)
-        rel=m*m/(m*m+strength*v+SIGNAL_FLOOR**2)
+        signal=m*m+SIGNAL_FLOOR**2
+        rel=signal/(signal+strength*v)
         ans[9:12]=m*rel
         ans[12:15]=np.abs(ans[9:12])
     else:
