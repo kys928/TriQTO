@@ -1,0 +1,58 @@
+name: TriQTO FIT-only estimator and blind identity export
+on:
+  push:
+    branches: [research/stabilization-gates-20261025]
+    paths: ['.github/workflows/triqto-stabilization-gates-fit.yml']
+permissions:
+  contents: read
+jobs:
+  fit-and-custody-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install minimal audit dependencies
+        run: python -m pip install --quiet "numpy==2.3.2" "pytest==8.4.2"
+      - name: Attestation and synthetic covariance unit tests
+        run: python -m pytest -q tests/test_stabilization_research_gates.py
+      - name: Fetch and hash-verify original immutable cohort release
+        run: |
+          gh release download finite-shot-cohort-20261025-1448ca1ebbdf \
+            --repo kys928/TriQTO -D . \
+            -p 'TriQTO_Finite_Shot_Cohort_20261025.tar.gz' -p 'SHA256SUMS'
+          sha256sum -c SHA256SUMS
+      - name: Export public identity-only candidate bundle, never TEST truth
+        run: |
+          tar -xzf TriQTO_Finite_Shot_Cohort_20261025.tar.gz \
+            'corpus/roots.json' 'corpus/families.json'
+          python scripts/cohort/export_blind_candidate_identities.py \
+            --corpus corpus --output blind-candidate-identities.json
+      - name: Extract permitted FIT counts and derived arrays only
+        run: |
+          tar -xzf TriQTO_Finite_Shot_Cohort_20261025.tar.gz \
+            --wildcards 'corpus/blind/FIT/*.npz' 'corpus/derived/FIT/*.npz'
+          test ! -e corpus/sealed
+          test ! -e corpus/blind/TEST
+          test ! -e corpus/blind/SELECTION
+          test ! -e corpus/development_truth
+          test ! -e corpus/acquisition_audit
+      - name: Compare two observed-count-only nonlinear estimators on FIT
+        run: |
+          python scripts/cohort/compare_nonlinear_estimators_fit.py \
+            --corpus corpus --output estimator-fit-feasibility.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stabilization-fit-feasibility-and-blind-candidate-identities
+          path: |
+            estimator-fit-feasibility.json
+            blind-candidate-identities.json
+          if-no-files-found: warn
+          retention-days: 30
