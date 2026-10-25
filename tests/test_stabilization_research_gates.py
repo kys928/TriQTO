@@ -14,12 +14,12 @@ import compare_nonlinear_estimators_fit as f
 
 def synthetic(tmp_path,overlap=False,missing=False):
     candidates={"cohort_identity":"sha256:1448ca1ebbdf50149d0200dae4c6ed9eb8a39156c18e329e42ea74ca3d10203d",
-               "candidates":[{"graph_sha256":"sha256:a","operation_signature":"ry:q0"}]}
+               "candidates":[{"graph_sha256":"sha256:a","operation_signature":"ry:q0",\n                             "family_signature_sha256":"sha256:fa","context_free_signature_sha256":"sha256:ca","wire_signature_sha256":"sha256:wa"}]}
     (tmp_path/"candidate.json").write_text(json.dumps(candidates))
     (tmp_path/"registry.json").write_text(json.dumps({
         "custodian_asserts_source_inventory_exhaustive":True,
         "required_sources":[{"name":"protected_identity_only",
-                             "required_identity_fields":["graph_sha256","operation_signature"]}]}))
+                             "required_identity_fields":list(ci.FIELDS)}]}))
     imports=tmp_path/"sources";imports.mkdir()
     if not missing:
         (imports/"protected_identity_only.csv").write_text(
