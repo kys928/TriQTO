@@ -1,35 +1,39 @@
-"""Fast synthetic tests for attestation coverage and count-only candidate uncertainty."""
+"""Synthetic tests for identity-only attestation and candidate estimators."""
 from __future__ import annotations
-import importlib.util
 import json
 from pathlib import Path
 import sys
 import numpy as np
 import pytest
 
-COHORT=Path(__file__).resolve().parents[1]/"scripts/cohort"
-sys.path.insert(0,str(COHORT))
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"scripts/cohort"))
 import custodian_identity_attestation as ci
 import compare_nonlinear_estimators_fit as f
 
 def synthetic(tmp_path,overlap=False,missing=False):
     candidates={"cohort_identity":"sha256:1448ca1ebbdf50149d0200dae4c6ed9eb8a39156c18e329e42ea74ca3d10203d",
-               "candidates":[{"graph_sha256":"sha256:a","operation_signature":"ry:q0",\n                             "family_signature_sha256":"sha256:fa","context_free_signature_sha256":"sha256:ca","wire_signature_sha256":"sha256:wa"}]}
+      "candidates":[{"graph_sha256":"sha256:a","operation_signature":"ry:q0",
+          "family_signature_sha256":"sha256:fa","context_free_signature_sha256":"sha256:ca",
+          "wire_signature_sha256":"sha256:wa"}]}
     (tmp_path/"candidate.json").write_text(json.dumps(candidates))
     (tmp_path/"registry.json").write_text(json.dumps({
         "custodian_asserts_source_inventory_exhaustive":True,
         "required_sources":[{"name":"protected_identity_only",
                              "required_identity_fields":list(ci.FIELDS)}]}))
-    imports=tmp_path/"sources";imports.mkdir()
+    sources=tmp_path/"sources"
+    sources.mkdir()
     if not missing:
-        (imports/"protected_identity_only.csv").write_text(
-            "graph_sha256,operation_signature\n"+
-            ("sha256:a,ry:q0\n" if overlap else "sha256:b,rx:q1\n"))
-    return (tmp_path/"candidate.json",tmp_path/"registry.json",imports)
+        header=",".join(ci.FIELDS)
+        values=(
+            ["sha256:fa","sha256:ca","sha256:a","ry:q0","sha256:wa"]
+            if overlap else
+            ["sha256:fb","sha256:cb","sha256:b","rx:q1","sha256:wb"]
+        )
+        (sources/"protected_identity_only.csv").write_text(header+"\n"+",".join(values)+"\n")
+    return (tmp_path/"candidate.json",tmp_path/"registry.json",sources)
 
 def test_custodian_fail_closed_if_source_absent(tmp_path):
-    params=synthetic(tmp_path,missing=True)
-    r=ci.attest(*params)
+    r=ci.attest(*synthetic(tmp_path,missing=True))
     assert not r["passed"] and not r["source_coverage_complete"]
 
 def test_custodian_aggregate_disjoint(tmp_path):
@@ -45,6 +49,12 @@ def test_custodian_requires_exhaustive_registry(tmp_path):
     c,reg,s=synthetic(tmp_path)
     j=json.loads(reg.read_text());j["custodian_asserts_source_inventory_exhaustive"]=False
     reg.write_text(json.dumps(j))
+    with pytest.raises(ValueError):
+        ci.attest(c,reg,s)
+
+def test_custodian_refuses_missing_signature_columns(tmp_path):
+    c,reg,s=synthetic(tmp_path)
+    (s/"protected_identity_only.csv").write_text("graph_sha256,operation_signature\nsha256:b,rx:q1\n")
     with pytest.raises(ValueError):
         ci.attest(c,reg,s)
 
@@ -65,6 +75,6 @@ def test_estimator_refuses_shot_mismatch():
     with pytest.raises(ValueError):
         f.predict_cov(c,t,np.ones(6),np.ones(6),100,"plugin_multinomial",np.random.default_rng(0))
 
-def test_posterior_predictive_does_not_require_true_probabilities():
+def test_posterior_predictive_never_accepts_true_probabilities():
     assert "true_p" not in f.predict_cov.__code__.co_varnames
     assert f.METHODS==("plugin_multinomial","jeffreys_posterior_predictive")
