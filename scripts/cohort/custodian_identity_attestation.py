@@ -49,13 +49,14 @@ def source_records(path):
 
 def candidate_records(manifest):
     m=json.loads(Path(manifest).read_text())
-    if m.get("cohort_identity")!="sha256:1448ca1ebbdf50149d0200dae4c6ed9eb8a39156c18e329e42ea74ca3d10203d":
-        raise ValueError("Unexpected candidate cohort identity")
+    target=m.get("cohort_identity")
+    if not isinstance(target,str) or not target.startswith("sha256:") or len(target)!=71:
+        raise ValueError("Candidate identity must be a complete SHA256 commitment")
     if not m.get("candidates") or not isinstance(m["candidates"],list):
         raise ValueError("Expected identity-only exported candidate rows")
     rows=[normalize(x) for x in m["candidates"]]
-    if any(not x.get("graph_sha256") for x in rows):
-        raise ValueError("Candidate graph hashes missing")
+    if any(any(not row.get(field) for field in REQUIRED) for row in rows):
+        raise ValueError("Every candidate requires all five identity fields")
     return m,rows
 
 def attest(candidate_path,inventory_path,source_dir,secret_key_path=None):
