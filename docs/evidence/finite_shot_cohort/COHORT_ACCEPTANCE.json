@@ -16,6 +16,7 @@
   "primary_run": "https://github.com/kys928/TriQTO/actions/runs/40188027634",
   "additional_identity_run": "https://github.com/kys928/TriQTO/actions/runs/40188502697",
   "blockers": [
+    "Original published TEST mechanism/strength-bin/clean and structural location labels are reconstructable from public metadata. Do not use the released TEST for blind confirmation.",
     "No authorized blind exclusion inventory for inaccessible sealed/future reserves.",
     "Historical source registry is not exhaustive; only the explicitly enumerated products were checked.",
     "Some early training products expose parameterized graph hashes but no family/ordered-operation signatures, preventing complete structural exclusion."
@@ -24,6 +25,21 @@
     "Nonlinear observed-count bootstrap is not validated as a calibrated stabilization reliability estimator.",
     "Original grammar encodes intended affected qubit through its first RY gate.",
     "TEST label schedule correctness is supported by generation code, not independent post-sealing label inspection.",
-    "Structural equivalence checks do not prove arbitrary unitary or measurement equivalence."
-  ]
+    "Structural equivalence checks do not prove arbitrary unitary or measurement equivalence.",
+    "3-reference 128-replicate observed-count bootstrap still underestimates nonlinear coordinate covariance at N/2N/4N; a further true-centered analysis-only control is in progress."
+  ],
+  "test_labels_cryptographically_encrypted": true,
+  "test_label_blindness_valid": false,
+  "original_test_eligible_for_untouched_mechanism_confirmation": false,
+  "metadata_recovery_audit": {
+    "run": "https://github.com/kys928/TriQTO/actions/runs/40203936394",
+    "root_count_verified": 720,
+    "development_observations_verified": 9360,
+    "correct_mechanism_labels": 9360,
+    "correct_strength_bins": 9360,
+    "correct_clean_controls": 9360,
+    "correct_affected_qubits": 9360,
+    "correct_boundaries": 9360,
+    "test_truth_accessed": false
+  }
 }
