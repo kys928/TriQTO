@@ -1,0 +1,62 @@
+name: TriQTO Post-Release Adversarial Development-Only Audit
+on:
+  push:
+    branches: [research/finite-shot-cohort-20261025]
+    paths: ['.github/workflows/triqto-cohort-adversarial-review.yml']
+permissions:
+  contents: read
+jobs:
+  blinded-leakage-and-nonlinearity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install small independent audit runtime
+        run: python -m pip install --quiet "numpy==2.3.2"
+      - name: Verify immutable original cohort archive and extract development-only inputs
+        shell: bash
+        run: |
+          gh release download finite-shot-cohort-20261025-1448ca1ebbdf \
+            --repo kys928/TriQTO -D . \
+            -p 'TriQTO_Finite_Shot_Cohort_20261025.tar.gz' -p 'SHA256SUMS'
+          sha256sum -c SHA256SUMS
+          tar -xzf TriQTO_Finite_Shot_Cohort_20261025.tar.gz \
+            --wildcards \
+            'corpus/roots.json' \
+            'corpus/families.json' \
+            'corpus/development_truth/FIT/*.json' \
+            'corpus/development_truth/SELECTION/*.json' \
+            'corpus/blind/FIT/*.npz' \
+            'corpus/blind/SELECTION/*.npz' \
+            'corpus/derived/FIT/*.npz' \
+            'corpus/derived/SELECTION/*.npz' \
+            'corpus/acquisition_audit/FIT/*.npz' \
+            'corpus/acquisition_audit/SELECTION/*.npz'
+          echo 'Extracted ONLY permitted FIT/SELECTION raw, derived, truth and audit files, plus public manifests.'
+          test ! -e corpus/sealed
+          test ! -e corpus/development_truth/TEST
+          test ! -e corpus/blind/TEST
+      - name: Check metadata-recovered labels against all permitted development truth
+        run: |
+          python scripts/cohort/adversarial_public_metadata_recovery.py \
+            --corpus corpus --output recovered-development-metadata-aggregates.json
+      - name: Investigate nonlinear coordinate variance across budgets and three bootstrap references
+        run: |
+          python scripts/cohort/review_nonlinear_covariance.py \
+            --corpus corpus --output nonlinear-covariance-investigation.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: postrelease-adversarial-development-only-aggregates
+          path: |
+            recovered-development-metadata-aggregates.json
+            nonlinear-covariance-investigation.json
+          if-no-files-found: warn
+          retention-days: 30
