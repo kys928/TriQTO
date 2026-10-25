@@ -189,6 +189,16 @@ if __name__=="__main__":
     p.add_argument("--recipient-public-key",required=True,type=Path)
     p.add_argument("--final-method-freeze",type=Path)
     p.add_argument("--pilot",action="store_true")
+    p.add_argument("--identity-preflight-only",action="store_true")
     a=p.parse_args()
-    result=build(a.candidates,a.output,a.recipient_public_key,a.final_method_freeze,a.pilot)
-    print(json.dumps({k:result[k] for k in ("status","family_count","root_count","observation_count","truth_public")}))
+    if a.identity_preflight_only:
+        accepted=0
+        for index,bp,circuits,cfg,fid in reconstruct(a.candidates,60):
+            accepted+=1
+        if accepted!=60:raise RuntimeError("60-family candidate proposal drift")
+        print(json.dumps({"status":"IDENTITIES_RECONSTRUCTED_NO_TEST_MATERIALIZED",
+                         "families":accepted,"roots":accepted*4,
+                         "candidate_identity":EXPECTED,"measurements_created":0}))
+    else:
+        result=build(a.candidates,a.output,a.recipient_public_key,a.final_method_freeze,a.pilot)
+        print(json.dumps({k:result[k] for k in ("status","family_count","root_count","observation_count","truth_public")}))
