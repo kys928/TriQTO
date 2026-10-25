@@ -1,0 +1,41 @@
+name: TriQTO FIT-only covariance shape and coverage
+on:
+  push:
+    branches: [research/stabilization-gates-20261025]
+    paths: ['.github/workflows/triqto-fit-covariance-coverage.yml']
+permissions:
+  contents: read
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install --quiet "numpy==2.3.2" "pytest==8.4.2"
+      - name: Verify original release immutable
+        run: |
+          gh release download finite-shot-cohort-20261025-1448ca1ebbdf --repo kys928/TriQTO -D . \
+            -p 'TriQTO_Finite_Shot_Cohort_20261025.tar.gz' -p 'SHA256SUMS'
+          sha256sum -c SHA256SUMS
+          tar -xzf TriQTO_Finite_Shot_Cohort_20261025.tar.gz --wildcards \
+            'corpus/roots.json' 'corpus/blind/FIT/*.npz' 'corpus/derived/FIT/*.npz'
+          test ! -e corpus/sealed
+          test ! -e corpus/blind/TEST
+          test ! -e corpus/blind/SELECTION
+      - name: Frozen FIT family crossfit marginal and joint coverage
+        run: |
+          python scripts/cohort/check_covariance_coverage_fit.py \
+            --corpus corpus --out fit-covariance-coverage-results.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fit-joint-covariance-coverage
+          path: fit-covariance-coverage-results.json
+          if-no-files-found: warn
+          retention-days: 30
