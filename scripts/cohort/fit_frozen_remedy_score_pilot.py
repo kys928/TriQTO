@@ -95,7 +95,7 @@ def run(corpus):
         # FIT labels select 3 non-clean examples; these are *not* a method
         # hyperparameter selection or input to the inference algorithm.
         delta,weights=c.diagnostic_delta(diagnostics,table)
-        jac=c.counts_to_jacobian(calibration)
+        jac=c.counts_to_jacobian(calibration,table)
         fx=c.canonical_batch(delta,jac[None],weights)[0]
         pr=c.profile_batch(delta,jac[None],weights)[0]
         mechanisms={v:i for i,v in enumerate(c.MECHANISMS)}
