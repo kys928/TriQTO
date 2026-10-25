@@ -68,7 +68,8 @@ def records(corpus):
                 if np.min(np.linalg.eigvalsh(estimated))< -1.e-6:
                     raise RuntimeError("Estimated covariance not PSD")
                 all_rows.append({"fid":fid,"fold":fold(fid),"shots":shots,"ref":ref,
-                                 "emp":emp,"estimated":estimated})
+                                 "emp":emp,"estimated":estimated,
+                                 "z_ref":fx[ref],"z_other_mean":np.delete(fx,ref,axis=0).mean(axis=0)})
         if (i+1)%30==0:print(json.dumps({"families_processed":i+1}),flush=True)
     return all_rows
 
