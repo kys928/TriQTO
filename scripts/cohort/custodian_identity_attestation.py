@@ -19,7 +19,7 @@ from pathlib import Path
 
 FIELDS = ("family_signature_sha256","context_free_signature_sha256",
           "graph_sha256","operation_signature","wire_signature_sha256")
-REQUIRED = ("graph_sha256","operation_signature")  # fail closed on missing skeleton coverage
+REQUIRED = FIELDS  # fail closed on missing family, context-free, graph, ordered and relabelled identities
 
 def canonical(value):
     return json.dumps(value,sort_keys=True,separators=(",",":"),allow_nan=False).encode()
@@ -85,6 +85,8 @@ def attest(candidate_path,inventory_path,source_dir,secret_key_path=None):
             continue
         rows,digest=source_records(path)
         required_fields=item.get("required_identity_fields",list(REQUIRED))
+        if set(required_fields) != set(REQUIRED):
+            raise ValueError("Full five-identity-type coverage required for complete attestation")
         if not set(required_fields).issubset(FIELDS):
             raise ValueError("Invalid requested identity fields")
         gaps=[f for f in required_fields if any(not x.get(f) for x in rows)]
