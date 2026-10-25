@@ -1,0 +1,47 @@
+{
+  "cohort_identity": "sha256:1448ca1ebbdf50149d0200dae4c6ed9eb8a39156c18e329e42ea74ca3d10203d",
+  "statistical_evidence_identity": "sha256:9f889092113d9c65549d0191158b25ed0a845f2cce7769192d449d0564ccb6fa",
+  "status": "INTERNALLY_VERIFIED_QUARANTINED_EXTERNAL_INDEPENDENCE_UNVERIFIED",
+  "VERIFIED_AND_FROZEN_FOR_STABILIZATION_DEVELOPMENT": false,
+  "generation_complete": true,
+  "internal_integrity_audit_passed": true,
+  "additional_identity_audit_passed": true,
+  "development_eda_complete": true,
+  "sealed_test_truth_decrypted": false,
+  "model_evaluated": false,
+  "remedies_selected": false,
+  "materialization_manifest_unchanged": true,
+  "raw_archive": "https://github.com/kys928/TriQTO/releases/tag/finite-shot-cohort-20261025-1448ca1ebbdf",
+  "archive_sha256": "fbdf4f351771e5b1779173b1e085eadd249ecb72d059d0fb051a3f55b44adce9",
+  "primary_run": "https://github.com/kys928/TriQTO/actions/runs/40188027634",
+  "additional_identity_run": "https://github.com/kys928/TriQTO/actions/runs/40188502697",
+  "blockers": [
+    "Original published TEST mechanism/strength-bin/clean and structural location labels are reconstructable from public metadata. Do not use the released TEST for blind confirmation.",
+    "No authorized blind exclusion inventory for inaccessible sealed/future reserves.",
+    "Historical source registry is not exhaustive; only the explicitly enumerated products were checked.",
+    "Some early training products expose parameterized graph hashes but no family/ordered-operation signatures, preventing complete structural exclusion."
+  ],
+  "scientific_limits": [
+    "Nonlinear observed-count bootstrap is not validated as a calibrated stabilization reliability estimator.",
+    "Original grammar encodes intended affected qubit through its first RY gate.",
+    "TEST label schedule correctness is supported by generation code, not independent post-sealing label inspection.",
+    "Structural equivalence checks do not prove arbitrary unitary or measurement equivalence.",
+    "Post-release oracle-centered covariance audit completed; see ADR report and summary for observed-vs-simulated differences."
+  ],
+  "test_labels_cryptographically_encrypted": true,
+  "test_label_blindness_valid": false,
+  "original_test_eligible_for_untouched_mechanism_confirmation": false,
+  "metadata_recovery_audit": {
+    "run": "https://github.com/kys928/TriQTO/actions/runs/40203936394",
+    "root_count_verified": 720,
+    "development_observations_verified": 9360,
+    "correct_mechanism_labels": 9360,
+    "correct_strength_bins": 9360,
+    "correct_clean_controls": 9360,
+    "correct_affected_qubits": 9360,
+    "correct_boundaries": 9360,
+    "test_truth_accessed": false
+  },
+  "followup_control_status": "COMPLETE_EXPLORATORY_DEVELOPMENT_ONLY",
+  "followup_control_report": "docs/evidence/finite_shot_cohort/ADVERSARIAL_POST_RELEASE_FINDINGS.md"
+}

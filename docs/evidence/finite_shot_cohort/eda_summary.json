@@ -1,0 +1,262 @@
+{
+  "bootstrap_coordinate_trace_ratio": {
+    "max": 18.54436770122117,
+    "median": 1.9576641089484195,
+    "min": 0.4332886309231705,
+    "p10": 1.0534987772972617,
+    "p90": 4.421800828938932
+  },
+  "bootstrap_matched_trace_ratio": {
+    "max": 4.1844595471149555,
+    "median": 1.3363489190813398,
+    "min": 0.5339849265615788,
+    "p10": 0.8682510103901843,
+    "p90": 2.1788254406744203
+  },
+  "bootstrap_max_coordinate_matched_correlation": {
+    "max": 0.9848025608427929,
+    "median": 0.8052345478713336,
+    "min": 0.3333266122162323,
+    "p10": 0.5252070468069683,
+    "p90": 0.9575474053407624
+  },
+  "bootstrap_replicates": 64,
+  "bootstrap_sample_roots": 180,
+  "clean_development_controls": 720,
+  "cohort_identity": "sha256:1448ca1ebbdf50149d0200dae4c6ed9eb8a39156c18e329e42ea74ca3d10203d",
+  "counts_summary_by_budget": {
+    "16384": {
+      "zero_fraction": {
+        "max": 0.5085930499551972,
+        "median": 0.005843586952527924,
+        "min": 0.0,
+        "p10": 0.0,
+        "p90": 0.27390446738591273
+      }
+    },
+    "4096": {
+      "zero_fraction": {
+        "max": 0.5372598846326165,
+        "median": 0.022229705459770113,
+        "min": 0.0,
+        "p10": 0.0,
+        "p90": 0.2824379396645022
+      }
+    },
+    "8192": {
+      "zero_fraction": {
+        "max": 0.5229229670698925,
+        "median": 0.010700783534356726,
+        "min": 0.0,
+        "p10": 0.0,
+        "p90": 0.27904040404040403
+      }
+    }
+  },
+  "development_mechanism_nuisance_cramers_v": {
+    "context": 0.0,
+    "n_qubits": 0.0,
+    "partition": 0.0,
+    "reference_layers": 0.0,
+    "sampling_stratum": 0.0,
+    "shots": 0.0,
+    "strength_bin": 0.0,
+    "topology_class": 0.0
+  },
+  "development_rejection_reasons": {
+    "nonidentifiable_at_original_admission": 376,
+    "outside_preregistered_stress_rule": 16
+  },
+  "development_screen_attempts": 572,
+  "development_shot_strength_bin_cramers_v": 0.026449734920529076,
+  "family_cluster_intervals": {
+    "16384": {
+      "coordinate_sd_mean": {
+        "families": 180,
+        "high95": 2.1993461698938392,
+        "interpretation": "descriptive bootstrap interval",
+        "low95": 1.9539228333083003,
+        "mean": 2.0724924165905705,
+        "unit": "family, equal-weight means"
+      },
+      "matched_sd_mean": {
+        "families": 180,
+        "high95": 0.0859736088749364,
+        "interpretation": "descriptive bootstrap interval",
+        "low95": 0.08111946297519085,
+        "mean": 0.08355978462050477,
+        "unit": "family, equal-weight means"
+      }
+    },
+    "4096": {
+      "coordinate_sd_mean": {
+        "families": 180,
+        "high95": 1.8406649939796351,
+        "interpretation": "descriptive bootstrap interval",
+        "low95": 1.6908523937550108,
+        "mean": 1.763265338443228,
+        "unit": "family, equal-weight means"
+      },
+      "matched_sd_mean": {
+        "families": 180,
+        "high95": 0.1269356621435836,
+        "interpretation": "descriptive bootstrap interval",
+        "low95": 0.12256564759743141,
+        "mean": 0.1247911109772517,
+        "unit": "family, equal-weight means"
+      }
+    },
+    "8192": {
+      "coordinate_sd_mean": {
+        "families": 180,
+        "high95": 1.969810308067728,
+        "interpretation": "descriptive bootstrap interval",
+        "low95": 1.777344816480803,
+        "mean": 1.8708650324326306,
+        "unit": "family, equal-weight means"
+      },
+      "matched_sd_mean": {
+        "families": 180,
+        "high95": 0.10419657268644665,
+        "interpretation": "descriptive bootstrap interval",
+        "low95": 0.09960290970711994,
+        "mean": 0.10190709037038646,
+        "unit": "family, equal-weight means"
+      }
+    }
+  },
+  "inherited_structural_proxy": "First RY gate acts on the intended affected qubit under unchanged Step14 grammar; not supplied as explicit hidden metadata.",
+  "jacobian_uncertainty": {
+    "16384": {
+      "approx95_mean_J_coverage": 0.9490039343094385,
+      "mean_absolute_bias": {
+        "max": 0.012905511840562676,
+        "median": 0.007976177498597282,
+        "min": 0.004240437711655752,
+        "p10": 0.006482629294649952,
+        "p90": 0.009642813460905383
+      },
+      "trace_ratio": {
+        "max": 1.2466875061037623,
+        "median": 0.9987231903437972,
+        "min": 0.764824802176737,
+        "p10": 0.9205901321804042,
+        "p90": 1.0783964438423754
+      }
+    },
+    "4096": {
+      "approx95_mean_J_coverage": 0.9497062310904423,
+      "mean_absolute_bias": {
+        "max": 0.02683415303089522,
+        "median": 0.01586536476198996,
+        "min": 0.008050954753329197,
+        "p10": 0.013048395807302375,
+        "p90": 0.018797933665964484
+      },
+      "trace_ratio": {
+        "max": 1.2684802625595102,
+        "median": 0.9959820921295665,
+        "min": 0.7900884712566016,
+        "p10": 0.9142990196395183,
+        "p90": 1.0774380627353939
+      }
+    },
+    "8192": {
+      "approx95_mean_J_coverage": 0.9496414838699075,
+      "mean_absolute_bias": {
+        "max": 0.018683108879749766,
+        "median": 0.011230968734364908,
+        "min": 0.00618614068325458,
+        "p10": 0.009198766610825353,
+        "p90": 0.013566617388306815
+      },
+      "trace_ratio": {
+        "max": 1.2654815830032813,
+        "median": 0.9977246045606266,
+        "min": 0.6950580872055392,
+        "p10": 0.9193960313546077,
+        "p90": 1.0850708774805236
+      }
+    }
+  },
+  "mechanism_counts_development": {
+    "rx_overrotation": 2880,
+    "ry_overrotation": 2880,
+    "rz_drift": 2880
+  },
+  "minimum_analytic_covariance_eigenvalue": -1.5050672688599955e-17,
+  "minimum_bootstrap_covariance_eigenvalue": 0.0,
+  "model_evaluated": false,
+  "representative_families_meeting_stress_rule_fraction": 0.7291666666666666,
+  "split_stratum_counts": [
+    {
+      "families": 96,
+      "partition": "FIT",
+      "sampling_stratum": "representative"
+    },
+    {
+      "families": 24,
+      "partition": "FIT",
+      "sampling_stratum": "stress"
+    },
+    {
+      "families": 48,
+      "partition": "SELECTION",
+      "sampling_stratum": "representative"
+    },
+    {
+      "families": 12,
+      "partition": "SELECTION",
+      "sampling_stratum": "stress"
+    },
+    {
+      "families": 48,
+      "partition": "TEST",
+      "sampling_stratum": "representative"
+    },
+    {
+      "families": 12,
+      "partition": "TEST",
+      "sampling_stratum": "stress"
+    }
+  ],
+  "status": "CONSTRUCTED_QUARANTINED_PENDING_INDEPENDENCE_AND_AUDIT",
+  "structural_distributions_all_partitions": {
+    "injection_context_class": {
+      "inter_entangling": 95,
+      "post_entangling_recombination": 105,
+      "pre_entangling": 40
+    },
+    "n_qubits": {
+      "2": 86,
+      "3": 56,
+      "4": 42,
+      "5": 56
+    },
+    "reference_layers": {
+      "4": 24,
+      "5": 46,
+      "6": 42,
+      "7": 39,
+      "8": 43,
+      "9": 46
+    },
+    "topology_class": {
+      "directed_fan": 46,
+      "hub_spoke": 42,
+      "mixed_sparse": 35,
+      "path": 35,
+      "staggered_path": 38,
+      "two_branch": 44
+    }
+  },
+  "test_array_files_opened_for_eda": 0,
+  "test_generation_truth_protected": true,
+  "test_labels_accessed": false,
+  "unverified_exclusions": [
+    "earlier non-Step14 training products",
+    "spent fresh-holdout blind graph inventory",
+    "selected 36 diagnostic graph inventory",
+    "inaccessible sealed/future reserves"
+  ]
+}

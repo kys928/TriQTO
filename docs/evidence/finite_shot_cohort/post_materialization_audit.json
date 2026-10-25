@@ -1,0 +1,25 @@
+{
+  "cohort_identity": "sha256:1448ca1ebbdf50149d0200dae4c6ed9eb8a39156c18e329e42ea74ca3d10203d",
+  "statistical_evidence_identity": "sha256:9f889092113d9c65549d0191158b25ed0a845f2cce7769192d449d0564ccb6fa",
+  "additional_identity_inventory_sha256": "sha256:a159d850d6744bc76b904d84795c6703b5171bb691fc811438d57cb2c8c2f1c6",
+  "additional_source_count": 10,
+  "overlaps": {
+    "additional_family_signature": 0,
+    "additional_graph_sha256": 0,
+    "additional_operation_signature": 0,
+    "additional_wire_relabelled_signature": 0,
+    "original_wire_relabelled_signature_independent": 0
+  },
+  "development_roots_truth_schedule_checked": 720,
+  "independent_development_diagnostic_replays": 156,
+  "test_labels_accessed": false,
+  "test_array_files_opened": 0,
+  "errors": [],
+  "status": "PASS_WITH_REMAINING_EXCLUSION_GAPS",
+  "remaining_historical_gaps": [
+    "inaccessible sealed/future reserves",
+    "any historical products not enumerated in this explicit source inventory"
+  ],
+  "missing_historical_paths": [],
+  "global_verified_status_permitted": false
+}

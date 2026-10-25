@@ -1,0 +1,64 @@
+{
+  "schema": "triqto.postrelease_adversarial_findings.v1",
+  "cohort_identity": "sha256:1448ca1ebbdf50149d0200dae4c6ed9eb8a39156c18e329e42ea74ca3d10203d",
+  "status": "EXPLORATORY_POST_RELEASE_TEST_BLINDNESS_INVALID_AND_NONLINEAR_PLUGIN_COVARIANCE_UNCALIBRATED",
+  "source_runs": {
+    "metadata_and_plugin": "https://github.com/kys928/TriQTO/actions/runs/40203936394",
+    "true_centered": "https://github.com/kys928/TriQTO/actions/runs/40204202193"
+  },
+  "verification": {
+    "development_roots": 720,
+    "development_observations": 9360,
+    "mechanism_correct": 9360,
+    "strength_bin_correct": 9360,
+    "clean_control_correct": 9360,
+    "affected_qubit_correct": 9360,
+    "injection_boundary_correct": 9360,
+    "test_truth_accessed": false,
+    "test_array_files_extracted": false
+  },
+  "covariance": {
+    "development_families": 180,
+    "observed_calibration_draws": 16,
+    "bootstrap_reference_indices": [
+      0,
+      7,
+      15
+    ],
+    "observed_count_bootstrap_reps_per_ref": 128,
+    "true_centered_simulation_reps": 256,
+    "oracle_simulator_probabilities_in_estimator": false,
+    "unit": "median ratio of covariance traces across first root/candidate/observation per development family",
+    "budgets": {
+      "4096": {
+        "empirical_coordinate_to_oracle": 0.97198,
+        "observed_plugin_coordinate_to_oracle": 0.52109,
+        "empirical_coordinate_to_observed_plugin": 1.95354,
+        "empirical_matched_to_oracle": 1.00438,
+        "observed_plugin_matched_to_oracle": 0.72573
+      },
+      "8192": {
+        "empirical_coordinate_to_oracle": 1.03807,
+        "observed_plugin_coordinate_to_oracle": 0.44218,
+        "empirical_coordinate_to_observed_plugin": 2.31352,
+        "empirical_matched_to_oracle": 0.96463,
+        "observed_plugin_matched_to_oracle": 0.79217
+      },
+      "16384": {
+        "empirical_coordinate_to_oracle": 0.97593,
+        "observed_plugin_coordinate_to_oracle": 0.40513,
+        "empirical_coordinate_to_observed_plugin": 2.24393,
+        "empirical_matched_to_oracle": 0.99468,
+        "observed_plugin_matched_to_oracle": 0.8283
+      }
+    }
+  },
+  "cautions": [
+    "These are exploratory descriptive medians, not direct variance decompositions; medians of ratios need not multiply algebraically.",
+    "True-centered simulation is analysis-only, not an authorized input to any deployable uncertainty estimator.",
+    "Finite 16 empirical draws and finite bootstrap/Monte Carlo replicates limit tail and coverage conclusions.",
+    "Existing publicly released TEST no longer qualifies as untouched mechanism-blind confirmatory data.",
+    "Original external historical/reserve independence remains unverified.",
+    "R0/R1/R2 comparison or remedy selection has not been performed."
+  ]
+}
