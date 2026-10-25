@@ -1,0 +1,58 @@
+name: TriQTO Prospective TEST Identity Planning — No Measurements
+on:
+  push:
+    branches: [research/stabilization-gates-20261025]
+    paths: ['.github/workflows/triqto-test-candidate-identities.yml']
+permissions:
+  contents: read
+jobs:
+  candidate-identities:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install --quiet -r requirements-cohort.txt
+      - name: Verify hash-bound previously published original archive
+        run: |
+          gh release download finite-shot-cohort-20261025-1448ca1ebbdf \
+            --repo kys928/TriQTO -D . \
+            -p 'TriQTO_Finite_Shot_Cohort_20261025.tar.gz' -p 'SHA256SUMS'
+          sha256sum -c SHA256SUMS
+          tar -xzf TriQTO_Finite_Shot_Cohort_20261025.tar.gz \
+            'corpus/roots.json' 'corpus/families.json'
+      - name: Plan 60 new families, NO TEST examples or truths
+        run: |
+          python scripts/cohort/plan_blind_test_candidates.py \
+            --existing corpus \
+            --early docs/evidence/finite_shot_cohort/historical-exclusions.json \
+            --extra docs/evidence/finite_shot_cohort/additional-exclusions.json \
+            --out prospective-test-structural-identities.json
+      - name: Independently check structural identities against all known prior public records
+        run: |
+          python scripts/cohort/audit_blind_test_candidates.py \
+            --candidate-manifest prospective-test-structural-identities.json \
+            --existing corpus \
+            --early docs/evidence/finite_shot_cohort/historical-exclusions.json \
+            --extra docs/evidence/finite_shot_cohort/additional-exclusions.json \
+            --out candidate-identity-local-audit.json
+      - name: Ensure no actual TEST measurement artifacts appeared
+        run: |
+          test ! -e corpus/blind
+          test ! -e corpus/sealed
+          test ! -e corpus/development_truth
+          test ! -e prospective-test-measurements.npz
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: prospective-test-structural-identities
+          path: |
+            prospective-test-structural-identities.json
+            candidate-identity-local-audit.json
+          if-no-files-found: warn
+          retention-days: 30
