@@ -1,0 +1,58 @@
+{
+  "schema": "triqto.stabilization_pre_selection_lock.v1",
+  "status": "FROZEN_CANDIDATES_BEFORE_SELECTION",
+  "scientific_role": "ONE_TIME_DEVELOPMENT_SELECTION_NOT_TEST_CONFIRMATION",
+  "candidate_alpha": {
+    "R1": 0.5,
+    "R2": 0.01
+  },
+  "fit_source_run_id": 40222393103,
+  "fit_source_head_sha": "b8689167f45c1c35c925af1a612be00dba29cd9a",
+  "fit_source_artifact": "fit-alpha-screen-report-v2",
+  "fit_tuning_family_range": [
+    8,
+    24
+  ],
+  "fit_disjoint_screen_family_range": [
+    24,
+    40
+  ],
+  "fit_evidence_note": "R1 alpha 0.5 improved 16-FIT-family screening disagreement by ~0.24 percentage points with same observed accuracy; R2 alpha .01 was not supported on FIT screen; both settings are fixed for conservative one-time SELECTION comparison",
+  "frozen_git_blob_sha1": {
+    "scripts/cohort/selection_score_shard.py": "423e38c384c8c599d7247ba205c9bc8ceef2daaf",
+    "scripts/cohort/remedy_feature_transforms.py": "cc19c89963abe928d87439f82febe42520bd301f",
+    "scripts/cohort/select_stabilization_remedy.py": "7877269dabb300b3f5923a6100ad3cad78e7e748",
+    "scripts/cohort/fit_frozen_remedy_score_pilot.py": "1af4b5b7457bfa5bee50c9a9b166c77b25acd1f9"
+  },
+  "checkpoint_method_id": "equiv_fit_4df8aea718950bdc2650a03b",
+  "candidate_network_seed_sha256": {
+    "6201": "sha256:861f9cd1d20b2b3d53d5a04d969e06bb0d539e59084bc3e47ff34c9a0ed8d416",
+    "6202": "sha256:2469148e71d8fa7b200edac65adc4c0d0c745dd0ab9ffc37cf915216985c56c8",
+    "6203": "sha256:4bd586b015b0a9aaa863d856108da2552eee3e62259574e1adb6f60ee1e3c40f"
+  },
+  "fit_covariance_calibration_N": {
+    "coordinates": 1.9043089473549872,
+    "matched": 1.390918830738678,
+    "bootstrap_replicates": 192
+  },
+  "candidate_mechanism_scoring": "actual immutable Step14 FIT-only equivalence-aware candidate 24->64->3 network and frozen equivalence pooling",
+  "test_source_exclusion_scope": "verified_known_training_lineage_only; not exhaustive protected reserve attestation",
+  "selection_design": {
+    "families": 60,
+    "roots_per_family": 4,
+    "injected_observations_per_root": 12,
+    "calibration_replicates": 16,
+    "shot_budget": 4096,
+    "cluster_unit": "family_id",
+    "bootstrap_replicates": 2000,
+    "noninferiority_margin": -0.02,
+    "simultaneous_intervals": 0.975,
+    "decision": "R0 unless R1 or R2 significantly improves disagreement AND passes accuracy noninferiority"
+  },
+  "selection_inspected_before_lock": false,
+  "first_selection_run_intent_once": true,
+  "forbidden_orig_test": true,
+  "forbidden_new_test": true,
+  "forbidden_reserve_access": true,
+  "model_weights_trainable": false
+}
