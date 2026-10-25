@@ -96,8 +96,6 @@ def materialize_one(index,bp,circuit,variant,cfg,cohort_key,secret_schedule_key,
         for mech in MODELS:
             expected.append((mech,strength,0,strength_bin))
     allocation=tuple(int(x) for x in rng.permutation(levels))
-    expected[1:]=[(m,s,allocation[k],bin_no) for m,s,_,bin_no in expected[1:]
-                  for k in []] if False else expected[1:]
     # Exactly the same single shot budget for each triplet at a fixed strength.
     for strength_bin in range(4):
         for j in range(3):
@@ -136,7 +134,7 @@ def materialize_one(index,bp,circuit,variant,cfg,cohort_key,secret_schedule_key,
     np.savez_compressed(obs_path,calibration_counts=cal,diagnostic_counts=np.asarray(observed,dtype=np.uint16),
        outcome_features=table,candidates=np.asarray(candidates,dtype=np.int16),
        observation_ids=np.array([x["observation_id"] for x in public]),
-       diagnostic_shots=np.asarray(shot_schedule,dtype=np.int32),
+       diagnostic_shots=np.asarray([x["shots"] for x in public],dtype=np.int32),
        budgets=np.asarray(c.BUDGETS,dtype=np.int32))
     public_rec={"root_id":rid,"family_id":fid,"variant":variant,
        "n_qubits":circuit.num_qubits,"circuit":c.circuit_record(circuit),
