@@ -1,0 +1,50 @@
+name: TriQTO FIT-only frozen-network R0/R1/R2 score pilot
+on:
+  push:
+    branches: [research/lineage-remedy-blindtest-20261025]
+    paths: ['.github/workflows/triqto-frozen-network-fit-pilot.yml']
+permissions:
+  contents: read
+jobs:
+  fit-scores:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RUNPOD_S3_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
+      RUNPOD_S3_SECRET_ACCESS_KEY: ${{ secrets.RUNPOD_S3_SECRET_ACCESS_KEY }}
+      RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
+      RUNPOD_DATACENTER_ID: ${{ vars.RUNPOD_DATACENTER_ID }}
+      RUNPOD_S3_ENDPOINT: ${{ vars.RUNPOD_S3_ENDPOINT }}
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install frozen PyTorch CPU + cohort-science libraries
+        run: |
+          python -m pip install --quiet -r requirements-cohort.txt
+          python -m pip install --quiet "torch==2.5.1" --index-url https://download.pytorch.org/whl/cpu
+      - name: Verify immutable original cohort; extract FIT only
+        run: |
+          gh release download finite-shot-cohort-20261025-1448ca1ebbdf --repo kys928/TriQTO -D . \
+            -p 'TriQTO_Finite_Shot_Cohort_20261025.tar.gz' -p 'SHA256SUMS'
+          sha256sum -c SHA256SUMS
+          tar -xzf TriQTO_Finite_Shot_Cohort_20261025.tar.gz --wildcards \
+            'corpus/roots.json' 'corpus/blind/FIT/*.npz' 'corpus/development_truth/FIT/*.json'
+          test ! -e corpus/blind/TEST
+          test ! -e corpus/blind/SELECTION
+          test ! -e corpus/sealed
+      - name: Reproduce frozen three-checkpoint mechanism score path; FIT only
+        run: |
+          python scripts/cohort/fit_frozen_remedy_score_pilot.py \
+            --corpus corpus --out frozen-fit-remedy-scores.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frozen-network-remedy-FIT-pilot
+          path: frozen-fit-remedy-scores.json
+          if-no-files-found: warn
+          retention-days: 30
