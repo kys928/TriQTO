@@ -20,7 +20,7 @@ jobs:
       OMP_NUM_THREADS: '1'
       MKL_NUM_THREADS: '1'
       PYTHONPATH: src
-      # Frozen pooling import and Jacobian replay corrected after fail-closed preflight.
+      # Mechanism-head FIT replay includes corrected R1 zero-covariance identity invariant.
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
