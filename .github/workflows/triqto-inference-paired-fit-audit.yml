@@ -1,0 +1,33 @@
+name: TriQTO FIT inference family-bootstrap descriptive audit
+on:
+  push:
+    branches: [research/inference-marginalization-fit-20261025]
+    paths: ['.github/workflows/triqto-inference-paired-fit-audit.yml']
+permissions:
+  contents: read
+jobs:
+  fit-only-exploratory-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install --quiet numpy==2.3.2
+      - name: Download only 4 FIT archives from completed posterior trial
+        run: |
+          mkdir -p fit-results
+          gh run download 40227975547 --repo kys928/TriQTO \
+            --pattern 'posterior-fit-shard-*' --dir fit-results
+          test $(find fit-results -name 'posterior-fit-*.json' | wc -l) -eq 4
+      - name: Family-block paired bootstrap and decision-flip decomposition; no tuning
+        run: |
+          python scripts/cohort/audit_inference_marginalization_fit.py \
+            --input-directory fit-results --output exploratory-paired-fit-diagnostics.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: posterior-inference-fit-paired-diagnostics
+          path: exploratory-paired-fit-diagnostics.json
+          retention-days: 30

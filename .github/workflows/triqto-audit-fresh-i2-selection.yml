@@ -1,0 +1,49 @@
+name: TriQTO audit 96 fresh selection identity proposals independent of reserved TEST
+on:
+  push:
+    branches: [research/inference-marginalization-fit-20261025]
+    paths: ['.github/workflows/triqto-audit-fresh-i2-selection.yml']
+permissions:
+  contents: read
+jobs:
+  audit-selection-sources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      OPENBLAS_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install --quiet -r requirements-cohort.txt
+      - name: Download original immutable cohort structure and public TEST candidate IDs ONLY
+        run: |
+          gh release download finite-shot-cohort-20261025-1448ca1ebbdf \
+            --repo kys928/TriQTO -D . \
+            -p 'TriQTO_Finite_Shot_Cohort_20261025.tar.gz' -p 'SHA256SUMS'
+          sha256sum -c SHA256SUMS
+          tar -xzf TriQTO_Finite_Shot_Cohort_20261025.tar.gz \
+            'corpus/roots.json' 'corpus/families.json'
+          mkdir -p test-structure-only selection-structure-only
+          gh run download 40213970222 --repo kys928/TriQTO \
+            --name prospective-test-structural-identities --dir test-structure-only
+          gh run download 40229018899 --repo kys928/TriQTO \
+            --name fresh-I2-SELECTION-circuit-identities-only --dir selection-structure-only
+          test ! -e corpus/blind
+          test ! -e corpus/sealed
+          test ! -e corpus/development_truth
+      - name: Independent five-key reference-set and source collision audit (no labels)
+        run: |
+          python scripts/cohort/audit_fresh_i2_selection_identities.py \
+            --plan selection-structure-only/fresh-I2-SELECTION-structural-identities.json \
+            --existing corpus \
+            --early docs/evidence/finite_shot_cohort/historical-exclusions.json \
+            --extra docs/evidence/finite_shot_cohort/additional-exclusions.json \
+            --test test-structure-only/prospective-test-structural-identities.json \
+            --out fresh-I2-SELECTION-identity-audit.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: independently-audited-fresh-I2-SELECTION-identities
+          path: fresh-I2-SELECTION-identity-audit.json
+          retention-days: 90
