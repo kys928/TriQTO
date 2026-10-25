@@ -60,14 +60,38 @@ def boot_once(rows):
     names=sorted(groups)
     rng=np.random.default_rng(BOOTSTRAP_SEED)
     base={m:metrics(rows,m) for m in METHODS}
-    diffs={m:{"BA":[],"D":[] } for m in ("R1","R2")}
-    for _ in range(REPEATS):
-        sampled=rng.integers(0,len(names),size=len(names))
-        sub=[item for i in sampled for item in groups[names[int(i)]]]
-        m={k:metrics(sub,k) for k in METHODS}
-        for remedy in diffs:
-            diffs[remedy]["BA"].append(m[remedy]["balanced_accuracy"]-m["R0"]["balanced_accuracy"])
-            diffs[remedy]["D"].append(m[remedy]["pairwise_disagreement"]-m["R0"]["pairwise_disagreement"])
+    # Pre-aggregate each complete family once. Drawing the same family in a
+    # bootstrap replicate repeats its entire confusion matrix and 16-draw
+    # stability events. Identical mathematically to row expansion, but fast.
+    family_conf={}
+    family_dis={}
+    family_weight=[]
+    for method in METHODS:
+        conf=[];davg=[]
+        for name in names:
+            items=groups[name]
+            matrix=np.zeros((3,3),dtype=np.int64)
+            for item in items:
+                y=item["truth_mechanism"]
+                pred=np.asarray(item["predictions"][method],dtype=np.int64)
+                matrix[y]+=np.bincount(pred,minlength=3)
+            conf.append(matrix)
+            davg.append(float(np.mean([pair_disagreement(x["predictions"][method]) for x in items])))
+        family_conf[method]=np.stack(conf)
+        family_dis[method]=np.asarray(davg)
+    # All 60 cohort families contribute equally (4 variants * 12 injected
+    # observations each, 16 draws), so per-family mean disagreement is correct.
+    sample=rng.integers(0,len(names),size=(REPEATS,len(names)))
+    diffs={m:{"BA":[],"D":[]} for m in ("R1","R2")}
+    boot_ba={};boot_dis={}
+    for method in METHODS:
+        cm=family_conf[method][sample].sum(axis=1)
+        denominators=np.maximum(cm.sum(axis=2),1)
+        boot_ba[method]=np.mean(np.diagonal(cm,axis1=1,axis2=2)/denominators,axis=1)
+        boot_dis[method]=family_dis[method][sample].mean(axis=1)
+    for remedy in diffs:
+        diffs[remedy]["BA"]=(boot_ba[remedy]-boot_ba["R0"]).tolist()
+        diffs[remedy]["D"]=(boot_dis[remedy]-boot_dis["R0"]).tolist()
     details={}
     for remedy in diffs:
         ba=np.asarray(diffs[remedy]["BA"])
