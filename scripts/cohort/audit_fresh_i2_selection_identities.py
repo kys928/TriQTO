@@ -62,6 +62,6 @@ if __name__=="__main__":
     a=argparse.ArgumentParser()
     for n in ("plan","existing","early","extra","test","out"):a.add_argument("--"+n,required=True,type=Path)
     p=vars(a.parse_args())
-    result=audit(**p)
+    result=audit(p["plan"],p["existing"],p["early"],p["extra"],p["test"])
     p["out"].write_text(json.dumps(result,indent=2)+"\n")
     print(json.dumps(result,indent=2))
