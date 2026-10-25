@@ -1,0 +1,85 @@
+name: TriQTO locked I2 final untouched FIT replication
+on:
+  push:
+    branches: [research/inference-marginalization-fit-20261025]
+    paths: ['.github/workflows/triqto-locked-i2-fit-replication.yml']
+permissions:
+  contents: read
+jobs:
+  locked-i2-family-shards:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {start: 72, stop: 84}
+          - {start: 84, stop: 96}
+          - {start: 96, stop: 108}
+          - {start: 108, stop: 120}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RUNPOD_S3_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
+      RUNPOD_S3_SECRET_ACCESS_KEY: ${{ secrets.RUNPOD_S3_SECRET_ACCESS_KEY }}
+      RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
+      RUNPOD_DATACENTER_ID: ${{ vars.RUNPOD_DATACENTER_ID }}
+      RUNPOD_S3_ENDPOINT: ${{ vars.RUNPOD_S3_ENDPOINT }}
+      OPENBLAS_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Frozen source dependencies
+        run: |
+          python -m pip install --quiet -r requirements-cohort.txt
+          python -m pip install --quiet "torch==2.5.1" --index-url https://download.pytorch.org/whl/cpu
+      - name: SHA-verify original cohort and extract FIT only
+        run: |
+          gh release download finite-shot-cohort-20261025-1448ca1ebbdf --repo kys928/TriQTO -D . \
+            -p 'TriQTO_Finite_Shot_Cohort_20261025.tar.gz' -p 'SHA256SUMS'
+          sha256sum -c SHA256SUMS
+          tar -xzf TriQTO_Finite_Shot_Cohort_20261025.tar.gz --wildcards \
+            'corpus/roots.json' 'corpus/blind/FIT/*.npz' 'corpus/development_truth/FIT/*.json'
+          test ! -e corpus/blind/SELECTION
+          test ! -e corpus/blind/TEST
+          test ! -e corpus/development_truth/SELECTION
+          test ! -e corpus/sealed
+      - name: Frozen I2 inference only, never original spent SELECTION or real TEST
+        run: |
+          python scripts/cohort/locked_i2_fit_replication_shard.py \
+            --corpus corpus --start ${{ matrix.start }} --stop ${{ matrix.stop }} \
+            --output locked-i2-fit-${{ matrix.start }}-${{ matrix.stop }}.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: locked-i2-fit-shard-${{ matrix.start }}-${{ matrix.stop }}
+          path: locked-i2-fit-${{ matrix.start }}-${{ matrix.stop }}.json
+          retention-days: 30
+  locked-i2-family-audit:
+    needs: locked-i2-family-shards
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install --quiet numpy==2.3.2
+      - name: Download only four locked I2 FIT shards from this run
+        run: |
+          mkdir -p locked-i2-fit
+          gh run download ${{ github.run_id }} --repo kys928/TriQTO \
+            --pattern 'locked-i2-fit-shard-*' --dir locked-i2-fit
+          test $(find locked-i2-fit -name 'locked-i2-fit-*.json' | wc -l) -eq 4
+      - name: Prospective family-bootstrap go/no-go replication criterion
+        run: |
+          python scripts/cohort/evaluate_locked_i2_fit_replication.py \
+            --shards locked-i2-fit --output locked-i2-fit-replication-result.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: locked-i2-fit-replication-result
+          path: locked-i2-fit-replication-result.json
+          retention-days: 60
