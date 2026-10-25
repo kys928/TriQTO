@@ -20,6 +20,7 @@ jobs:
       OMP_NUM_THREADS: '1'
       MKL_NUM_THREADS: '1'
       PYTHONPATH: src
+      # Pool frozen function imported without legacy training dependency closure.
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
