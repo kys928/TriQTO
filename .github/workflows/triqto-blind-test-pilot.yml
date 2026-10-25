@@ -1,0 +1,43 @@
+name: TriQTO blind replacement TEST sacrificial pilot and secrecy QA
+on:
+  push:
+    branches: [research/lineage-remedy-blindtest-20261025]
+    paths: ['.github/workflows/triqto-blind-test-pilot.yml']
+permissions:
+  contents: read
+jobs:
+  pilot-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install hash-pinned simulation-only dependencies
+        run: python -m pip install --quiet -r requirements-cohort.txt
+      - name: Verify hard freeze gate and public-metadata contract
+        run: python -m pytest -q tests/test_blind_replacement_v2.py tests/test_blinded_test_contract.py
+      - name: Download PROPOSED CANDIDATE IDENTITIES only, never archived TEST counts
+        run: |
+          mkdir -p candidate-only
+          gh run download 40213970222 --repo kys928/TriQTO \
+            --name prospective-test-structural-identities --dir candidate-only
+          test -s candidate-only/prospective-test-structural-identities.json
+      - name: Build one family of sacrificial blinded counts then decrypt locally solely for QA
+        run: |
+          PYTHONPATH=tests python - <<'PY'
+          from pathlib import Path
+          from test_blind_replacement_v2 import check_sacrificial_pilot
+          check_sacrificial_pilot(
+            Path("candidate-only/prospective-test-structural-identities.json"),
+            Path("sacrificial-temporary-blind-fixture"))
+          print("Sacrificial fixture: encrypted labels independently verified; 4 roots, 52 observations, no private key published")
+          PY
+          rm -rf sacrificial-temporary-blind-fixture
+          rm -f pilot-public.pem
+      - name: Summary only, never upload raw pilot labels/secrets
+        run: echo 'BLIND_TEST_BUILDER_PILOT_PASS; no real TEST acquired'

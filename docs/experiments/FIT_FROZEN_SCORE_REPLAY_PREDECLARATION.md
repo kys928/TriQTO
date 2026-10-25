@@ -1,0 +1,11 @@
+# FIT-only frozen-network R0/R1/R2 bounded mechanism-score replay (pre-run)
+
+**Date:** 2026-10-25. **Scope:** descriptive engineering sanity, not final remedy selection. User approved proceeding under a narrower verified training-lineage claim; no protected or past/reserved TEST data.
+
+Frozen candidate networks: equivalence-aware Step-14 three seeds 6201/6202/6203, exact published checkpoint SHA256; `tau=.02` and `frame_temperature=2`. This is the *candidate-mechanism score path* involved in the Step-15 instability localization, **not** a proof that the distinct Step-15 rank adapter improves. Keep frozen pooling inputs from each original draw (profile, candidate pair similarities/gates). Do not fit model weights.
+
+Use SHA-verified original 240-family finite-shot cohort FIT only, **first 8 FIT families in manifest order, first root per family, first 3 non-clean mechanism observations ordered by existing FIT development labels, 16 independent calibration draws, N=4096 only**. FIT mechanism labels may be opened solely after computing predictions for descriptive task accuracy; no outer/TEST/SELECTION truth. This is not a class-balanced population estimate, not a method-selection holdout. Permitted calibration covariance uses just the observed candidate's own per-call counts, 192 bootstrap resamples; globally calibrated FIT factors fixed from the previously run `fit-remedy-coefficients-and-geometry` artifact (N coords 1.9043089473549872, matched 1.390918830738678). R1 and R2 strengths frozen to alpha=1.0 during this pilot (not selected after observing performance).
+
+For each mechanism example, report per-remedy mechanism accuracy, pairwise 16-draw mechanism-label disagreement, feature shift, no numerical failures, and comparison to exact R0 replay. Independent circuit-family count=8; confidence intervals not meaningful. Do not turn this into a claim of independent validation. Continue toward one complete SELECTION study only if computationally feasible and after a separate final method-candidate freeze; R2 can be REJECTED if it erases signal or destabilizes input distribution.
+
+Expected cost: CPU-only, local original FIT archive and three hash-verified publicly declared checkpoint files downloaded from the exact non-protected frozen Step-14 equivalence-aware method path using read-only S3. No RunPod pods, no training, no S3 mutation.
