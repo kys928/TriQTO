@@ -13,8 +13,8 @@ def score(rows,method):
             "observations":len(rows)}
 
 def collect(paths):
-    shards=[json.loads(p.read_text()) for p in paths]
-    bounds=sorted(tuple(x["family_slice"]) for x in shards)
+    shards=sorted((json.loads(p.read_text()) for p in paths), key=lambda x:int(x["family_slice"][0]))
+    bounds=[tuple(x["family_slice"]) for x in shards]
     if bounds!=[(8,16),(16,24),(24,32),(32,40)]:
         raise RuntimeError("Expected exact prospective FIT shard ranges")
     all_methods=["R0"]+[key(k,v) for k,alphas in ALPHAS.items() for v in alphas]
