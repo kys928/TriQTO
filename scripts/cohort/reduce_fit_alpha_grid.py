@@ -4,7 +4,13 @@ from __future__ import annotations
 import argparse,hashlib,json
 from pathlib import Path
 import numpy as np
-from fit_alpha_grid_shard import ALPHAS,key,DRAWS,disagreement
+# Standalone predeclared finite grid; no Qiskit or PyTorch import needed.
+ALPHAS={"R1":(.05,.1,.25,.5,1.),"R2":(.01,.03,.1,.25,.5,1.)}
+DRAWS=16
+def key(remedy,alpha):return f"{remedy}@{alpha:g}"
+def disagreement(labels):
+    counts=np.bincount(np.asarray(labels,dtype=np.int64),minlength=3)
+    return 1.-float(np.sum(counts*(counts-1)//2))/(len(labels)*(len(labels)-1)//2)
 
 def score(rows,method):
     acc=np.mean([np.mean(np.asarray(r["predictions"][method])==r["truth_mechanism"]) for r in rows])
