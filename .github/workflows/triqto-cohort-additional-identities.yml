@@ -1,4 +1,5 @@
 name: TriQTO cohort additional blind historical identities
+# v2: use each historical completion manifest to resolve identity filenames.
 on:
   push:
     branches: [research/finite-shot-cohort-20261025]

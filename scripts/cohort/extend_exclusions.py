@@ -44,8 +44,10 @@ def main():
         for base in products:
             try:complete=json.loads(get(base+'dataset_complete.json'))
             except s3.exceptions.NoSuchKey:missing.append(base+'dataset_complete.json');continue
-            for name in ['family_manifest.csv','root_manifest.csv']:
-                consume(base,name,complete.get('manifest_hashes',{}).get(name))
+            names=[name for name in complete.get('manifest_hashes',{}) if name in ('clean_circuit_manifest.csv','bridge_root_manifest.csv','root_manifest.csv','family_manifest.csv')]
+            if not names:missing.append(base+'[no advertised identity manifests]')
+            for name in names:
+                consume(base,name,complete['manifest_hashes'][name])
     # Published, already-spent fresh holdout: BLIND manifests only, never sealed_truth.
     fresh='triqto-data/step14_equivalence_aware_fresh_holdout/fresh_holdout_f805dd871059cb342dafbd59/'
     completion_raw=get(fresh+'dataset_complete.json')
