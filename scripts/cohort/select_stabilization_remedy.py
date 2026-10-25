@@ -22,21 +22,27 @@ def pair_disagreement(p):
 
 def validate(rows):
     if not isinstance(rows,list) or not rows:raise ValueError("Empty selection predictions")
-    all_ids=set();family=set()
+    all_ids=set();family=set();roots={};mechanisms={}
     for r in rows:
         if set(r)!=set(["family_id","root_id","observation_id","truth_mechanism","predictions"]):
             raise ValueError("Unexpected field in selection record")
         key=(r["family_id"],r["root_id"],r["observation_id"])
         if key in all_ids:raise ValueError("Repeated observation in selection")
         all_ids.add(key);family.add(r["family_id"])
+        roots.setdefault(r["family_id"],set()).add(r["root_id"])
+        mechanisms.setdefault((r["family_id"],r["root_id"]),[]).append(int(r["truth_mechanism"]))
         if int(r["truth_mechanism"]) not in (0,1,2):raise ValueError("Only 3 injected mechanisms allowed")
         if set(r["predictions"])!=set(METHODS):raise ValueError("Method mismatch")
         for method in METHODS:
             labels=r["predictions"][method]
             if len(labels)!=DRAWS or any(v not in (0,1,2) for v in labels):
                 raise ValueError("Each method must score exactly 16 finite-shot repeats")
-    if len(family)!=60:
-        raise ValueError("Require all 60 selection families for final selection")
+    if len(family)!=60 or len(rows)!=60*4*12:
+        raise ValueError("Require exactly 60 full 4-root x 12-injected selection families")
+    if any(len(x)!=4 for x in roots.values()):
+        raise ValueError("Every selection family must contain four variants")
+    if any(len(v)!=12 or [v.count(k) for k in (0,1,2)]!=[4,4,4] for v in mechanisms.values()):
+        raise ValueError("Every root must include exactly 4 of each mechanism")
     return sorted(family)
 
 def metrics(rows,method):
