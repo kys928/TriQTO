@@ -38,8 +38,25 @@ def test_custodian_fail_closed_if_source_absent(tmp_path):
 
 def test_custodian_aggregate_disjoint(tmp_path):
     r=ci.attest(*synthetic(tmp_path))
-    assert r["passed"] and r["overlap_total_by_identity_type"]["graph_sha256"]==0
+    assert not r["passed"] and r["provisional_coverage_and_disjointness"] and r["overlap_total_by_identity_type"]["graph_sha256"]==0
     assert "sha256:b" not in json.dumps(r)
+
+def test_custodian_signed_and_verified(tmp_path):
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from cryptography.hazmat.primitives import serialization
+    import verify_custodian_attestation as va
+    private=Ed25519PrivateKey.generate()
+    keypath=tmp_path/"signing_key.pem"
+    keypath.write_bytes(private.private_bytes(serialization.Encoding.PEM,serialization.PrivateFormat.PKCS8,serialization.NoEncryption()))
+    pubpath=tmp_path/"pub.pem"
+    pubpath.write_bytes(private.public_key().public_bytes(serialization.Encoding.PEM,serialization.PublicFormat.SubjectPublicKeyInfo))
+    candidate,registry,sources=synthetic(tmp_path)
+    att=ci.attest(candidate,registry,sources,keypath)
+    assert att["passed"]
+    attpath=tmp_path/"attestation.json";attpath.write_text(json.dumps(att))
+    fingerprint=va.sha(private.public_key().public_bytes(serialization.Encoding.Raw,serialization.PublicFormat.Raw))
+    result=va.verify(attpath,pubpath,candidate,registry,fingerprint)
+    assert result["verified"]
 
 def test_custodian_rejects_overlap(tmp_path):
     r=ci.attest(*synthetic(tmp_path,overlap=True))
