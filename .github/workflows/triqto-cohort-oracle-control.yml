@@ -1,0 +1,50 @@
+name: TriQTO Development-Only True-Centered Nonlinear Uncertainty Control
+on:
+  push:
+    branches: [research/finite-shot-cohort-20261025]
+    paths: ['.github/workflows/triqto-cohort-oracle-control.yml']
+permissions:
+  contents: read
+jobs:
+  source-versus-bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --quiet "numpy==2.3.2"
+      - name: Verify original immutable release and extract FIT/SELECTION only
+        run: |
+          gh release download finite-shot-cohort-20261025-1448ca1ebbdf \
+            --repo kys928/TriQTO -D . \
+            -p 'TriQTO_Finite_Shot_Cohort_20261025.tar.gz' -p 'SHA256SUMS'
+          sha256sum -c SHA256SUMS
+          tar -xzf TriQTO_Finite_Shot_Cohort_20261025.tar.gz \
+            --wildcards \
+            'corpus/roots.json' \
+            'corpus/blind/FIT/*.npz' \
+            'corpus/blind/SELECTION/*.npz' \
+            'corpus/derived/FIT/*.npz' \
+            'corpus/derived/SELECTION/*.npz' \
+            'corpus/acquisition_audit/FIT/*.npz' \
+            'corpus/acquisition_audit/SELECTION/*.npz'
+          test ! -e corpus/sealed
+          test ! -e corpus/blind/TEST
+          test ! -e corpus/development_truth/TEST
+      - name: Exploratory ideal-centered Monte Carlo control (analysis only)
+        run: |
+          python scripts/cohort/review_truecentered_nonlinearity.py \
+             --corpus corpus --output truecentered-nonlinearity.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: truecentered-nonlinearity-aggregates
+          path: truecentered-nonlinearity.json
+          if-no-files-found: warn
+          retention-days: 30
