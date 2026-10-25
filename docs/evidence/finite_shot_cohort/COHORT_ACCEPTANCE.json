@@ -26,7 +26,7 @@
     "Original grammar encodes intended affected qubit through its first RY gate.",
     "TEST label schedule correctness is supported by generation code, not independent post-sealing label inspection.",
     "Structural equivalence checks do not prove arbitrary unitary or measurement equivalence.",
-    "3-reference 128-replicate observed-count bootstrap still underestimates nonlinear coordinate covariance at N/2N/4N; a further true-centered analysis-only control is in progress."
+    "Post-release oracle-centered covariance audit completed; see ADR report and summary for observed-vs-simulated differences."
   ],
   "test_labels_cryptographically_encrypted": true,
   "test_label_blindness_valid": false,
@@ -41,5 +41,7 @@
     "correct_affected_qubits": 9360,
     "correct_boundaries": 9360,
     "test_truth_accessed": false
-  }
+  },
+  "followup_control_status": "COMPLETE_EXPLORATORY_DEVELOPMENT_ONLY",
+  "followup_control_report": "docs/evidence/finite_shot_cohort/ADVERSARIAL_POST_RELEASE_FINDINGS.md"
 }
