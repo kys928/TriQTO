@@ -1,0 +1,56 @@
+{
+  "accuracy_noninferiority_gate_applied": true,
+  "candidate_checkpoint_individual_sha256": {
+    "6201": "sha256:861f9cd1d20b2b3d53d5a04d969e06bb0d539e59084bc3e47ff34c9a0ed8d416",
+    "6202": "sha256:2469148e71d8fa7b200edac65adc4c0d0c745dd0ab9ffc37cf915216985c56c8",
+    "6203": "sha256:4bd586b015b0a9aaa863d856108da2552eee3e62259574e1adb6f60ee1e3c40f"
+  },
+  "candidate_checkpoint_sha256": "sha256:3d20364afdbf0b7b995be7719d0760fa75f1f6aa3c4a100e81f371da11676e88",
+  "comparison_protocol_sha256": "sha256:3b58782fad1a7f381de41b6efb007a7f5df49827f20879e5d89cbd8fbc8bd367",
+  "confirmation_claim_explicitly_limited_to_checked_training_lineage": true,
+  "estimator_coefficients_sha256": "sha256:dfe02ccf19281dcfc407f85bd981751d98333caaa6bbe9472e21a604d8d71758",
+  "external_source_exhaustive_independent_attestation": false,
+  "full_step15_rank_adapter_evaluated": false,
+  "pre_selection_lock_sha256": "sha256:73266fa30a43189df123abb04ad012b24ea55bb6e33f4f0ab4ecddaf33601d93",
+  "replacement_candidate_identity": "sha256:ebecad22eacc41247a3954f73da11427dc10eabb32fd19796c91ed28daa524d1",
+  "schema": "triqto.stabilization_final_method_freeze.v1",
+  "scientific_claim": "Frozen local mechanism-head score-path remedy decision using permitted SELECTION; historical source-exhaustiveness and QPU generalization not claimed.",
+  "scope": "Step14 candidate-head score-path correction only; original pooling fixed. N shot selection primary; 2N/4N not yet assessed.",
+  "selected_alpha": 0.0,
+  "selected_code_sha256": "sha256:54e196dc47294fc219346ec45073c8e61eb3f8cc37b81dffdeb0d8d9fd345fb8",
+  "selected_remedy": "R0",
+  "selection_completed_before_freeze": true,
+  "selection_families": 60,
+  "selection_injected_examples": 2880,
+  "selection_verdict_sha256": "sha256:c2eeedb7a22906e2d63eb145d9bd08ee293db156a1fca07d7d8a6338b95a26d7",
+  "source_cohort_identity": "sha256:1448ca1ebbdf50149d0200dae4c6ed9eb8a39156c18e329e42ea74ca3d10203d",
+  "source_lineage_report_sha256": "sha256:afdac485d8500d4ce7b8ef337e0078774c40f824e2ed8988abfbdd5ec2e8a7dd",
+  "statistics": {
+    "R0": {
+      "balanced_accuracy": 0.7423177083333333,
+      "pairwise_disagreement": 0.19733796296296294
+    },
+    "R1": {
+      "BA_delta_lower_bonferroni97p5": -0.0017797851562500826,
+      "delta_balanced_accuracy": -0.00026041666666665186,
+      "delta_pairwise_disagreement": -0.0011660879629629417,
+      "disagreement_delta_upper_bonferroni97p5": 0.00015972222222223993,
+      "joint_pass": false,
+      "noninferiority_pass": true,
+      "stability_benefit_pass": false
+    },
+    "R2": {
+      "BA_delta_lower_bonferroni97p5": -0.00021701388888895057,
+      "delta_balanced_accuracy": 8.680555555551361e-05,
+      "delta_pairwise_disagreement": -7.81249999999567e-05,
+      "disagreement_delta_upper_bonferroni97p5": 0.00048036024305556557,
+      "joint_pass": false,
+      "noninferiority_pass": true,
+      "stability_benefit_pass": false
+    }
+  },
+  "status": "FROZEN_BEFORE_ANY_REPLACEMENT_TEST_ACQUISITION",
+  "test_data_acquired": false,
+  "test_measurement_policy": "Must not acquire until this exact freeze has been committed and independent recipient public key custody is verified.",
+  "test_truth_accessed": false
+}

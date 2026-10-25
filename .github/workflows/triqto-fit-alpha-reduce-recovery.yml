@@ -1,0 +1,33 @@
+name: TriQTO FIT alpha screen sealed-shard reduction (no additional scoring)
+on:
+  push:
+    branches: [research/remedy-fit-selection-freeze-20261025]
+    paths: ['.github/workflows/triqto-fit-alpha-reduce-recovery.yml']
+permissions:
+  contents: read
+jobs:
+  aggregate-four-successful-fit-shards:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install --quiet numpy==2.3.2
+      - name: Retrieve only previously successful FIT-only alpha shard files
+        run: |
+          mkdir -p fit-slices
+          gh run download 40222061717 --repo kys928/TriQTO \
+            --pattern 'fit-alpha-shard-*' --dir fit-slices
+          test $(find fit-slices -name 'fit-grid-*.json' | wc -l) -eq 4
+      - name: Predeclared FIT tuning-screen reduction; no S3, SELECTION, TEST
+        run: |
+          python scripts/cohort/reduce_fit_alpha_grid.py \
+            --input-directory fit-slices --output fit-alpha-screen-report.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fit-alpha-screen-report-v2
+          path: fit-alpha-screen-report.json
+          retention-days: 30

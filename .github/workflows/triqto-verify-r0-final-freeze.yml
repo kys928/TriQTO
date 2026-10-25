@@ -1,0 +1,37 @@
+name: TriQTO verify immutable one-time R0 selection and final method freeze
+on:
+  push:
+    branches: [research/remedy-fit-selection-freeze-20261025]
+    paths: ['.github/workflows/triqto-verify-r0-final-freeze.yml']
+permissions:
+  contents: read
+jobs:
+  frozen-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install --quiet numpy==2.3.2 pytest==8.4.2
+      - name: Verify exact archived selection and model commitments
+        run: |
+          python - <<'PY'
+          import sys,json
+          from pathlib import Path
+          sys.path.insert(0,'scripts/cohort')
+          from freeze_method_after_selection import build
+          source=Path('docs/evidence/finite_shot_cohort/ONE_TIME_STABILIZATION_SELECTION_VERDICT_20261025.json')
+          lock=Path('docs/evidence/finite_shot_cohort/STABILIZATION_PRE_SELECTION_LOCK_20261025.json')
+          frozen=Path('docs/evidence/finite_shot_cohort/FROZEN_STABILIZATION_METHOD_R0_20261025.json')
+          actual=json.loads(frozen.read_text())
+          verified=build(source,lock,Path('.'))
+          assert actual==verified, 'Committed R0 freeze differs from independently rebuilt source-bound freeze'
+          assert verified['selected_remedy']=='R0'
+          assert verified['selection_families']==60 and verified['selection_injected_examples']==2880
+          assert verified['test_data_acquired'] is False
+          assert verified['external_source_exhaustive_independent_attestation'] is False
+          print('FINAL_FREEZE_REPRODUCED_FROM_COMMITTED_ONE_TIME_SELECTION: R0, 60 families, 2,880 observations, no TEST access')
+          PY
+      - name: Verify fail-closed synthetic freeze regression
+        run: python -m pytest -q tests/test_freeze_method_after_selection.py tests/test_select_stabilization_remedy.py

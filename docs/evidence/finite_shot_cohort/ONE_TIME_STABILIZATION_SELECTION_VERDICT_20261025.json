@@ -1,0 +1,68 @@
+{
+  "NI_margin_absolute": -0.02,
+  "any_remedy_supported": false,
+  "baseline": {
+    "R0": {
+      "balanced_accuracy": 0.7423177083333333,
+      "pairwise_disagreement": 0.19733796296296294
+    },
+    "R1": {
+      "balanced_accuracy": 0.7420572916666667,
+      "pairwise_disagreement": 0.196171875
+    },
+    "R2": {
+      "balanced_accuracy": 0.7424045138888888,
+      "pairwise_disagreement": 0.19725983796296298
+    }
+  },
+  "bootstrap_replicates": 2000,
+  "bootstrap_unit": "family_id",
+  "contrasts": {
+    "R1": {
+      "BA_delta_lower_bonferroni97p5": -0.0017797851562500826,
+      "delta_balanced_accuracy": -0.00026041666666665186,
+      "delta_pairwise_disagreement": -0.0011660879629629417,
+      "disagreement_delta_upper_bonferroni97p5": 0.00015972222222223993,
+      "joint_pass": false,
+      "noninferiority_pass": true,
+      "stability_benefit_pass": false
+    },
+    "R2": {
+      "BA_delta_lower_bonferroni97p5": -0.00021701388888895057,
+      "delta_balanced_accuracy": 8.680555555551361e-05,
+      "delta_pairwise_disagreement": -7.81249999999567e-05,
+      "disagreement_delta_upper_bonferroni97p5": 0.00048036024305556557,
+      "joint_pass": false,
+      "noninferiority_pass": true,
+      "stability_benefit_pass": false
+    }
+  },
+  "draws": 16,
+  "families": 60,
+  "interpretation": "On permitted SELECTION only; new TEST cannot run without subsequent separate signed method freeze.",
+  "multiplicity_adjustment": "two comparisons, 97.5% Bonferroni intervals",
+  "no_confirmatory_TEST_access": true,
+  "pre_selection_lock_sha256": "sha256:73266fa30a43189df123abb04ad012b24ea55bb6e33f4f0ab4ecddaf33601d93",
+  "predictions_artifact_sha256": "sha256:2f16e0a9d6933d25974bb7e620c9095b7676819029751f4976381a007e5b1bd9",
+  "records": 2880,
+  "schema": "triqto.stabilization_method_selection_decision.v1",
+  "selected_remedy": "R0",
+  "selection_shard_commitments": {
+    "selection-N-0-4.json": "sha256:19abbba0bb28f5383642c9501190fd6775ebef3381b68ad65738746df97623b3",
+    "selection-N-12-16.json": "sha256:e030057ee20c007eafdcae922d75c959c39b2edfc28ca93f5108038e65192992",
+    "selection-N-16-20.json": "sha256:4fb723d532b04c7edb7d3a82575084c7fcf272c51b070d977d4392d4b543ea93",
+    "selection-N-20-24.json": "sha256:7593ba60a09be66f0be3db012fe215554885a260cb8cc81fb1c5a271c82978f7",
+    "selection-N-24-28.json": "sha256:d9d33916c98483c9dc4d2bebd75a48e16c119c5598df5db11028e4de81267979",
+    "selection-N-28-32.json": "sha256:2781ab2b3545b86175ba79790dec0f51fabc969c4aea7cedc58d0610b83ac75a",
+    "selection-N-32-36.json": "sha256:3a6e0ed41025ab016b8e4f5047bf344258f3559e199c18130d614db13a41d4eb",
+    "selection-N-36-40.json": "sha256:b50cb4e24860875bd4382f0cd5af63e531a7d6fc388d2a682f694d4b1a32d257",
+    "selection-N-4-8.json": "sha256:db57d0b3173bbc765b44602eb2badcf54f3577fe90d08a853d5d459bea26531a",
+    "selection-N-40-44.json": "sha256:b7202ac036f3a7038c41bafbd0060ba2ecc4924ddd228e0857587966587a4786",
+    "selection-N-44-48.json": "sha256:df1d648aea10a79081460ebb771fbc4cc2e52505140c4f9546ae9724bfd99ab6",
+    "selection-N-48-52.json": "sha256:1325d5ce0a6c5e6d932239e92e92958614b7a24ccf5fff9078f4e67638b02183",
+    "selection-N-52-56.json": "sha256:c911a6ffae4bca2362a9676674c8743a18270c41131448dd7e891bc9ada1870c",
+    "selection-N-56-60.json": "sha256:0c06cefc5e0e82a5c4d6ae3375d7315e73bead1f3b6dad0b4155965a21f14c00",
+    "selection-N-8-12.json": "sha256:62538cc0ebbdabcc752ff45311bfee357e905ea686e20ae6a759bd4e211420d1"
+  },
+  "status": "COMPLETE_SELECTION_ONLY_NO_TEST_ACCESS"
+}

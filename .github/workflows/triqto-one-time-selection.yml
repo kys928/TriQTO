@@ -1,0 +1,112 @@
+name: TriQTO one-time frozen-method SELECTION comparison (N shots)
+on:
+  push:
+    branches: [research/remedy-fit-selection-freeze-20261025]
+    paths: ['.github/workflows/triqto-one-time-selection.yml']
+permissions:
+  contents: read
+jobs:
+  score-selection:
+    runs-on: ubuntu-latest
+    timeout-minutes: 105
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {start: 0, stop: 4}
+          - {start: 4, stop: 8}
+          - {start: 8, stop: 12}
+          - {start: 12, stop: 16}
+          - {start: 16, stop: 20}
+          - {start: 20, stop: 24}
+          - {start: 24, stop: 28}
+          - {start: 28, stop: 32}
+          - {start: 32, stop: 36}
+          - {start: 36, stop: 40}
+          - {start: 40, stop: 44}
+          - {start: 44, stop: 48}
+          - {start: 48, stop: 52}
+          - {start: 52, stop: 56}
+          - {start: 56, stop: 60}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RUNPOD_S3_ACCESS_KEY_ID: ${{ secrets.RUNPOD_S3_ACCESS_KEY_ID }}
+      RUNPOD_S3_SECRET_ACCESS_KEY: ${{ secrets.RUNPOD_S3_SECRET_ACCESS_KEY }}
+      RUNPOD_NETWORK_VOLUME_ID: ${{ vars.RUNPOD_NETWORK_VOLUME_ID }}
+      RUNPOD_DATACENTER_ID: ${{ vars.RUNPOD_DATACENTER_ID }}
+      RUNPOD_S3_ENDPOINT: ${{ vars.RUNPOD_S3_ENDPOINT }}
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Pre-selection immutable code and FIT source check (no new tuning)
+        run: |
+          python - <<'PY'
+          import json,subprocess,pathlib
+          lock=json.loads(pathlib.Path('docs/evidence/finite_shot_cohort/STABILIZATION_PRE_SELECTION_LOCK_20261025.json').read_text())
+          assert lock["selection_inspected_before_lock"] is False
+          assert lock["candidate_alpha"]=={"R1":0.5,"R2":0.01}
+          assert lock["fit_source_run_id"]==40222393103
+          for path,expected in lock["frozen_git_blob_sha1"].items():
+              real=subprocess.check_output(["git","hash-object",path],text=True).strip()
+              if real!=expected:raise RuntimeError(f"CODE DRIFT: {path}")
+          PY
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install pinned finite-shot + frozen-network CPU runtime
+        run: |
+          python -m pip install --quiet -r requirements-cohort.txt
+          python -m pip install --quiet "torch==2.5.1" --index-url https://download.pytorch.org/whl/cpu
+      - name: Verify original cohort hash, extract ONLY permitted SELECTION partition
+        run: |
+          gh release download finite-shot-cohort-20261025-1448ca1ebbdf --repo kys928/TriQTO -D . \
+            -p 'TriQTO_Finite_Shot_Cohort_20261025.tar.gz' -p 'SHA256SUMS'
+          sha256sum -c SHA256SUMS
+          tar -xzf TriQTO_Finite_Shot_Cohort_20261025.tar.gz --wildcards \
+            'corpus/roots.json' 'corpus/blind/SELECTION/*.npz' 'corpus/development_truth/SELECTION/*.json'
+          test ! -e corpus/blind/FIT
+          test ! -e corpus/blind/TEST
+          test ! -e corpus/sealed
+      - name: One-time paired R0/R1/R2 inference on four distinct SELECTION families only
+        run: |
+          python scripts/cohort/selection_score_shard.py \
+            --corpus corpus \
+            --lock docs/evidence/finite_shot_cohort/STABILIZATION_PRE_SELECTION_LOCK_20261025.json \
+            --start ${{ matrix.start }} --stop ${{ matrix.stop }} \
+            --output selection-N-${{ matrix.start }}-${{ matrix.stop }}.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: selection-N-shard-${{ matrix.start }}-${{ matrix.stop }}
+          path: selection-N-${{ matrix.start }}-${{ matrix.stop }}.json
+          retention-days: 30
+  one-time-decision:
+    needs: score-selection
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install --quiet numpy==2.3.2
+      - name: Combine EXACTLY all 15 selection shards from this same one-shot run
+        run: |
+          mkdir -p selection-shards
+          gh run download ${{ github.run_id }} --repo kys928/TriQTO \
+            --pattern 'selection-N-shard-*' --dir selection-shards
+      - name: Frozen accuracy noninferiority + stability decision, paired family-bootstrap
+        run: |
+          python scripts/cohort/aggregate_one_time_selection.py \
+            --shards selection-shards \
+            --lock docs/evidence/finite_shot_cohort/STABILIZATION_PRE_SELECTION_LOCK_20261025.json \
+            --output one-time-selection-verdict.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: one-time-selection-aggregate-verdict
+          path: one-time-selection-verdict.json
+          retention-days: 90
