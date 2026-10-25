@@ -20,7 +20,7 @@ These are **an inventory of verified prior comparisons**, not an exhaustive decl
 ## Custodian execution workflow (NOT run from public GitHub Actions)
 
 1. Trusted custodian with authorized access enumerates **all relevant existing / spent model fit, model selection, experiment diagnostic, sealed holdout and reserve identity sources**. They author and sign a **frozen source registry** before reading candidate IDs. This may contain only identities, no truth columns. If a reserve was genuinely never materialized, custody must provide signed non-materialization evidence; do not silently omit it.
-2. Export original cohort candidate graph/family/operation/wire identity tokens using [the safe exporter](../../scripts/cohort/export_blind_candidate_identities.py) and the original hash-verified raw release. The exporter never reads TEST raw arrays/truth.
+2. Export original cohort candidate graph/family/operation/wire identity tokens using [the safe exporter](../../../scripts/cohort/export_blind_candidate_identities.py) and the original hash-verified raw release. The exporter never reads TEST raw arrays/truth.
 3. In a private authorized custodian environment, normalize each source into a source-named CSV with all five fields: `family_signature_sha256`, `context_free_signature_sha256`, `graph_sha256`, `operation_signature`, `wire_signature_sha256`. The absence of any mandatory field fails coverage until reconstructed. Different original source encodings must be converted with a documented and independently tested identity canonicalization; this script does **not** silently translate hashes.
 4. Run `scripts/cohort/custodian_identity_attestation.py` with the candidate export, exhaustive frozen registry and private source CSV folder. A **custodian-held external** Ed25519 signing key is required; the ordinary researcher has no access to it. The script outputs aggregate overlap counts, source coverage and SHA256 commitments but never emits source identities.
 5. Researcher verifies the signature with `scripts/cohort/verify_custodian_attestation.py`, using a **pre-registered trusted public key fingerprint** and exact candidate/source-registry hashes. A valid signature proves provenance/integrity of the attestation, **not** completeness of a false custodian source registry: an independent human/procedural review must inspect registry scope.
@@ -34,7 +34,7 @@ Original frozen no-inspection restrictions still apply: these scripts do not aut
 
 ## Separate replacement TEST gate
 
-The 60-family replacement TEST specified in [the replacement protocol](../experiments/REPLACEMENT_BLINDED_STABILIZATION_TEST_PROTOCOL.md) **has not been generated or evaluated**. Construction awaits custodian attestation and a locked final method, as prescribed. Secret-scheduled ID/order primitives and synthetic tests can be developed and inspected without generating an actual TEST. Do not promote the publicly leaked original TEST to confirmatory use.
+The 60-family replacement TEST specified in [the replacement protocol](../../experiments/REPLACEMENT_BLINDED_STABILIZATION_TEST_PROTOCOL.md) **has not been generated or evaluated**. Construction awaits custodian attestation and a locked final method, as prescribed. Secret-scheduled ID/order primitives and synthetic tests can be developed and inspected without generating an actual TEST. Do not promote the publicly leaked original TEST to confirmatory use.
 
 ## Escalation / evidence needed
 
