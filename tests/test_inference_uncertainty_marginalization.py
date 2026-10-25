@@ -10,7 +10,7 @@ def counts(n=4096):
     x=np.array([.24,.27,.28,.21])
     raw=np.floor(x*n).astype(int)
     raw[0]+=n-raw.sum()
-    return np.tile(raw,(3,3,2,3,1)).transpose(0,2,3,1,4)
+    return np.broadcast_to(raw,(3,3,2,3,4)).copy()
 
 def test_sampling_reproducible_both_methods():
     for method in ("I1","I2"):
