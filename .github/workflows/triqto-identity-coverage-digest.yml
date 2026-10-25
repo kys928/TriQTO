@@ -1,0 +1,67 @@
+name: TriQTO historical identity inventory coverage digest
+on:
+  push:
+    branches: [research/read-only-identity-inventory-20261025]
+    paths: ['.github/workflows/triqto-identity-coverage-digest.yml']
+permissions:
+  contents: read
+jobs:
+  summarize-scanned-metadata:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download existing audit-report artifact (no S3 access)
+        run: |
+          gh run download 40216188215 --repo kys928/TriQTO \
+            --name read-only-s3-identity-preflight --dir prior-inventory
+          test -s prior-inventory/audit-report.json
+      - name: Aggregate verified identity coverage without disclosing rows
+        run: |
+          python - <<'PY'
+          import json,collections
+          r=json.load(open('prior-inventory/audit-report.json'))
+          total=collections.Counter()
+          families=[]
+          for fam in r['safe_source_namespaces']:
+              states=collections.Counter()
+              coverage=collections.Counter()
+              all_rows=0
+              for product in fam['products']:
+                  for m in product['manifests']:
+                      states[m['state']]+=1
+                      all_rows+=m.get('rows',0)
+                      for key in m.get('available_identity_fields',[]):
+                          coverage[key]+=1
+              total.update(states)
+              families.append({'namespace':fam['namespace'],
+                               'products':fam['product_prefix_count'],
+                               'manifest_statuses':dict(states),
+                               'manifest_identity_field_counts':dict(coverage),
+                               'readable_rows':all_rows})
+          out={'schema':'triqto.readonly_identity_coverage_digest.v1',
+               'original_run':'https://github.com/kys928/TriQTO/actions/runs/40216188215',
+               'top_level_namespaces':r['top_level_namespace_count'],
+               'safe_namespace_count':len(r['safe_source_namespaces']),
+               'protected_namespace_count':len(r['protected_namespace_present']),
+               'unclassified_namespace_count':len(r['limited_sources']),
+               'manifest_state_totals':dict(total),
+               'source_family_coverage':families,
+               'protected_paths_opened':False,
+               'source_complete':False,
+               'reserve_nonmaterialization_certified':False}
+          open('coverage-digest.json','w').write(json.dumps(out,indent=2)+'\n')
+          print(json.dumps({
+            'manifest_state_totals':out['manifest_state_totals'],
+            'nonempty_safe_namespaces':sum(bool(x['manifest_statuses']) for x in families),
+            'total_safe_manifest_rows':sum(x['readable_rows'] for x in families),
+            'protected_namespace_count':out['protected_namespace_count'],
+            'unclassified_namespace_count':out['unclassified_namespace_count']},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: identity-coverage-digest
+          path: coverage-digest.json
+          retention-days: 30
