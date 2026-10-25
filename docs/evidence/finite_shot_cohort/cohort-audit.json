@@ -1,0 +1,32 @@
+{
+  "schema": "triqto.cohort.independent_audit.v1",
+  "cohort_identity": "sha256:1448ca1ebbdf50149d0200dae4c6ed9eb8a39156c18e329e42ea74ca3d10203d",
+  "status": "INTERNAL_INTEGRITY_PASS_EXTERNAL_INDEPENDENCE_UNVERIFIED",
+  "files_hash_checked": 3366,
+  "families": 240,
+  "roots": 960,
+  "observations": 12480,
+  "split_stratum_counts": {
+    "FIT/representative": 96,
+    "FIT/stress": 24,
+    "SELECTION/representative": 48,
+    "SELECTION/stress": 12,
+    "TEST/representative": 48,
+    "TEST/stress": 12
+  },
+  "independent_full_count_replays": 24,
+  "independent_canonical_reconstructions": 384,
+  "maximum_canonical_absolute_error": 9.947598300641403e-13,
+  "test_labels_accessed": false,
+  "historical_coverage_complete": false,
+  "blockers": [
+    "earlier non-Step14 training products",
+    "spent fresh-holdout blind graph inventory",
+    "selected 36 diagnostic graph inventory",
+    "inaccessible sealed/future reserves"
+  ],
+  "limitations": [
+    "independent code path, same investigator and simulator library; not an independent human replication",
+    "reconstruction sample, exhaustive shape/hash/mass checks; not every floating-point cell independently recomputed"
+  ]
+}

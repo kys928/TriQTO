@@ -1,0 +1,7 @@
+partition,sampling_stratum,families
+FIT,representative,96
+FIT,stress,24
+SELECTION,representative,48
+SELECTION,stress,12
+TEST,representative,48
+TEST,stress,12

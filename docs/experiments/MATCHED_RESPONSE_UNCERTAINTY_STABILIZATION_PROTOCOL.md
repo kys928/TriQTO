@@ -73,3 +73,7 @@ Perform a **read-only development-data inventory and leakage preflight** first. 
 ## What is deliberately not claimed
 
 This protocol is a research plan, not a completed remedy or even evidence that attenuation is preferable to preserving the existing features. The earlier N=15.13% matched-response conditional disagreement is **not an expected improvement size**. The 36-example diagnostic examples are not an independent validation source.
+
+## Cohort construction record (2026-10-25; not remedy-selection authorization)
+
+The new [240-family cohort, EDA and independent audit](../evidence/finite_shot_cohort/README.md) are documented in PR #108. Internal construction/integrity verification passed, but protected-reserve and complete historical structural exclusion remain unverified. The corpus is quarantined; this record does not lift the mandatory independent-data gate above. No R0/R1/R2 comparison has been performed.

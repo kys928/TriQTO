@@ -1,0 +1,15 @@
+{
+  "cohort_identity": "sha256:1448ca1ebbdf50149d0200dae4c6ed9eb8a39156c18e329e42ea74ca3d10203d",
+  "calibration_candidates_across_roots": 21804,
+  "calibration_calls": 18838656,
+  "diagnostic_calls": 74880,
+  "calibration_shots": 180047314944,
+  "diagnostic_shots": 143984640,
+  "raw_count_archive_bytes": 359469469,
+  "released_tar_gz_bytes": 369819600,
+  "scientific_materialization_seconds": 385.74068356300006,
+  "archive_sha256": "fbdf4f351771e5b1779173b1e085eadd249ecb72d059d0fb051a3f55b44adce9",
+  "cost_scope": "CPU simulation only; no QPU shots or RunPod pods. GitHub Actions billing, if any, is not measured.",
+  "total_simulated_shots": 180191299584,
+  "total_measurement_calls": 18913536
+}
