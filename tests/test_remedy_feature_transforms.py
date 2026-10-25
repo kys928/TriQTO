@@ -60,3 +60,8 @@ def test_zero_alpha_r2_identity_and_abs_consistency():
 def test_global_scale_fail_closed():
     x,c=example()
     with pytest.raises(ValueError):r.calibrated_covariance(c,100,1)
+
+def test_r1_zero_noise_or_zero_alpha_is_exact_identity():
+    x,c=example()
+    np.testing.assert_array_equal(r.apply(x,np.zeros((6,6)),"R1"),x)
+    np.testing.assert_array_equal(r.apply(x,c,"R1",alpha=0),x)
