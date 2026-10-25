@@ -15,8 +15,11 @@ import core as c
 from crossfit_nonlinear_covariance_fit import boot_cov,fixed_seed
 from remedy_feature_transforms import calibrated_covariance,apply
 
-sys.path.insert(0,str(c.ROOT/"scripts/v0_2"))
-import step14_equivalence_aware_common as equiv
+# Extract only frozen pooling function AST, avoiding legacy training imports.
+# core.py already SHA256 verifies the complete frozen source module.
+c.source_functions("step14_equivalence_aware_common.py",
+                   ["_logsumexp","_softmax_logweights","equivalence_aware_pool_one"],c.NS)
+pool_one=c.NS["equivalence_aware_pool_one"]
 
 SEEDS=(6201,6202,6203)
 METHOD="equiv_fit_4df8aea718950bdc2650a03b"
@@ -115,7 +118,7 @@ def run(corpus):
                             transformed.append(apply(original[k],corrected,method))
                         xx=np.stack(transformed)
                     logits=model_logits(xx,models)
-                    pooled=equiv.equivalence_aware_pool_one(
+                    pooled=pool_one(
                         logits,profiles,pair_dist,pair_gate,tau=.02,frame_temperature=2.)
                     values[method].append(int(np.argmax(pooled)))
             for method in preds:
