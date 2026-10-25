@@ -124,8 +124,8 @@ def attest(candidate_path,inventory_path,source_dir,secret_key_path=None):
         if not isinstance(key,Ed25519PrivateKey):
             raise ValueError("Only externally provided Ed25519 key allowed")
         # Signature covers the exact unsigned aggregate payload; never the private key.
-        payload["signature_ed25519_hex"]=key.sign(canonical(payload)).hex()
         payload["passed"]=bool(all_covered and zero)
+        payload["signature_ed25519_hex"]=key.sign(canonical(payload)).hex()
     return payload
 
 def main():
